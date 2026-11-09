@@ -1,8 +1,9 @@
 """Fit check with the real bought-part models. Writes real_fit_report.json."""
+import os as _os; WS = (_os.environ.get("BOT_WS") or ("/home/claude" if _os.path.isdir("/home/claude/case") else _os.path.expanduser("~/bot-ws"))).rstrip("/") + "/"   # workspace root (tools/make_workspace.sh)
 import sys, json, itertools
-sys.path.insert(0, '/home/claude/case'); sys.path.insert(0, '/home/claude/wheel_adapter')
+sys.path.insert(0, WS + 'case'); sys.path.insert(0, WS + 'wheel_adapter')
 import cadquery as cq
-exec(open('/home/claude/case/assemble.py').read().split("# ---------------- placeholder components")[0])   # printed parts + motors
+exec(open(WS + 'case/assemble.py').read().split("# ---------------- placeholder components")[0])   # printed parts + motors
 import real_parts as rp
 from real_parts import box as B
 
@@ -79,6 +80,6 @@ if __name__ == "__main__":
     for a, b in itertools.combinations(names, 2):     # bought vs bought
         v = vol(ALL[a][0], ALL[b][0])
         if v > 0.3: rep["clashes"].append([a, b, round(v, 1), kind(ALL[a][0], ALL[b][0])])
-    json.dump(rep, open('/home/claude/case/real_fit_report.json', 'w'), indent=1)
+    json.dump(rep, open(WS + 'case/real_fit_report.json', 'w'), indent=1)
     for c in rep["clashes"]: print("CLASH", c)
     print(len(rep["clashes"]), "clashes")

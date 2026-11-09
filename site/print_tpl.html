@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Balancing robot V1.1 – how the parts print</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1d2330;--mut:#667085;--ac:#2f6fd0;--card:#fff;--bd:#e2e5ea}
+@media (prefers-color-scheme:dark){:root{--bg:#15171b;--fg:#e8eaee;--mut:#9aa2ae;--ac:#6ea3ff;--card:#1f2228;--bd:#30343c}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 -apple-system,system-ui,Segoe UI,Roboto,sans-serif}
+header{padding:12px 14px 6px}h1{font-size:17px;margin:0 0 2px}header p{margin:0;color:var(--mut);font-size:13px}a{color:var(--ac)}
+nav.top{display:flex;gap:6px;overflow-x:auto;padding:6px 14px 8px;scrollbar-width:none}nav.top::-webkit-scrollbar{display:none}
+nav.top a{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:999px;padding:7px 13px;font-size:14px;text-decoration:none}
+nav.top a.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.bar{display:flex;gap:6px;overflow-x:auto;padding:4px 14px 8px;scrollbar-width:none}.bar::-webkit-scrollbar{display:none}
+.bar button{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer;min-height:36px}
+.bar button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+#view{position:relative;height:56vh;min-height:300px}canvas{display:block;width:100%;height:100%;touch-action:none}
+#legend{position:absolute;left:10px;top:8px;font-size:12px;background:color-mix(in srgb,var(--card) 85%,transparent);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;line-height:1.6}
+#legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.ctl{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:14px}
+.ctl input[type=range]{flex:1;min-width:0;height:28px}
+.card{margin:6px 12px 14px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
+.card h2{font-size:16px;margin:0 0 4px}.card .st{color:var(--mut);font-size:13px;margin:0 0 6px}
+.card p{margin:4px 0}
+.tw{overflow-x:auto}.tw table{border-collapse:collapse;font-size:13px;min-width:560px}.tw th,.tw td{border-bottom:1px solid var(--bd);padding:6px 8px;text-align:left}
+</style></head><body>
+<header><h1>Balancing robot V1.1 — how the parts print</h1>
+<p>Each printed part as it sits on the build plate (220 × 220 grid, 10 mm squares). Slide the layer bar to watch it build. Overhang analysis from the real geometry: no part needs support.</p></header>
+<nav class="top" aria-label="Pages"><a href="index.html">3D viewer</a><a href="wiring_boards.html">Wiring diagram</a><a href="print.html" class="on" aria-current="page">How it prints</a><a href="docs.html">README &amp; install</a><a href="code.html">Source code</a><a href="bom.html">Parts list</a></nav>
+<div class="bar" id="parts" role="tablist" aria-label="Part"></div>
+<div id="view"><canvas id="c" aria-label="Part on the build plate"></canvas>
+<div id="legend"><div><i style="background:#9aa6b8"></i>part</div><div><i style="background:#f39c12"></i>bridge (flat roof)</div><div><i style="background:#e53935"></i>overhang &gt; 45°</div><div><i style="background:#2ecc71"></i>first layer</div></div></div>
+<div class="ctl"><label for="layer">Layer</label><input type="range" id="layer" min="0" max="1000" value="1000"><span id="lh" style="min-width:74px;text-align:right">top</span></div>
+<div class="card" id="info"><h2 id="pt"></h2><p class="st" id="ps"></p><p id="ph"></p></div>
+<div class="card"><h2>All printed parts</h2><div class="tw"><table id="tab"><tr><th>Part</th><th>On the plate (mm)</th><th>Volume</th><th>Bridges</th><th>&gt;45°</th></tr></table></div>
+<p class="st" style="margin-top:8px">PETG, 0.2 mm layers, 3 walls, 20–25 % infill (wheel adapters 100 %). Bridges are flat roofs printed in the air between two supports; the slicer handles anything up to ~20 mm. Areas are summed over each part.</p></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const PP=__PARTS__;
+const c=document.getElementById('c'),view=document.getElementById('view');
+const renderer=new THREE.WebGLRenderer({canvas:c,antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.localClippingEnabled=true;
+const scene=new THREE.Scene();const cam=new THREE.PerspectiveCamera(35,1,1,5000);cam.up.set(0,0,1);
+const ctl=new OrbitControls(cam,c);ctl.enableDamping=true;
+scene.add(new THREE.HemisphereLight(0xffffff,0x8090a0,1.5));const dl=new THREE.DirectionalLight(0xffffff,1.6);dl.position.set(200,-300,400);scene.add(dl);
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const plate=new THREE.Mesh(new THREE.BoxGeometry(220,220,2),new THREE.MeshStandardMaterial({color:dark?0x2a2f38:0xd9dde4,roughness:.9}));plate.position.z=-1.01;scene.add(plate);
+const grid=new THREE.GridHelper(220,22,dark?0x55606e:0x9aa3b0,dark?0x3a414c:0xbfc6cf);grid.rotation.x=Math.PI/2;grid.position.z=0.02;scene.add(grid);
+const clip=new THREE.Plane(new THREE.Vector3(0,0,-1),1e4);
+const b64=s=>Uint8Array.from(atob(s),ch=>ch.charCodeAt(0)).buffer;
+let mesh=null,ghost=null,cur=null;
+function build(p){
+  const q=new Uint16Array(b64(p.v)),idx=p.i32?new Uint32Array(b64(p.i)):new Uint16Array(b64(p.i));
+  const pos=new Float32Array(q.length);for(let k=0;k<q.length;k++){const a=k%3;pos[k]=p.lo[a]+q[k]/65535*p.sc[a];}
+  let g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setIndex(new THREE.BufferAttribute(idx,1));g=g.toNonIndexed();
+  const P=g.attributes.position.array,col=new Float32Array(P.length);const base=new THREE.Color(0x9aa6b8),br=new THREE.Color(0xf39c12),oh=new THREE.Color(0xe53935),fl=new THREE.Color(0x2ecc71);
+  const a=new THREE.Vector3(),b=new THREE.Vector3(),cc=new THREE.Vector3(),n=new THREE.Vector3();
+  for(let t=0;t<P.length;t+=9){a.fromArray(P,t);b.fromArray(P,t+3);cc.fromArray(P,t+6);n.subVectors(b,a).cross(cc.clone().sub(a));const L=n.length()||1;const nz=n.z/L;
+    const zmin=Math.min(a.z,b.z,cc.z),zmax=Math.max(a.z,b.z,cc.z);let k=base;
+    if(nz<-0.99&&zmax<0.05)k=fl;else if(nz<-0.99&&zmin>0.3)k=br;else if(nz<-0.72&&zmin>0.3)k=oh;
+    for(let v=0;v<3;v++){col[t+3*v]=k.r;col[t+3*v+1]=k.g;col[t+3*v+2]=k.b;}}
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();return g;}
+function show(i){
+  const p=PP[i];cur=p;[...document.querySelectorAll('#parts button')].forEach((b,j)=>{b.classList.toggle('on',j===i);b.setAttribute('aria-selected',j===i)});
+  if(mesh){scene.remove(mesh);scene.remove(ghost);mesh.geometry.dispose();}
+  const g=build(p);
+  mesh=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6,side:THREE.DoubleSide,clippingPlanes:[clip]}));
+  ghost=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x9aa6b8,transparent:true,opacity:.12,depthWrite:false}));
+  scene.add(ghost);scene.add(mesh);
+  const r=Math.max(...p.size)*.75+20;const d=r/Math.sin(THREE.MathUtils.degToRad(cam.fov)/2)*.7;
+  ctl.target.set(0,0,p.size[2]/2);cam.position.set(d*.55,-d*.75,d*.55+p.size[2]/2);cam.near=d/50;cam.far=d*20;cam.updateProjectionMatrix();
+  document.getElementById('pt').textContent=p.label;
+  document.getElementById('ps').textContent=`On the plate: ${p.size[0]} × ${p.size[1]} mm, ${p.size[2]} mm tall · ${p.vol} cm³ · bridges ${p.bridge_mm2} mm² · overhang >45° ${p.steep_mm2} mm²`;
+  document.getElementById('ph').textContent=p.how;
+  setLayer();try{history.replaceState(null,'','#'+p.name)}catch(e){}}
+const sl=document.getElementById('layer'),lh=document.getElementById('lh');
+function setLayer(){if(!cur)return;const f=+sl.value/1000,h=f*cur.size[2];clip.constant=f>=1?1e4:h;
+  lh.textContent=f>=1?'top':`${h.toFixed(1)} mm · L${Math.max(1,Math.round(h/0.2))}`;}
+sl.addEventListener('input',setLayer);
+const bar=document.getElementById('parts'),tab=document.getElementById('tab');
+PP.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.role='tab';b.textContent=p.label;b.onclick=()=>show(i);bar.appendChild(b);
+  const tr=document.createElement('tr');tr.innerHTML=`<td><a href="#${p.name}">${p.label}</a></td><td>${p.size.join(' × ')}</td><td>${p.vol} cm³</td><td>${p.bridge_mm2} mm²</td><td>${p.steep_mm2} mm²</td>`;
+  tr.querySelector('a').onclick=e=>{e.preventDefault();show(i);window.scrollTo({top:0,behavior:'smooth'});};tab.appendChild(tr);});
+function resize(){const w=view.clientWidth,h=view.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}
+new ResizeObserver(resize).observe(view);resize();
+const start=PP.findIndex(p=>'#'+p.name===location.hash);show(start>=0?start:0);
+(function loop(){requestAnimationFrame(loop);ctl.update();renderer.render(scene,cam);})();
+</script></body></html>
