@@ -26,12 +26,19 @@ still holds it upright 1 s after the catch (minus distance travelled), −5 for 
 ```bash
 git clone https://github.com/tuanito/2-wheel-balanced-bot && cd 2-wheel-balanced-bot
 ml/setup_mac.sh                                # venv + MuJoCo + PPO, builds sim/libbot.dylib
+ml/run_training.sh --steps 2000000             # the whole loop below; tensorboard --logdir ml/runs
+```
+
+`run_training.sh` is these steps, in order. The rebuild before the last line is the one to remember:
+without it `--compiled` measures the *previous* policy and still prints a plausible number.
+
+```bash
 source .venv/bin/activate
 python ml/evaluate.py                          # baseline: the hand-tuned stand-up
-python ml/train.py --steps 2000000             # uses all cores but one; progress: tensorboard --logdir ml/runs
+python ml/train.py --steps 2000000             # uses all cores but one
 python ml/evaluate.py ml/runs/standup/best.zip # learned vs hand-tuned
 python ml/export_policy.py ml/runs/standup/best.zip
-clang++ -O2 -std=c++17 -shared -fPIC core/controller.cpp core/sim_api.cpp -o sim/libbot.dylib
+core/build_lib.sh                              # rebuild with the exported policy
 python ml/evaluate.py --compiled               # the exported C++ policy inside the controller (what the robot runs)
 ```
 

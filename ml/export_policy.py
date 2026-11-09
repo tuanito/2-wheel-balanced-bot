@@ -3,8 +3,9 @@
   python ml/export_policy.py ml/runs/standup/best.zip
 
 The policy is the actor's mean (deterministic): tanh MLP 6 -> 64 -> 64 -> 1, output clamped to [-1, 1].
-~4.6 k multiply-adds every 10 ms: well under 0.1 ms on the ESP32-S3. Then rebuild (sim: g++ ... libbot.so, Mac:
-ml/setup_mac.sh; robot: pio run) and check with `python ml/evaluate.py --compiled`.
+~4.6 k multiply-adds every 10 ms: well under 0.1 ms on the ESP32-S3. Then rebuild (simulator:
+core/build_lib.sh; robot: pio run) and check with `python ml/evaluate.py --compiled`.
+ml/run_training.sh does all of this in the right order.
 """
 import sys, pathlib
 import numpy as np
