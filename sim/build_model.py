@@ -81,7 +81,7 @@ def xml(arena=False):
         world += f'<geom name="leg0" type="cylinder" pos="1.0 -1.0 {-R + 0.09:.4f}" size="0.03 0.09" rgba="0.3 0.2 0.1 1"/>'
     floor_z = -R
     return f'''<mujoco model="robot_c">
-  <compiler meshdir="{HERE}" autolimits="true"/>
+  <compiler meshdir="." autolimits="true"/>
   <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"/>
   <size memory="20M"/>
   <visual><global offwidth="1280" offheight="720"/><quality shadowsize="2048"/></visual>
