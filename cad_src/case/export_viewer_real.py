@@ -1,10 +1,11 @@
 """Viewer data with the REAL bought-part models and the wiring (replaces the placeholder blocks)."""
+import os as _os; WS = (_os.environ.get("BOT_WS") or ("/home/claude" if _os.path.isdir("/home/claude/case") else _os.path.expanduser("~/bot-ws"))).rstrip("/") + "/"   # workspace root (tools/make_workspace.sh)
 import sys, json
-src = open('/home/claude/case/export_viewer_data.py').read()
+src = open(WS + 'case/export_viewer_data.py').read()
 head = src.split("cols={")[0]                         # imports, mesh(), printed parts, motors, adapters, wheels
 tail = src[src.index("# vertical charging dock"):]               # dock + json dump
 exec(head)
-exec(open('/home/claude/case/real_assembly.py').read().split('if __name__ == "__main__":')[0].split("exec(open('/home/claude/case/assemble.py')")[0])
+exec(open(WS + 'case/real_assembly.py').read().split('if __name__ == "__main__":')[0].split("exec(open(WS + 'case/assemble.py')")[0])
 import real_parts as rp, wiring as W
 from real_parts import box as B
 P = rp.real_parts()
@@ -56,5 +57,5 @@ for h in HS:
                    path=[[round(v, 2) for v in p] for p in h["path"]],
                    conds=[dict(sig=c["sig"], col=c["col"], d=c["d"], a=[round(v, 2) for v in c["a"]], b=[round(v, 2) for v in c["b"]],
                                a_lbl=c["a_lbl"], b_lbl=c["b_lbl"], L=round(W.length(W.conductor_path(h, c)) / 10, 1)) for c in h["conds"]]))
-json.dump(wd, open('/home/claude/case/wiring_data.json', 'w'))
+json.dump(wd, open(WS + 'case/wiring_data.json', 'w'))
 exec(tail)

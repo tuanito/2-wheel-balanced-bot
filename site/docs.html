@@ -1,0 +1,1398 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Balancing robot V1.1 – README & install</title><style>
+:root{--bg:#f6f7f9;--fg:#1d2330;--mut:#667085;--ac:#2f6fd0;--card:#fff;--bd:#e2e5ea;--code:#f3f4f7}
+@media (prefers-color-scheme:dark){:root{--bg:#15171b;--fg:#e8eaee;--mut:#9aa2ae;--ac:#6ea3ff;--card:#1f2228;--bd:#30343c;--code:#191b20}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,system-ui,Segoe UI,Roboto,sans-serif}
+header{padding:12px 14px 6px}h1{font-size:17px;margin:0 0 2px}header p{margin:0;color:var(--mut);font-size:13px}a{color:var(--ac)}
+nav.top{display:flex;gap:6px;overflow-x:auto;padding:6px 14px 8px;scrollbar-width:none}nav.top::-webkit-scrollbar{display:none}
+nav.top a,button.pill{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:999px;padding:7px 13px;font:inherit;font-size:14px;text-decoration:none;cursor:pointer}
+nav.top a.on,button.pill.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.card{margin:6px 12px 16px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;overflow:hidden}
+
+.tabs{display:flex;gap:6px;padding:0 14px 4px}
+.doc{font-size:15px;line-height:1.55}.doc h1{font-size:20px;margin:6px 0 10px}.doc h2{font-size:17px;margin:22px 0 8px;padding-top:10px;border-top:1px solid var(--bd)}.doc h3{font-size:15px;margin:16px 0 6px}
+.doc pre{background:var(--code);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;overflow-x:auto;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.doc code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:1px 4px;border-radius:4px}.doc pre code{background:none;padding:0}
+.doc .tw{overflow-x:auto;margin:8px 0}.doc table{border-collapse:collapse;font-size:13.5px;min-width:100%}.doc th,.doc td{border:1px solid var(--bd);padding:6px 8px;text-align:left;vertical-align:top}.doc th{background:var(--code)}
+.doc hr{display:none}.doc li{margin:3px 0}
+.pane[hidden]{display:none}
+</style></head><body>
+<header><h1>Balancing robot V1.1 — README &amp; installation</h1><p>Both files are also in robot_software_V1.1.zip.</p></header>
+<nav class="top" aria-label="Pages"><a href="index.html">3D viewer</a><a href="wiring_boards.html">Wiring diagram</a><a href="print.html">How it prints</a><a href="docs.html" class="on" aria-current="page">README &amp; install</a><a href="code.html">Source code</a><a href="bom.html">Parts list</a></nav>
+
+<div class="tabs" role="tablist"><button class="pill on" role="tab" aria-selected="true" data-p="install">Installation guide</button><button class="pill" role="tab" aria-selected="false" data-p="readme">README</button></div>
+<div class="card doc pane" id="install" role="tabpanel"><h1>Installation guide: balancing robot V1.1</h1>
+<p>From a box of parts to a robot that balances, stands up and takes voice orders through Claude.
+Take it in order: each stage checks the one before it. Allow a weekend for the build, an evening for the software.</p>
+<p>Everything referred to here is in <code>robot_software_V1.1.zip</code> and <code>V1.1_print_files.zip</code>.
+Part numbers, prices and links: the BOM ("BOM" sheet). Every wire: the BOM's "Wiring" sheet.</p>
+<hr />
+<h2>0. What you need on your computer</h2>
+<ul>
+<li><strong>PlatformIO</strong> (VS Code extension or <code>pip install platformio</code>) to build and flash the ESP32-S3.</li>
+<li><strong>Raspberry Pi Imager</strong> to write the Pi's SD card.</li>
+<li><strong>LKMTECH motor tool</strong> (Windows) + a USB-CAN adapter (Neo2) to set up the motors once.</li>
+<li>Optional, for the simulation: Python 3.11+, <code>pip install mujoco numpy scipy</code>, and g++.</li>
+<li>A <strong>Claude API key</strong> (console.anthropic.com → API keys). Voice orders need it; everything else works without it.</li>
+</ul>
+<h2>1. Print the parts</h2>
+<p>All parts are in <code>V1.1_print_files.zip</code> (STL to print, STEP to edit). PETG, 0.2 mm layers, no supports.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Qty</th>
+<th>Orientation / note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>body</td>
+<td>1</td>
+<td>Front opening down. The file holds two pieces (shell + motor block): print both</td>
+</tr>
+<tr>
+<td>shelf, tray, clamp_bar, carrier_plate</td>
+<td>1 / 1 / 1 / 2</td>
+<td>Flat side down</td>
+</tr>
+<tr>
+<td>front, cover</td>
+<td>1 / 1</td>
+<td>Outside face down</td>
+</tr>
+<tr>
+<td>contact_plate</td>
+<td>1</td>
+<td><strong>Inner face down</strong> (cover side): funnels open upwards, no overhang</td>
+</tr>
+<tr>
+<td>dock_foot</td>
+<td>1</td>
+<td>Standing, floor plate on the bed (123 mm), no supports; 3 walls / 15 % infill is plenty. 2 M3 heat-set inserts into the columns at the top of its back wall</td>
+</tr>
+<tr>
+<td>dock_head</td>
+<td>1</td>
+<td><strong>Standing on the shelf's underside</strong> (the face slab's bottom edge is on the bed too, 86 mm tall): no support</td>
+</tr>
+<tr>
+<td>dock_mast</td>
+<td>1</td>
+<td><strong>Upside down</strong> (closed top on the bed, spigot up, 133 mm): no support. The spigot pushes into the top of the head's column</td>
+</tr>
+<tr>
+<td>dock_wing</td>
+<td>2</td>
+<td><strong>Standing on its back edge</strong> (the side that bolts to the slab): no support; second one mirrored</td>
+</tr>
+<tr>
+<td>dock_ridge</td>
+<td>2</td>
+<td>PETG, flat; print the second one mirrored. Drops into the T slots at the front of the dock's floor plate</td>
+</tr>
+<tr>
+<td>dock_ridge_insert</td>
+<td>2</td>
+<td><strong>TPU 95A</strong>, flat, ribs up, slow (~20 mm/s); second one mirrored. Pushed up into the frame's window from below</td>
+</tr>
+<tr>
+<td>eye_retainer, eye_diffuser</td>
+<td>2 / 2</td>
+<td>Diffusers in <strong>white</strong></td>
+</tr>
+<tr>
+<td>ir_hood</td>
+<td>4</td>
+<td><strong>Black</strong> PETG (light-tight), base down</td>
+</tr>
+<tr>
+<td>speaker_ring</td>
+<td>1</td>
+<td>Flange down</td>
+</tr>
+<tr>
+<td>mic_clamp</td>
+<td>2</td>
+<td>Flat side down</td>
+</tr>
+<tr>
+<td>mf6015_hex12_adapter</td>
+<td>2</td>
+<td>Hex end down, 100 % infill, PETG or PA-CF. Screw-head seats print with the two-layer bridge trick at 0.2 mm layers: nothing to drill out</td>
+</tr>
+</tbody>
+</table></div>
+<p>Then poke through the 0.2 mm sacrificial layers in the screw recesses and press the heat-set inserts
+(34 × M3, 17 × M2, 6 × M2.5, 2 × M4). Four of the M3 go into the tops of the two motor walls, for the shelf screws. Keep them square.</p>
+<h2>2. Configure the motors (before they go in)</h2>
+<p>With the LKMTECH tool and the USB-CAN adapter, one motor at a time:</p>
+<ol>
+<li>Set <strong>ID 1 = left</strong>, <strong>ID 2 = right</strong>, CAN <strong>1 Mbps</strong>.</li>
+<li>Set a current limit of 16.5 A.</li>
+<li>Send +0.2 N·m to each with the wheel free. Note the direction. Both must turn so the robot would roll
+   <strong>forward</strong> once mounted; if one doesn't, flip <code>DIR_LEFT</code> / <code>DIR_RIGHT</code> in <code>firmware/esp32/include/config.h</code>
+   later.</li>
+<li>Read the encoder: it must span 0–65535 per turn (<code>ENC_COUNTS</code> in <code>config.h</code>).</li>
+</ol>
+<h2>3. Assemble</h2>
+<p>Follow the BOM's "Build check" sheet. Short version:</p>
+<ol>
+<li>Motors onto the centre wall (8 × M2.5×10, blue threadlocker), <strong>connector bay pointing up</strong>. Plug the 6-pin and
+   3-pin leads into the bay from above, then thread them through the window in the wall into the centre gap.</li>
+<li>Wheel adapters + wheels. Measure the wheel offset first; if it differs, set <code>NECK_L</code> in
+   <code>cad_scripts/wheel_adapter.py</code> and reprint.</li>
+<li>Floor tray: 5 V regulator, distribution board + 30 A fuse under the clamp bar, IMU on the axle line.</li>
+<li>Left wall: IP2368 USB-C charger on its carrier plate. Shelf: lidar adapter board.
+4a. <strong>Front panel extras (Nov 2026):</strong>
+   - <strong>AI Camera:</strong> first set its focus to ~1.5 m with the supplied tool (look at a printed page at 1.5 m on the
+     live view), then 4 × M2×6 onto the 8.5 mm posts. Glue the 19 × 19 mm polycarbonate window into the pocket on the
+     outside (2 dots of clear glue in the corners, not over the lens).
+   - <strong>Headlights:</strong> solder ~12 cm of red/black 24 AWG to each COB disc (+ outer, − inner pad), drop the disc into its
+     collar from the inside (LEDs facing out), thread the wires through the retainer's hole, 2 × M2×6.
+   - <strong>Headlight driver</strong> (10 × 8 holes cut from the 2 × 8 cm perfboard of the set): Pololu D36V6F12 (VIN, GND, VOUT),
+     IRLB8721 laid flat (gate via 100 Ω from the PWM pad, 100 kΩ gate to GND, source to GND, drain = the discs' −),
+     VOUT -&gt; both discs' +. Pads at the corners: VIN/GND bottom-inner, PWM/GND bottom-outer, discs at the top.
+     Drill Ø2.2 in the two bottom corners (19 mm apart), 2 × M2×6 + washers onto the bosses left of the sonar.
+   - <strong>Feed:</strong> PDB + -&gt; 1 A inline fuse -&gt; VIN, PDB − -&gt; GND (22 AWG, up the shelf cable hole). Pi pin 32 (GPIO12) -&gt;
+     PWM, pin 34 -&gt; its GND (Dupont).
+   - <strong>Bumpers:</strong> 4 rubber bumpers on the face, Y ±66 mm, Z 40 and 127 (about 23 mm in from each side edge).</li>
+<li><strong>Audio (new in V1.1):</strong>
+   - Speaker into the speaker ring, ring onto the <strong>right</strong> wall over the grille (3 screws). The
+     MAX98357A amp goes on the ring's tab with zip ties. 470 µF across the amp's 5 V input.
+   - The two ICS-43434 mic boards into the front panel pockets, port side to the Ø1.5 holes, held by the
+     mic clamps. <strong>Left mic SEL → GND, right mic SEL → 3.3 V.</strong> Twist the I2S wires with GND, keep them short.
+   - Charge diode + 5 A fuse: inline in the dock-pad lead (heat-shrink), no plate on the right anymore.</li>
+<li>Slide the shelf in flat on the wall tops and screw it down: 4 × M3×10 countersunk into the wall-top inserts.
+   These screws are structural (they tie the motor walls together; without them the walls splay under load).
+   Then the battery with the BMS against its back face, both under the strap.</li>
+<li>Perfboard: build it from the to-scale layout on the wiring page ("Board pictures", perfboard drawn from the component
+   side) on a standard 5 × 7 cm board with 24 × 18 holes: DevKit on two 22-pin female header rows (holes 2-23 counted
+   from the right, rows 9 and 18 from the bottom), the 74AHCT125,
+   12 resistors and the dividers flat under the DevKit, plugs J1-J7 and the 470 µF below it. J1 is an <strong>XT30 PCB plug</strong>
+   (the whole 5 V rail goes through it, too much for a 2.54 mm header). Then perfboard (CAN board on 2.5 mm spacers, 2 × M3 nylon through Ø3.2 holes you drill) and Pi (4 × M2 + washers) on the back cover; contact plate with the M4
+   contacts outside. The lidar's USB adapter plugs into the Pi's OTG port with a 90° micro-USB OTG cable (a straight
+   adapter hits the wheel arch). Wiring routes and lengths: README, "Wiring in place", and the viewer's Wiring view.</li>
+<li>Front panel: camera, sonar, eyes + diffusers + retainers, mics. USB-C charging socket in the left side wall above the
+   wheel (2 × M3 + nuts), so the robot can charge standing, face-down or on its back.</li>
+<li>Front panel and back cover: 6 × M3×10 countersunk hex-socket screws each (ISO 10642, 2.5 mm key), heads flush:
+   nothing sticks out to mark the floor when the robot falls. Same for the 4 contact-plate screws.
+   Lidar on top, power button (front-right) and arm button (front-left). <strong>Power switch:</strong> Pololu 2813 board screwed (or VHB-taped)
+   inside the back cover, above the Pi (pads facing forward): VIN = BAT+ from the 30 A fuse, VOUT = BAT+ to the PDB (16 AWG); the two
+   negatives (BMS P- and PDB in-) spliced beside it, a 26 AWG tap from the splice to its GND. The 12 mm button's two
+   wires go to the board's pushbutton pads (in parallel with its own button); J9 (GPIO21) to its OFF pin. Before the
+   first battery connection: VIN-VOUT open when off, no continuity between + and -.
+   <strong>Cover plugs (so the back cover comes off as one module):</strong> the switch's input pair (VIN + P- splice) ends in a MALE
+   XT60, the BMS lead in a FEMALE one; the switch's output pair (VOUT + splice) ends in a FEMALE XT60, the PDB lead in a
+   MALE one (they can't be swapped; no bare live male). JST-XH 3-pin in the power-button lead beside the switch board,
+   JST-XH 2-pin in the CAN pair beside the CAN board. Leave 4 cm of slack on every wire that goes to the cover.
+   <strong>Motor leads:</strong> route them up out of the plug, over and down through the wall window in a loose loop (the shelf is
+   18 mm above the plug for this); don't pull them tight against the plug.</li>
+<li>Sense wires to J7: VBAT from the power switch VOUT, dock sense from the charge fuse+diode input, USB sense from the
+    IP2368 VBUS pad (26 AWG each). 3 A inline fuse in the PDB -&gt; regulator VIN lead.</li>
+<li><strong>IR receivers:</strong> a TSOP38238 in each black hood, dome facing the window, leads bent straight down. Thread the
+    leads through the Ø4.5 hole in the top skin, glue the hood on (window facing out: front-left, front-right,
+    back-left, back-right). Pin order seen from the dome: OUT, GND, VS. Chain VS and GND from receiver to receiver,
+    one OUT wire each; 6-wire cable to perfboard plug J8 (3V3, GND, GPIO13 FL, 14 FR, 15 BL, 16 BR).</li>
+</ol>
+<h3>Wiring at a glance</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>ESP32-S3</th>
+<th>To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPIO4 / GPIO5</td>
+<td>CAN board TX / RX</td>
+</tr>
+<tr>
+<td>GPIO8 / GPIO9</td>
+<td>IMU SDA / SCL</td>
+</tr>
+<tr>
+<td>GPIO17 / GPIO18</td>
+<td>Pi GPIO15 (RX) / GPIO14 (TX), 921600 baud, common GND</td>
+</tr>
+<tr>
+<td>GPIO10 / GPIO11</td>
+<td>Sonar TRIG / ECHO (ECHO through 1 k / 2 k divider)</td>
+</tr>
+<tr>
+<td>GPIO12</td>
+<td>Arm button to GND</td>
+</tr>
+<tr>
+<td>GPIO38 / 39 / 40</td>
+<td>Status LED R / G / B, 330 Ω each</td>
+</tr>
+<tr>
+<td>GPIO1 / 6 / 7</td>
+<td>Battery / dock / USB-charge sense dividers (inputs on J7)</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Raspberry Pi</th>
+<th>To</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pin 17 (3.3 V), pin 39 GND</td>
+<td>Both mics 3V / GND (through the I2S junction)</td>
+</tr>
+<tr>
+<td>GPIO18, pin 12</td>
+<td>Mics BCLK + amp BCLK</td>
+</tr>
+<tr>
+<td>GPIO19, pin 35</td>
+<td>Mics LRCL + amp LRC</td>
+</tr>
+<tr>
+<td>GPIO20, pin 38</td>
+<td>Both mics DOUT (shared)</td>
+</tr>
+<tr>
+<td>GPIO21, pin 40</td>
+<td>Amp DIN</td>
+</tr>
+<tr>
+<td>GPIO10 (SPI MOSI)</td>
+<td>74AHCT125 → 330 Ω → eyes DIN</td>
+</tr>
+<tr>
+<td>Micro-USB OTG</td>
+<td>Lidar adapter</td>
+</tr>
+<tr>
+<td>GPIO12, pin 32 (+ pin 34 GND)</td>
+<td>Headlight driver PWM (hardware PWM0)</td>
+</tr>
+<tr>
+<td>CSI</td>
+<td>AI Camera (22-pin cable supplied)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Amp VIN from Pi pin 4: the same regulated 5 V rail (it reaches the Pi through J5, not the Pi's USB input). Never
+connect either speaker output to GND.</p>
+<h2>4. Power-up checks (battery still disconnected where noted)</h2>
+<ol>
+<li><strong>CAN:</strong> about 60 Ω between CAN H and L, power off.</li>
+<li><strong>5 V rail</strong> on a bench supply first: 5.0–5.2 V at the Pi and the amp.</li>
+<li><strong>Charging, before the battery is connected:</strong> IP2368 output 25.2 V; dock rods 25.2 V, + on the rod that meets
+   the robot's + pad (the LEFT rod looking at the dock face); robot leaned back on the dock by hand: 25.2 V on the M5
+   nuts inside; pads at 0 V when undocked.</li>
+<li>First charge supervised, in a LiPo bag.</li>
+</ol>
+<h3>The dock</h3>
+<ol>
+<li>Rods: brass Ø4 × 25 mm, solder a Ø5.5 brass washer on as a collar 16.5 mm from the tip and a 40 cm wire to the
+   back end. Push the rod in from the back (tip out through the Ø4.3 bore), spring behind the collar, then epoxy an
+   M3 washer over the back of the pocket (wire through its hole). It must slide freely, ~4 mm.</li>
+<li>Rod wires up the column to the controller board in the mast; the DC jack in the base's back edge is wired up to the board too (step 5).</li>
+<li>Head onto the foot (its groove over the foot's ring, a little glue, 2 × M3×16 down through the shelf behind the column into
+   the foot's inserts), mast on (spigot into the column top, a drop of glue), TPU saddle inserts pushed up into the track frames from below, frames into their T slots, wings on (2 × M3×12
+   each into the slab-side inserts),
+   4 rubber feet; stand the dock against a wall with ~1 m of free floor in front. Keep the ridges clean and flat on the
+   floor (no rug under them): they are what holds the robot on the dock.</li>
+<li><strong>Reflective tape:</strong> cut two 141 mm strips of 25 mm retro-reflective tape and press them into the two recessed
+   guides on the column face. This is what the lidar locks onto (it reads &gt;200 intensity, walls 60–160).</li>
+<li><strong>Dock controller (IR beacon + safe rod switch):</strong> build the 40 × 30 mm board from the site's <em>Wiring diagram →
+   Dock</em> page (every connection and part value is there; schematic logic in <code>firmware/dock_beacon/</code>). Flash
+   <code>dock_beacon.ino</code> onto the ATtiny85 (ATTinyCore, 8 MHz internal, ISP programmer or an Arduino as ISP). Push the 4
+   all-round TSAL6200 into the mast's side holes and 1 into the centre tube (a drop of glue), stand the board in the
+   mast's hollow, run the jack and rod wires down the column (+ = the LEFT rod looking at the face).
+   <strong>Never wire the DC jack straight to the rods</strong>: the board keeps them dead unless the robot is on them.</li>
+<li><strong>Bench test the dock before the robot touches it</strong> (10 MΩ multimeter):
+   - nothing on the rods: 0 V on them, status LED blips every 2 s;
+   - 112 kΩ (100 k + 12 k) across the rods: 25.2 V after 0.5 s, LED on; remove it: 0 V within 2 s;
+   - 1 Ω / 5 W across the rods: stays off, LED blinks; 3 shorts: fast blink until unplugged;
+   - a phone camera sees the IR LEDs flicker.</li>
+</ol>
+<h3>First docking</h3>
+<ol>
+<li>Check the beacon: the web app's telemetry <code>ir</code> value shows non-zero bits when a receiver hears it; turn the robot
+   by hand and watch them move round. Then put the robot anywhere within ~4 m of the dock (any heading, also behind
+   it) and press <strong>Dock &amp; charge</strong>.</li>
+<li>It turns until it hears the beacon or sees the tape, drives towards the beacon (circling the column if it came from
+   behind), lines up 45 cm out on the dock's axis facing away, reverses in steering on the two tape strips, leans back
+   8° onto the face and goes to CHARGING (blue LED). If the contacts don't touch it stands up, lines up again and
+   retries (3 tries).</li>
+<li>That first dock saves the dock's position on the map (<code>data/dock.json</code>). From then on <strong>Dock &amp; charge</strong> (or "go
+   charge" by voice) works from anywhere on the map, and the robot docks by itself when the battery runs low
+   (<code>"auto_dock": false</code> in config.json turns that off).</li>
+<li><strong>Undock</strong> stands it up off the dock and drives it 0.4 m forward.</li>
+</ol>
+<h2>5. Flash the ESP32-S3</h2>
+<pre><code>cd firmware/esp32
+./sync_core.sh            # copies the simulation-tested controller from ../../core
+pio run -t upload         # USB-C on the DevKitC
+pio device monitor -b 115200
+</code></pre>
+<p>On boot, with the robot upright and still, the log must show acc ≈ (0, 0, +9.8). Tilt the top forward: ax goes
+negative and gy positive. If not, fix the <code>IMU_MAP_*</code> macros in <code>config.h</code>. Compare <code>vbat</code> with a multimeter
+and adjust <code>VBAT_DIV</code>.</p>
+<h2>6. Set up the Raspberry Pi</h2>
+<ol>
+<li><strong>Raspberry Pi Imager:</strong> Raspberry Pi OS <strong>Bookworm Lite 64-bit</strong>. In the settings, set hostname (e.g. <code>robot</code>),
+   user <code>pi</code>, your Wi-Fi, and enable SSH.</li>
+<li>Copy the software:
+   <code>scp -r robot_V1.1 pi@robot.local:/home/pi/robot</code></li>
+<li>Install (UART, SPI, I2S sound card, camera, Python packages, Vosk + piper voice models, the service):
+   <code>ssh pi@robot.local
+   cd ~/robot/pi &amp;&amp; ./install.sh</code>
+   It downloads ~150 MB of models; give it 15–20 minutes on the Zero 2 W.</li>
+<li><strong>Claude API key.</strong> It is kept out of <code>config.json</code>, in a file only root can read:
+   <code>sudo nano /etc/robot.env
+   ANTHROPIC_API_KEY=sk-ant-...</code>
+   Check: <code>sudo ls -l /etc/robot.env</code> shows <code>-rw------- root root</code>.</li>
+<li><code>sudo reboot</code>. The robot service starts on its own.</li>
+<li>Open <strong>http://robot.local:8080</strong> on your phone.</li>
+<li><strong>Teach it faces:</strong> in the app, type a name, pick 3–5 clear face photos of that person (front, slightly left/right,
+   good light), press <strong>Teach face</strong>. It reports how many photos had a usable face. Then "Follow me" or say
+   "robot, follow Anna".</li>
+</ol>
+<h3>Settings (<code>pi/config.json</code>)</h3>
+<ul>
+<li><code>lidar_offset_deg</code>: with a wall straight ahead, set it so the wall reads at 0°.</li>
+<li><code>ai_camera</code>: <code>true</code> with the AI Camera (detections + follow); <code>false</code> for a plain Camera Module 3 (stream only).</li>
+<li><code>auto_dock</code>: <code>true</code> = go to the charger by itself when the battery is low (once it knows where the dock is).</li>
+<li><code>voice.wake_phrase</code>: words that start an order (<code>"hey robot|robot"</code>).</li>
+<li><code>voice.push_to_talk_only</code>: <code>true</code> = only the app's Talk button listens.</li>
+<li><code>voice.language</code>: <code>"de"</code> for German, with <code>vosk-model-small-de-0.15</code> and a German piper voice.</li>
+<li><code>voice.stt</code>: <code>"vosk"</code> (offline, on the Pi) or <code>"http"</code> with <code>stt_url</code> pointing to a Whisper server.</li>
+<li><code>voice.mic_gain_db</code>: raise if it misses you at 2 m, lower if it clips.</li>
+</ul>
+<p>After changing it: <code>sudo systemctl restart robot</code>.</p>
+<h2>7. Test the audio</h2>
+<pre><code>arecord -l                                   # the &quot;googlevoicehat&quot; card must be listed
+arecord -D plughw:CARD=sndrpigooglevoi -c 2 -r 48000 -f S32_LE -d 5 /tmp/t.wav
+aplay -D plughw:CARD=sndrpigooglevoi /tmp/t.wav
+speaker-test -D plughw:CARD=sndrpigooglevoi -c 2 -t sine -f 440 -l 1
+</code></pre>
+<p>Talk from 2 m during the recording: you should hear yourself clearly, with both channels alive (<code>sox /tmp/t.wav -n stat</code>
+per channel if in doubt). A silent channel means a SEL pin or DOUT wire problem; noise only means BCLK/LRCL.</p>
+<p>Then in the app: tap <strong>Talk</strong>, say "drive forward half a metre". The status line shows the recognised text,
+Claude's tool calls and the reply, which the robot speaks. Saying <strong>"Stop!"</strong> works instantly, without Claude.</p>
+<h2>8. First balance</h2>
+<ol>
+<li>Wheels off the ground, press <strong>arm</strong> (button or app): the wheels should react to tilting the body.</li>
+<li>On a clear floor of at least 2 × 2 m, hold it upright and arm. It should balance on its own.</li>
+<li>Lay it on its face, then on its back: with auto stand-up on, it gets up by itself
+   (it needs ~0.7 m of free floor).</li>
+<li>Joystick, turns, then <strong>Explore</strong> to build the lidar map. Tap the map to send it somewhere.</li>
+</ol>
+<h2>9. Run the tests and the simulation (optional)</h2>
+<pre><code>cd pi &amp;&amp; python3 -m pytest -q tests          # 20 tests, includes the voice pipeline with synthetic audio
+cd sim &amp;&amp; python3 build_model.py &amp;&amp; python3 build_model.py --arena &amp;&amp; python3 design_lqr.py 0.06 0.6 10
+cd ../core &amp;&amp; g++ -O2 -std=c++17 -shared -fPIC controller.cpp sim_api.cpp -o ../sim/libbot.so
+cd ../sim &amp;&amp; python3 run_tests.py 40
+</code></pre>
+<p>If you change the robot (heavier battery, other wheels), update <code>sim/cad_mass.json</code> or re-run
+<code>cad_scripts/assemble.py</code>, redesign the gains, then <code>./sync_core.sh</code> and reflash.</p>
+<h2>Troubleshooting</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Motors don't respond</td>
+<td>CAN 60 Ω, IDs 1/2, 1 Mbps, common GND</td>
+</tr>
+<tr>
+<td>Falls straight away forward/back</td>
+<td>IMU axis mapping, motor directions</td>
+</tr>
+<tr>
+<td>Oscillates while balancing</td>
+<td>Wheel offset / mass differs from the sim: re-run <code>design_lqr.py</code>, reflash</td>
+</tr>
+<tr>
+<td>No sound card</td>
+<td><code>dtoverlay=googlevoicehat-soundcard</code> in <code>/boot/firmware/config.txt</code>, reboot</td>
+</tr>
+<tr>
+<td>Voice status says "ANTHROPIC_API_KEY not set"</td>
+<td><code>/etc/robot.env</code> content, then <code>sudo systemctl restart robot</code></td>
+</tr>
+<tr>
+<td>Voice misses you at 2 m</td>
+<td><code>mic_gain_db</code> +6, check both mic channels, keep the motors' cable away from the mic wires</td>
+</tr>
+<tr>
+<td>Speech is slow</td>
+<td>piper is heavy on the Zero 2 W: set <code>"tts": "espeak"</code>, or use the Whisper server for STT</td>
+</tr>
+<tr>
+<td>Logs</td>
+<td><code>journalctl -u robot -f</code></td>
+</tr>
+</tbody>
+</table></div></div>
+<div class="card doc pane" id="readme" role="tabpanel" hidden><h1>Balancing robot V1.1: shape C + voice — simulation, ESP32 firmware, Pi software</h1>
+<p><strong>V1.1</strong> (current) = V1 (shape C, wheels under the body, LD19 lidar on top) + microphones, speaker and voice orders
+through Claude. V2 (side motors, no lidar, low battery) is archived on the viewer's V2 page; the flip work done on it is
+not part of V1.1's focus. Step-by-step setup: <strong>INSTALL.md</strong>.</p>
+<pre><code>core/            controller.cpp/.hpp + gains.hpp: balance (LQR), speed &amp; heading control, lying-side detection,
+                 stand-up, safety. Plain C++17. The SAME files run in the firmware and in the simulation.
+sim/             MuJoCo model of shape C built from the CAD (build_model.py), LQR design (design_lqr.py),
+                 the simulator harness (botsim.py), tests (run_tests.py), navigation test (nav_sim.py), results/
+firmware/esp32/  PlatformIO project for the ESP32-S3: CAN motors (LK protocol), MPU6050, sonar, Pi UART link,
+                 battery + charger sensing, arm button, status LED. Builds (pio run): RAM 6.5 %, flash 10 %.
+pi/              Raspberry Pi Zero 2 W: ESP32 link, LD19 lidar driver, mapping + scan matching, obstacle
+                 avoidance, frontier exploration, go-to-point, camera stream, LED eyes, phone web app, voice (mics, speaker,
+                 Claude). 20 tests pass.
+cad/             printable parts (STL + STEP) + assembly STEP: in the separate V1.1_print_files.zip download
+cad_scripts/     CadQuery scripts that generate the case, the assembly check, the wheel adapter and the BOM.
+</code></pre>
+<h2>Voice: talk to the robot, Claude gives the orders</h2>
+<p>Hardware, all on the Pi's I2S bus (<code>dtoverlay=googlevoicehat-soundcard</code>, same mic + amp pair as the Google AIY Voice Kit):
+- 2 x ICS-43434 MEMS mics in the front panel, 124 mm apart (Y ±62, Z 100), 65 dBA SNR, behind Ø1.5 ports.
+- MAX98357A 3.2 W class-D amp on a tab of the printed speaker ring.
+- 40 mm 4-ohm speaker on the RIGHT side wall above the wheel arch (centre X −2, Z 86), firing sideways through a
+  grille (the top belongs to the lidar). The right carrier plate is gone; the charge diode + fuse sit inline in the lead.
+Wiring: BOM, "Wiring" sheet.</p>
+<p>Flow (<code>pi/robot/audio.py</code>, <code>speech.py</code>, <code>voice.py</code>):
+1. Mics at 48 kHz -&gt; high-pass -&gt; 16 kHz -&gt; two-mic beam steered at the talker (GCC-PHAT) -&gt; speech gate -&gt; utterance.
+   Speech from 2 m arrives ~25 dB above the mic noise; the beam adds ~3 dB against room noise and gives the direction.
+2. Speech-to-text: offline Vosk on the Pi, or a Whisper server (e.g. faster-whisper on the Jetson) via <code>stt_url</code>.
+3. "Hey robot, ..." (or the Talk button / text box in the phone app) -&gt; Claude (<code>claude-haiku-5-5</code>) with tools:
+   drive, turn, stop, go_to (lidar map), explore, flip, set_eyes, headlight, follow (a person, by name if taught), who_is_there (AI camera), look (camera photo), status.
+   Limits enforced on the robot (0.6 m/s, 6 s per drive; obstacle avoidance and the sonar stop stay on).
+4. Claude's answer is spoken (piper voice, or espeak-ng). The mics are muted while it talks. "Stop!" is handled
+   locally, instantly, and interrupts whatever is running.</p>
+<p>Setup: <code>pi/install.sh</code> (overlay, Vosk + piper models, <code>/etc/robot.env</code>); put <code>ANTHROPIC_API_KEY=...</code> in
+<code>/etc/robot.env</code> (root-only, loaded by robot.service). Settings: <code>"voice"</code> in <code>pi/config.json</code>.
+Not tested on hardware yet: the sound card, mic gain at 2 m in your room, piper speed on the Pi Zero 2 W, recognition
+with the motors running (tests use synthetic audio and a fake Claude client). The sim now also clips the IMU at its
+real range (±2000 dps, ±16 g).</p>
+<h2>Stress check (FEA, CalculiX)</h2>
+<p><code>fea/fea.py</code> meshes the floor + motor-wall block (gmsh, tet10) and solves it with CalculiX: peak motor torque
+2.3 N·m per motor plus 25 N per wheel (≈ 3 g), loads through the 4 motor screws, supports at the 4 floor bosses of the
+front panel / back cover screws. <code>python3 fea/fea.py reinf</code> (current design, shelf screwed), <code>NOSHELF=1</code> to leave the
+shelf out, then <code>python3 fea/fig2.py</code> for the pictures.</p>
+<ul>
+<li>The floor + motor walls are a <strong>separate piece</strong> from the shell (the wheel wells cut the floor): the front panel,
+  back cover and the screwed battery shelf hold them together. Tighten all of them.</li>
+<li>Before (shelf only sliding on dovetail rails): max ~20 MPa at the wall roots and front floor bosses, walls splay,
+  motor axis tilts 3.3°. The wheel's 61 mm lever arm, not the torque, does this.</li>
+<li>Now (shelf screwed to the wall tops with 4 × M3, 45° root fillets, wall-to-boss ribs): max 5.4 MPa, motor axis tilts
+  0.24°. (Computed with the cable slot open to the top; the final closed window only adds material.) PETG layer bond is ~20–30 MPa.</li>
+</ul>
+<h2>USB-C charging socket</h2>
+<p>In the left side wall above the wheel (X 8, Z 66), so the robot can be charged standing, lying face-down or on its back. A plugged-in USB-C cable clears the tyre by 8 mm; the IP2368 carrier plate on that wall now ends 20 mm below its screw line (z 72) to leave room for the socket.</p>
+<h2>Panel screws</h2>
+<p>Front panel, back cover and contact plate use countersunk hex-socket M3×10 (ISO 10642), 0.2 mm below the surface, so
+nothing sticks out to mark the floor when the robot falls. The panels are 1.5 mm thicker (4.5 mm) on their inside
+around each screw so 2.4 mm of plastic stays under the head; the body's bosses moved 1.5 mm inwards to make room.
+Stress check after the change: 5.3 MPa peak (was 5.4), motor-axis tilt 0.23°. Inserts: only M3 and M2 (the Pi and the
+IMU take M2 screws with a washer). Perfboard: standard 5 × 7 cm, 24 × 18 holes.</p>
+<p>The three M3 screws holding the front and back panels to the body sit 2 mm further from the panel edges than before (top front (Y_IN-6, 75), top back (76.6, 119.6), floor (40, Z_FLOOR+5.5)), so there is more material around each hole.</p>
+<h2>Motor plugs, clearances</h2>
+<ul>
+<li>The MF6015's connectors (a 6-pin and a 3-pin header) sit in a 15 mm bay on <strong>top</strong> of its Ø49 × 8 mm rear boss;
+  the plugs go in from above. Mount the motors with that bay pointing up, plug them in <strong>before</strong> the shelf, and thread
+  the leads through the window in each wall (24 x 16 mm, rounded) into the centre gap; a 2 mm notch above the bay lets
+  the 3-pin plug go straight down. (An open slot printed as a 20 mm overhang: the window prints as a 16 mm bridge.)</li>
+<li>The shelf sits at z 37 (4 mm higher than before): 4 mm of air above the plug leads.</li>
+<li>3 mm of air all around each motor (front, back, floor; 8 mm to the shelf): the body is 67 mm deep (was 62).</li>
+<li>Motor pockets are teardrops pointing to the back (the body prints on its front face): no flat overhang.</li>
+</ul>
+<h2>Fit check with the real part models (Nov 2026)</h2>
+<p><code>cad_scripts/real_parts.py</code> places every bought part from its real 3D model; <code>real_assembly.py</code> checks each one
+against every printed part and every other bought part; <code>wiring.py</code> + <code>wire_check.py</code> route and check the wiring.
+<code>models/fetch_models.sh</code> downloads the models. Sources:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI Camera (Camera Module 3 STEP as proxy: same PCB + holes, 0.4 mm deeper)</td>
+<td>STEP Raspberry Pi RP-008154</td>
+</tr>
+<tr>
+<td>HC-SR04 sonar</td>
+<td>STEP FreeCAD-library (community, 'original size')</td>
+</tr>
+<tr>
+<td>ICS-43434 mic L</td>
+<td>STEP Adafruit 6049</td>
+</tr>
+<tr>
+<td>ICS-43434 mic R</td>
+<td>STEP Adafruit 6049</td>
+</tr>
+<tr>
+<td>Speaker 40 mm (Adafruit 3968)</td>
+<td>STEP Adafruit 3968</td>
+</tr>
+<tr>
+<td>MAX98357A amp (Adafruit 3006)</td>
+<td>STEP Adafruit 3006 (terminal block not in the model)</td>
+</tr>
+<tr>
+<td>Pololu D24V50F5 regulator</td>
+<td>STEP Pololu 0J1437</td>
+</tr>
+<tr>
+<td>LD19 lidar</td>
+<td>STEP Waveshare (LDROBOT LD19)</td>
+</tr>
+<tr>
+<td>Perfboard 5 x 7 cm + female headers</td>
+<td>DRAW (standard 2.54 perfboard, 8.5 mm female headers)</td>
+</tr>
+<tr>
+<td>ESP32-S3-DevKitC-1</td>
+<td>DRAW Espressif DXF v1.1 + WROOM-1 STEP</td>
+</tr>
+<tr>
+<td>SN65HVD230 CAN board</td>
+<td>STEP Waveshare (on 2.5 mm spacers: solder tails)</td>
+</tr>
+<tr>
+<td>Raspberry Pi Zero 2 W</td>
+<td>DRAW Raspberry Pi RP-008358 (heights from connector datasheets)</td>
+</tr>
+<tr>
+<td>Battery Tattu R-Line 6S 1400 (listed 78 x 39 x 42)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>6S BMS board (listed 88 x 34 x 3.5)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>IP2368 USB-C PD board (est. 35 x 47 x 10)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>90° micro-USB OTG plug (cable to the LD19 adapter)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>LED eye panels 2 x (listed 26 x 26 x 3)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>GY-521 IMU (listed 21 x 16 x 3)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>PDB + 30 A fuse (est. 16 x 13 x 9)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>Power switch board Pololu 2813 + 12 mm power button</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>Arm button 12 mm (listed)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>USB-C panel socket CAB-15455 (listed head 22 x 14 x 8)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>LD19 USB adapter board (est. 18 x 12 x 6)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>Charge diode + fuse, inline (est.)</td>
+<td>LIST envelope</td>
+</tr>
+<tr>
+<td>Motor plugs L (from LK drawing)</td>
+<td>DRAW LK drawing, plug sizes estimated</td>
+</tr>
+<tr>
+<td>Motor plugs R (from LK drawing)</td>
+<td>DRAW LK drawing, plug sizes estimated</td>
+</tr>
+</tbody>
+</table></div>
+<p>STEP = manufacturer or published model. DRAW = built from the official mechanical drawing (Pi Zero 2 W: no official
+STEP exists; ESP32-S3-DevKitC-1: Espressif DXF + the WROOM-1 module STEP). LIST = no model published: a box of the
+listed size. Result: no clashes (only parts seated on their posts/pockets, and the OTG plug in its port).</p>
+<p>What the real models changed:
+- <strong>Camera</strong>: the lens is 6.15 mm off the centre of the hole pattern and 8.1 mm deep. The 4 posts moved up 6.15 mm
+  and are 5.6 mm long (lens 0.5 mm behind the front face: it no longer touches the floor when the robot falls forward).
+- <strong>Sonar</strong> (FreeCAD-library model): holes 41 x 17 (was 42 x 17), transducers 27 apart (was 26), posts Ø5.4 (Ø6.4
+  clipped the transducers). Measure your board.
+- <strong>Microphones</strong>: the mic package is 0.76 mm off the board centre: pockets offset so the port sits on the hole; both
+  boards the same way up; clamp wire pass moved over the solder pads.
+- <strong>Regulator</strong>: the Pololu's diagonal holes are mirrored compared with the old tray; tray holes fixed.
+- <strong>Speaker</strong>: real flange 3 mm (Ø40) then a Ø34 step: ring bore 35 mm, ring face 3 mm from the wall. Speaker is
+  25 mm deep (was assumed 20): fits.
+- <strong>Amp</strong>: tab 1.5 mm lower (the board touched the body's inner top-corner curve).
+- <strong>LD19</strong> (Waveshare STEP): 54 x 46 x 31 with its 3 mounting ears; the 3-hole pattern matches the top exactly.
+- <strong>CAN board</strong>: solder tails on its back: mount it on 2.5 mm spacers.
+- <strong>BMS</strong>: blocked the sonar header when standing in front of the battery: now on the battery's back face, inside the
+  strap. Battery moved 2.5 mm back.
+- <strong>ESP32 USB-C</strong>: 24 mm inside the right wall, the side slot was useless and is gone. Flash with the back cover off
+  (or from the Pi with esptool over the existing UART, adding EN and GPIO0 wires).
+- <strong>OTG</strong>: a straight micro-USB OTG adapter hits the left wheel arch: use a 90° OTG cable (10 cm).</p>
+<h2>Wiring in place (routed and collision-checked)</h2>
+<p>Every conductor is modelled end to end, with its plug at each end. Lengths are as routed; add ~30 % slack when cutting. Viewer: "Wiring" view (tap a wire to see both ends). Wiring page: board pictures (perfboard to scale, a soldering guide) and the pin list.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Harness</th>
+<th>Conductors</th>
+<th>From</th>
+<th>To</th>
+<th>Routed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Battery -&gt; BMS</td>
+<td>3: B+, B-, Balance (7-wire, JST-XH)</td>
+<td>Battery XT60 + balance leads</td>
+<td>BMS input pads + JST-XH</td>
+<td>3 cm</td>
+</tr>
+<tr>
+<td>BMS -&gt; 30 A fuse -&gt; power switch</td>
+<td>2: P+ (30 A fuse inline), P-</td>
+<td>BMS output pads</td>
+<td>Power switch VIN + P- splice</td>
+<td>15 cm</td>
+</tr>
+<tr>
+<td>Power switch -&gt; PDB</td>
+<td>2: BAT+ switched, BAT-</td>
+<td>Power switch VOUT + P- splice</td>
+<td>PDB input</td>
+<td>20 cm</td>
+</tr>
+<tr>
+<td>Power button -&gt; switch</td>
+<td>3: button A, B, switch GND tap</td>
+<td>12 mm button + splice</td>
+<td>Switch pushbutton pads + GND</td>
+<td>6 cm</td>
+</tr>
+<tr>
+<td>ESP32 GPIO21 -&gt; switch OFF</td>
+<td>1: OFF</td>
+<td>Perfboard J9</td>
+<td>Switch OFF pin</td>
+<td>15 cm</td>
+</tr>
+<tr>
+<td>PDB -&gt; motor L power</td>
+<td>2: V+, V-</td>
+<td>PDB output</td>
+<td>Motor L main plug</td>
+<td>6 cm</td>
+</tr>
+<tr>
+<td>PDB -&gt; motor R power</td>
+<td>2: V+, V-</td>
+<td>PDB output</td>
+<td>Motor R main plug</td>
+<td>6 cm</td>
+</tr>
+<tr>
+<td>PDB -&gt; 5 V regulator</td>
+<td>2: VIN (3 A inline fuse), GND</td>
+<td>PDB output</td>
+<td>Pololu D24V50F5 VIN/GND</td>
+<td>4 cm</td>
+</tr>
+<tr>
+<td>5 V regulator -&gt; perfboard J1</td>
+<td>2: 5 V, GND</td>
+<td>Pololu VOUT/GND</td>
+<td>Perfboard J1 (XT30, 15 A)</td>
+<td>14 cm</td>
+</tr>
+<tr>
+<td>Perfboard J5 -&gt; Pi (5 V, GND, UART, eye data)</td>
+<td>5: 5 V, GND, ESP TX (GPIO17) -&gt; Pi RXD, Pi TXD -&gt; ESP RX (GPIO18), Eye data: Pi MOSI -&gt; 74AHCT125</td>
+<td>Perfboard J5</td>
+<td>Pi GPIO header (Dupont)</td>
+<td>7 cm</td>
+</tr>
+<tr>
+<td>ESP32 -&gt; CAN board (perfboard jumpers)</td>
+<td>4: 3V3, GND, CAN TX (GPIO4) -&gt; CTX, CAN RX (GPIO5) &lt;- CRX</td>
+<td>ESP32 header (solder side of the perfboard)</td>
+<td>CAN board 4-pin header</td>
+<td>7 cm</td>
+</tr>
+<tr>
+<td>CAN bus -&gt; motor R</td>
+<td>2: CAN-H, CAN-L</td>
+<td>CAN board screw terminal</td>
+<td>Motor R main plug (CAN-H/L)</td>
+<td>13 cm</td>
+</tr>
+<tr>
+<td>CAN bus -&gt; motor L (branch)</td>
+<td>2: CAN-H, CAN-L</td>
+<td>Motor R plug</td>
+<td>Motor L main plug</td>
+<td>6 cm</td>
+</tr>
+<tr>
+<td>Perfboard J3 -&gt; IMU</td>
+<td>4: 3V3, GND, SCL (GPIO9), SDA (GPIO8)</td>
+<td>Perfboard J3</td>
+<td>GY-521 header (Dupont)</td>
+<td>17 cm</td>
+</tr>
+<tr>
+<td>Perfboard J2 -&gt; sonar</td>
+<td>4: 5 V, TRIG (GPIO10), ECHO (GPIO11 via 1k/2k), GND</td>
+<td>Perfboard J2</td>
+<td>HC-SR04 header (Dupont)</td>
+<td>7 cm</td>
+</tr>
+<tr>
+<td>Perfboard J4 -&gt; eye R</td>
+<td>3: 5 V, DIN (via 330 ohm), GND</td>
+<td>Perfboard J4</td>
+<td>Eye R panel pads (through the retainer's wire pass)</td>
+<td>8 cm</td>
+</tr>
+<tr>
+<td>Eye R -&gt; eye L (chain)</td>
+<td>3: 5 V, DOUT -&gt; DIN, GND</td>
+<td>Eye R output pads</td>
+<td>Eye L input pads</td>
+<td>7 cm</td>
+</tr>
+<tr>
+<td>Pi I2S -&gt; I2S junction</td>
+<td>7: BCLK (GPIO18), WS/LRCLK (GPIO19), Mic DOUT -&gt; Pi DIN (GPIO20), Amp DIN (GPIO21), 3V3, 5 V (amp), GND</td>
+<td>Pi GPIO header (Dupont)</td>
+<td>I2S junction board (on the battery)</td>
+<td>6 cm</td>
+</tr>
+<tr>
+<td>I2S junction -&gt; mic L</td>
+<td>6: 3V, GND, BCLK, DOUT, WS, SEL -&gt; GND (left)</td>
+<td>I2S junction</td>
+<td>Mic L pads (through the clamp's wire pass)</td>
+<td>6 cm</td>
+</tr>
+<tr>
+<td>I2S junction -&gt; mic R</td>
+<td>6: 3V, GND, BCLK, DOUT, WS, SEL -&gt; 3V3 (right)</td>
+<td>I2S junction</td>
+<td>Mic R pads (through the clamp's wire pass)</td>
+<td>12 cm</td>
+</tr>
+<tr>
+<td>I2S junction -&gt; amp</td>
+<td>5: LRC (WS), BCLK, DIN, GND, 5 V</td>
+<td>I2S junction</td>
+<td>Amp pads (Adafruit 3006)</td>
+<td>14 cm</td>
+</tr>
+<tr>
+<td>Amp -&gt; speaker</td>
+<td>2: SPK+, SPK-</td>
+<td>Amp screw terminal</td>
+<td>Speaker solder tabs</td>
+<td>3 cm</td>
+</tr>
+<tr>
+<td>Camera FPC (22 -&gt; 15 pin)</td>
+<td>1: FPC (15/22 conductors)</td>
+<td>Camera FPC connector</td>
+<td>Pi CSI connector</td>
+<td>10 cm</td>
+</tr>
+<tr>
+<td>Pi OTG -&gt; LD19 USB adapter</td>
+<td>1: USB (90° OTG cable)</td>
+<td>Pi OTG port (90° plug)</td>
+<td>LD19 USB adapter</td>
+<td>4 cm</td>
+</tr>
+<tr>
+<td>LD19 -&gt; USB adapter</td>
+<td>4: P5V, GND, Tx, PWM</td>
+<td>LD19 lead (ZH1.5 4-pin)</td>
+<td>LD19 USB adapter</td>
+<td>15 cm</td>
+</tr>
+<tr>
+<td>Dock pads -&gt; diode + fuse</td>
+<td>2: Pad + (charge in), Pad -</td>
+<td>Charge pads (ring lugs inside the cover)</td>
+<td>Inline 5 A fuse + SB560 diode</td>
+<td>9 cm</td>
+</tr>
+<tr>
+<td>Diode -&gt; BMS P</td>
+<td>2: SB560 cathode -&gt; P+, P-</td>
+<td>Diode output</td>
+<td>BMS P+/P-</td>
+<td>5 cm</td>
+</tr>
+<tr>
+<td>IP2368 &lt;-&gt; side USB-C</td>
+<td>1: USB-C cable (CAB-15455)</td>
+<td>Panel USB-C socket (left side wall)</td>
+<td>IP2368 USB-C</td>
+<td>3 cm</td>
+</tr>
+<tr>
+<td>IP2368 -&gt; BMS P</td>
+<td>2: BAT+, BAT-</td>
+<td>IP2368 BAT pads</td>
+<td>BMS P+/P-</td>
+<td>4 cm</td>
+</tr>
+<tr>
+<td>Arm button + LED -&gt; perfboard J6</td>
+<td>5: Button (GPIO12), LED R (GPIO38), LED G (GPIO39), LED B (GPIO40), GND</td>
+<td>Arm button + RGB LED</td>
+<td>Perfboard J6</td>
+<td>10 cm</td>
+</tr>
+<tr>
+<td>VBAT sense -&gt; perfboard J7</td>
+<td>1: VBAT sense (switched BAT+)</td>
+<td>Power switch VOUT</td>
+<td>Perfboard J7</td>
+<td>9 cm</td>
+</tr>
+<tr>
+<td>Dock sense -&gt; perfboard J7</td>
+<td>1: Dock sense (pad +, before the diode)</td>
+<td>Fuse + diode IN</td>
+<td>Perfboard J7</td>
+<td>6 cm</td>
+</tr>
+<tr>
+<td>USB sense -&gt; perfboard J7</td>
+<td>1: USB VBUS sense</td>
+<td>IP2368 VBUS pad</td>
+<td>Perfboard J7</td>
+<td>10 cm</td>
+</tr>
+<tr>
+<td>PDB -&gt; headlight driver</td>
+<td>2: VIN (1 A inline fuse), GND</td>
+<td>PDB output</td>
+<td>Headlight driver VIN/GND</td>
+<td>11 cm</td>
+</tr>
+<tr>
+<td>Pi -&gt; headlight driver (PWM)</td>
+<td>2: PWM (GPIO12), GND</td>
+<td>Pi GPIO header (Dupont)</td>
+<td>Headlight driver PWM pads</td>
+<td>8 cm</td>
+</tr>
+<tr>
+<td>Headlight driver -&gt; headlight R</td>
+<td>2: +12 V, switched -</td>
+<td>Headlight driver</td>
+<td>Headlight R pads</td>
+<td>10 cm</td>
+</tr>
+<tr>
+<td>Headlight driver -&gt; headlight L</td>
+<td>2: +12 V, switched -</td>
+<td>Headlight driver</td>
+<td>Headlight L pads</td>
+<td>2 cm</td>
+</tr>
+</tbody>
+</table></div>
+<p>CAN bus: CAN board terminal H/L -&gt; motor R CAN-H/CAN-L -&gt; motor L (one twisted pair, daisy-chained). The Waveshare board carries 120 ohm; measure H-L at the motor L plug with power off: ~60 ohm = both ends terminated, ~120 ohm = add 120 ohm there. Motor plug pin order is taken from the LK drawing: check it against the motor label or the supplied cable before crimping.</p>
+<h2>Electrical rules check (elec/)</h2>
+<p><code>elec/netlist.py</code> models every wire of the wiring above plus what is inside each board (perfboard traces, dividers,
+level shifter, Pi header, BMS, PDB, power switch). <code>elec/erc.py</code> checks it: shorts between supplies, one common ground,
+every power input supplied and in its voltage range, every logic input driven, no two outputs on one net, no input
+above its maximum (resistor dividers are solved), firmware <code>config.h</code> and Pi <code>install.sh</code> pin maps against the wiring,
+the CAN pair, current per wire and per connector contact (loads: Pi, lidar, amp, eyes at the software brightness cap,
+motors at the stand-up peak from the sim), rail budgets and fuses. Output: <code>erc_report.json</code>, a netlist <code>robot.net</code>.
+<code>elec/test_erc.py</code> injects 8 typical wiring mistakes (TX/RX swapped, loop key across + and -, echo without divider,
+missing ground, CAN H/L swapped, mic on 5 V, eye data from a 3.3 V pin, sense wire missing): all 8 are reported.</p>
+<p>Found and fixed in the CAD wiring:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Finding</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Loop key would short the battery</strong>: BMS P+ and P- landed on the two contacts of the panel XT60, which the key bridges</td>
+<td>Contact A = BAT+ from the fuse, contact B = BAT+ to the PDB, negatives spliced beside the socket</td>
+</tr>
+<tr>
+<td>GPIO1/6/7 sense dividers had no input wires (ADC would read 0 V: "battery low" after 5 s)</td>
+<td>3 sense wires to a new plug J7: XT60 contact B, fuse+diode input, IP2368 VBUS</td>
+</tr>
+<tr>
+<td>J1 carried the whole 5 V rail (up to 4.7 A) through a 3 A 2.54 mm contact</td>
+<td>J1 = XT30 PCB plug</td>
+</tr>
+<tr>
+<td>20 AWG regulator feed only protected by the 30 A fuse</td>
+<td>3 A inline fuse in the regulator VIN lead</td>
+</tr>
+<tr>
+<td>Status LED G and B without series resistors</td>
+<td>330 ohm on all three</td>
+</tr>
+<tr>
+<td>Perfboard plugs J2/J3 overlapped, eye-data pin inside J5, J5/J6 off the board edge, DevKit headers off the 2.54 grid</td>
+<td>New perfboard layout on the hole grid (<code>case/perfboard_layout.py</code>), 3D-checked against the DevKit, its headers and the CAN board</td>
+</tr>
+</tbody>
+</table></div>
+<p>Still to check on the bench: CAN termination (60 ohm between H and L with power off), the LK cable's contact rating
+(~9 A per motor for under a second at stand-up), and the 5 V rail at 93 % of 5 A in the worst case (Pi + camera +
+lidar + amp peak + both eyes at their cap): fine for peaks; lower <code>MAX_BRIGHT</code> in <code>pi/robot/eyes.py</code> if the rail sags.</p>
+<h2>Firmware in the loop (hil/)</h2>
+<p>The real ESP32-S3 firmware runs in Espressif's QEMU (<code>-machine esp32s3</code>, instruction-counted clock ~250 MIPS) against
+the MuJoCo robot. Build env <code>esp32s3_sim</code> is the same code; only what QEMU does not emulate is replaced
+(<code>src/sim_hil.h</code>): the IMU (I2C) and the CAN controller exchange frames with the physics host over UART0, which
+advances the physics by exactly the time the firmware measured. The host plays two LK motors with the LK V2 protocol
+(0x88/0x80 echo, 0xA1/0x9C state replies, 0x280 multi-motor torque) and the battery-limited motor model of the sim;
+the Pi side is the real <code>pi/robot/link.py</code>. Run: <code>hil/build_flash.sh</code>, then <code>python3 hil/run_hil.py</code>.</p>
+<p>Bugs it found in <code>main.cpp</code> / <code>lk_motor.cpp</code> (the MuJoCo tests only ran the controller core, never these files):</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Bug</th>
+<th>Effect on the robot</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CAN timeout used <code>now - last_ms</code> with <code>now</code> read before the replies were stamped: a reply newer than <code>now</code> wrapped to ~4 billion ms</td>
+<td>Spurious motor fault (disarm, fall) whenever a millisecond tick lands inside <code>poll()</code>: likely seconds after the motors switch on</td>
+<td>Signed age</td>
+</tr>
+<tr>
+<td>Same pattern in the Pi command watchdog</td>
+<td>Random one-cycle "stop" commands while driving</td>
+<td>Signed age</td>
+</tr>
+<tr>
+<td>Motor "off" (0x80) sent once; lost on the bus -&gt; motors keep the last torque</td>
+<td>After a CAN glitch the robot falls with the wheels still driving</td>
+<td>Re-send "off" every 50 ms while off</td>
+</tr>
+<tr>
+<td>0x88 (motor on) echo parsed as a state frame</td>
+<td>One-cycle encoder/speed jump to 0 when the motors switch on</td>
+<td>Only 0xA1/0x9C carry state</td>
+</tr>
+<tr>
+<td>Encoder range fixed at 16 bit; the LK manual allows 14/15/16 bit</td>
+<td>With a 14-bit encoder: 1.10 m/s instead of 0.5, 236 mm drift</td>
+<td>Range detected at run time (wrap size + speed ratio); boot log prints it</td>
+</tr>
+</tbody>
+</table></div>
+<p>Results with the fixed firmware, 3 randomised robots each (<code>hil/results.json</code>):</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stand up face-down / back-down</td>
+<td>6/6, 0.47-0.50 s from arming to balancing</td>
+</tr>
+<tr>
+<td>Pushes 1.0 / -1.0 / 1.5 N·s while balancing</td>
+<td>9/9 recovered</td>
+</tr>
+<tr>
+<td>Drive 0.5 m/s for 3 s, stop, turn 90°</td>
+<td>0.47-0.48 m/s true, odometry within 5 %, turn 86-89°</td>
+</tr>
+<tr>
+<td>Pi goes silent while driving at 0.5 m/s</td>
+<td>Stops driving (watchdog 300 ms) and keeps balancing: &lt; 3 cm/s 2.5 s later</td>
+</tr>
+<tr>
+<td>CAN unplugged 100 ms</td>
+<td>Fault after 20-24 ms, motors off 22-28 ms after the bus is back</td>
+</tr>
+<tr>
+<td>14 / 15 / 16-bit motor encoders</td>
+<td>Detected correctly, same driving and balance</td>
+</tr>
+<tr>
+<td>Control period</td>
+<td>2.0 ms median, 2.3-2.5 ms 99th percentile</td>
+</tr>
+</tbody>
+</table></div>
+<p>Not covered: the I2C IMU driver, ADC, LEDC and sonar timing (QEMU has no model for them), and the Pi's Linux side.</p>
+<h2>Testing the CAN driver and code (bench/)</h2>
+<p>See <code>bench/README.md</code>. In short: <code>firmware/esp32/test_host/run_tests.sh</code> (54 PC unit tests of <code>lk_motor.cpp</code>: frame
+packing, reply parsing, encoder unwrap and range detection, timeouts; they found and fixed a reply-gap unwrap bug), then
+on the bench with a USB-CAN adapter: the CAN probe firmware (<code>esp32s3_canprobe</code>: transceiver self-test, motor scan,
+direction and encoder checks), <code>bench/can_monitor.py</code> (decoded live traffic), and <code>bench/bench_hil.py</code>: the robot
+firmware (<code>esp32s3_bench</code>, real TWAI) against two virtual LK motors over the real bus, with the physics on the PC.</p>
+<h2>Simulation results, V1.1 (with the audio parts, every run randomised)</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stand up from face-down / back-down</td>
+<td>30/30 and 30/30 (all on the first try), median 0.17 s</td>
+</tr>
+<tr>
+<td>Stand still, 10 s</td>
+<td>drift ≤ 3 mm</td>
+</tr>
+<tr>
+<td>Push (1 N·s, front and back)</td>
+<td>20/20 recovered</td>
+</tr>
+<tr>
+<td>1 m/s, then stop</td>
+<td>stops within 0.6 m, max lean 17°</td>
+</tr>
+<tr>
+<td>Knocked over (2 N·s)</td>
+<td>falls, detects the side, stands up again</td>
+</tr>
+</tbody>
+</table></div>
+<p>Mass 1611 g (deeper body, reinforcements, shelf screws), centre of mass 34.4 mm above the axle. Gains: <code>design_lqr.py 0.06 0.6 10</code>.
+Re-run after the last CAD change (panel screws moved 2 mm inwards, Pi moved, 1615 g, CoM 34.4 mm): stand-up 30/30 face-down and 29/30 back-down (one randomised run failed), pushes 20/20, 10 s balance drift ≤ 3.3 mm.</p>
+<p><strong>Power button instead of the XT60 loop key (Nov 2026).</strong> A 12 mm momentary button on the top (front-right, the mirror
+of the arm button) drives a Pololu Big Pushbutton Power Switch HP (#2813, 16 A continuous, 90 A peak, 4.5–40 V): push
+on, push off, the battery current goes through its MOSFETs, never through the button. The ESP32 can switch it off
+(GPIO21 → OFF): battery below 3.3 V/cell for 30 s while disarmed and not charging → telemetry flag 32 → the Pi halts
+cleanly → 20 s later the ESP32 pulses OFF (<code>src/power_off.h</code>, host test 10 checks). The chargers feed the BMS before
+the switch, so it charges while off. For storage, still unplug the battery's XT60 (a MOSFET switch is not an isolator). The switch board sits inside the back cover above
+the Pi; its wires run behind the perfboard (battery side) and over the Pi (to the PDB, button and GPIO21).</p>
+<p><strong>Taller shelf for the motor leads + a back cover that unplugs (Nov 2026).</strong> The motor plugs' leads leave the plug
+straight up; with the battery shelf 8 mm above the plug they had to kink 90° into the wall window. The shelf went up
+10 mm (SHELF_Z 37 → 47; the wall windows to z 43) and the body with it (Z_TOP 142 → 152): the leads now rise out of the
+plug and bend back down into the window with ~7 mm radius (<code>MOTOR_ARC</code> in case/wiring.py). Everything above the
+battery is placed from its top (<code>BATT_TOP</code> in body_case.py), so the perfboard, Pi, power switch and CAN board moved
+up with it; the front panel items stayed. The shelf's front corners are cut away (<code>SHELF_FRONT_NOTCH</code>) for the
+headlight driver and collars. <strong>Working inside:</strong> the back cover with its boards is one module: two XT60s (genders
+keyed, the battery side female), a 3-pin JST-XH for the power button, a 2-pin JST-XH for CAN, and the J-headers / Pi
+Dupont plugs that were already there. Every wire that crosses has 4 cm of slack, so the cover lies down beside the
+robot and the battery slides out the back.
+<em>Cost of the extra height (sim, Nov 2026):</em> 1692 g, CoM 40.6 mm above the axle (was 37.1); LQR gains redesigned
+(<code>design_lqr.py 0.06 0.6 10</code>). Balance and pushes unchanged (drift ≤ 3.7 mm, 20/20 pushes), missions OK. <strong>Stand-up
+got harder:</strong> 25/30 face-down and 23/30 back-down within 5 s (was 30/30), 52/60 within 12 s; the failures are kicks
+that reach the motors' speed limit before the taller body is up. A stronger kick (1.9 N·m) did not help. Docking sweep: 34/40 docked (was 37/40), all 34 undocked, no falls.</p>
+<p><strong>Bigger battery + taller body (Nov 2026).</strong> 6S 1400 mAh (Tattu R-Line, 78 × 39 × 42, 222 g, ~31 Wh: +33 % runtime)
+instead of the 1050 (34 mm tall, 180 g). It is 8 mm taller and would have hit the perfboard above it, so the body top
+went up 8 mm (Z_TOP 134 → 142; perfboard, lidar, buttons, IR hoods move up with it). The eyes moved 8 mm down and
+6 mm outwards (EYE_Z 112 → 104, EYE_Y 32 → 38) and the headlights 8 mm down (LIGHT_Z 76 → 68, driver board with them),
+so less of their light spills next to the camera lens. Now 1680 g, CoM 37.4 mm above the axle (+3 mm) [after the +10 mm shelf: 1692 g, CoM 40.6 mm]; LQR gains
+redesigned (<code>design_lqr.py 0.06 0.6 10</code>). Re-run: stand-up 30/30 face-down and 30/30 back-down (29 first try each),
+pushes 20/20, 10 s balance drift ≤ 3.7 mm; no interferences in the assembly check.</p>
+<h2>Simulation results (shape C, every run randomised)</h2>
+<p>Each run varies the parameters you can't know exactly before building: mass ±8 %, centre of mass ±4 mm (x) and −6…+8 mm (z), inertia −15…+20 %, tyre grip 0.5–1.2, battery 21–25 V, motor torque ±10 %, 2–4 ms actuation delay, IMU bias, and 1.5° of IMU mounting tilt. The motor model is the LK drive: 16.5 A current limit, back-EMF, 0.14 N·m/A.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stand up from face-down</td>
+<td>40/40 (side detected 40/40, 39 on the first try), median 0.18 s</td>
+</tr>
+<tr>
+<td>Stand up from back-down</td>
+<td>40/40 (side detected 40/40, 40 on the first try), median 0.17 s</td>
+</tr>
+<tr>
+<td>Stand still, 10 s</td>
+<td>drift ≤ 4 mm, pitch wobble 0.01°</td>
+</tr>
+<tr>
+<td>Push (1 N·s, front and back)</td>
+<td>26/26 recovered without falling</td>
+</tr>
+<tr>
+<td>Accelerate to 1 m/s, then stop</td>
+<td>speed reached; stops within 0.6 m; max lean 17°</td>
+</tr>
+<tr>
+<td>Turn +90°, +180°, −135°, to 30°</td>
+<td>heading error &lt; 1° (nominal), &lt; 3.5° (randomised, from gyro bias)</td>
+</tr>
+<tr>
+<td>Knocked over (2 N·s)</td>
+<td>falls, detects the side, stands up again</td>
+</tr>
+<tr>
+<td>Explore an 8 × 8 m room, 150 s</td>
+<td>0 collisions; map built; final position error 3 cm</td>
+</tr>
+</tbody>
+</table></div>
+<h2>What the simulation taught us (and how the code handles it)</h2>
+<ul>
+<li><strong>Stand-up = kick + energy shaping + catch.</strong></li>
+<li>The kick: full push towards the side the top points to.</li>
+<li>Energy shaping: the motors then trim the body's energy so it arrives upright with almost no speed left.</li>
+<li>The catch: LQR takes over below 20°.</li>
+<li>The stand-up needs about 0.7 m of free floor, and the wheels briefly reach ~4 m/s.</li>
+<li><strong>It learns its own robot.</strong></li>
+<li>If a stand-up falls back, the next attempt aims higher. If it overshoots, it aims lower.</li>
+<li>The firmware stores this correction in flash.</li>
+<li><strong>Low centre of mass means a big lean when accelerating.</strong></li>
+<li>The wheel torque leans the body much more than on a tall robot: 0.6 m/s² already gives about 9°.</li>
+<li>Acceleration is therefore limited to 0.6 m/s² and yaw rate to 1.2 rad/s. In the simulation, wobble grows above about 1.8 rad/s; check this on the real robot.</li>
+<li><strong>The lidar tilts with the body.</strong></li>
+<li>The robot stands leaning about 4° (CoM 2 mm behind the axle). When braking it leans up to 17°.</li>
+<li>The scan plane then hits the floor at 1–3 m. <code>level_scan()</code> removes those rays.</li>
+<li>The map is only updated while the body is within 5° of level.</li>
+<li><strong>Scan matching corrects heading only.</strong></li>
+<li>Wheel odometry was good for distance. Letting the matcher also shift position made the map worse in tests.</li>
+<li><strong>The sonar sees what the lidar can't.</strong> An 18 cm post below the 21 cm scan plane is still avoided.</li>
+<li><strong>Gyro bias is learned whenever the robot is still</strong> (at boot, lying down, or charging).</li>
+</ul>
+<h2>Before the first power-up (bench checklist)</h2>
+<ol start="0">
+<li>
+<p><strong>Power switch:</strong> with a meter (battery out), VIN-VOUT open and no continuity between + and −. Battery in: one push of the top button switches on (board LED), another off. Boot log: <code>encoder range detected: N counts/turn</code> once the wheels have turned.</p>
+</li>
+<li>
+<p><strong>Motors (LK PC tool + Neo2 adapter).</strong>
+   - Set IDs 1 (left) and 2 (right), CAN 1 Mbps.
+   - With the wheels off the ground, send +0.2 N·m to each motor. Both must turn so the robot would roll forward. If not, flip <code>DIR_LEFT</code> / <code>DIR_RIGHT</code> in <code>firmware/esp32/include/config.h</code>.</p>
+</li>
+<li><strong>Encoder range.</strong> Check that the 0xA1 reply's encoder spans 0–65535 per turn (<code>ENC_COUNTS</code>).</li>
+<li><strong>IMU axes.</strong>
+   - Upright and still: the boot log must show acc ≈ (0, 0, +9.8).
+   - Tilt the top forward: ax goes negative and gy is positive while tilting.
+   - If not, change the <code>IMU_MAP_*</code> macros.</li>
+<li><strong>Battery divider.</strong> Compare the telemetry <code>vbat</code> with a multimeter, then adjust <code>VBAT_DIV</code>.</li>
+<li><strong>CAN bus.</strong> About 60 Ω between CAN H and L with the power off.
+5a. <strong>Motor-side CAN timeout (LK PC tool).</strong> Set each motor's communication-timeout / "CAN disconnect protection" so it stops when commands stop (≈50–100 ms). Then, wheels off the ground, motors spinning at +0.2 N·m, unplug the ESP32's USB or hold its reset: both wheels must stop within that time. If the tool has no such setting, a crashed ESP32 leaves the last torque applied: tell me and the firmware gets a hardware watchdog that cuts the XT60 path.
+5b. <strong>CAN bus-off recovery.</strong> Robot armed, wheels off the ground: pull the CAN plug from motor R for ~1 s and reconnect. The log shows <code>CAN bus-off #1: restarting the controller</code>, then <code>CAN back after … ms</code>; the robot disarms (motor fault) and arms again with the button.
+5c. <strong>TVS on the 6S rail.</strong> 5KP24A soldered across the PDB output (band to +). At full charge (25.2 V) it must stay cold.</li>
+<li><strong>First balance tests.</strong> Hold the robot upright and press arm (button or app). Use the LiPo bag and a clear floor of at least 2 × 2 m.</li>
+<li><strong>Lidar angle.</strong> With a wall straight ahead, set <code>lidar_offset_deg</code> in <code>pi/config.json</code> so the wall reads at 0°.</li>
+<li><strong>IP2368.</strong> Measure 25.2 V at its battery output before connecting the pack.</li>
+</ol>
+<h2>AI Camera: people, cats, follow me (Nov 2026)</h2>
+<p>The camera is now the <strong>Raspberry Pi AI Camera</strong> (Sony IMX500). Same PCB and holes as the Camera Module 3, so it uses the same 4 posts, 8.5 mm long now.
+- <strong>On the camera:</strong> an SSD MobileNet (COCO) detector runs on the sensor at ~30 fps; the Pi only reads the boxes from each frame's metadata (<code>pi/robot/vision.py</code>). Kept: <code>person</code> and <code>cat</code>.
+- <strong>Who it is:</strong> a few times a second the Pi crops the head of each person box and runs OpenCV's YuNet face detector + SFace face embedding, compared with the photos you taught it (web app: name + 3–5 face photos -&gt; "Teach face"; stored in <code>data/people/&lt;name&gt;/</code>). Match threshold 0.36 cosine.
+- <strong>Follow mode</strong> (web button "Follow me", or by voice: "follow Anna"): keeps the person centred and at ~1.5 m (box height 0.6 of the image), turns first when they're at the edge, turns slowly to search when nobody is in view. Obstacle avoidance stays on. A recognised person is then tracked by box overlap + clothing colour, so it keeps following when they turn away, and never switches to another recognised person.
+- <strong>Voice tools:</strong> <code>follow {name?}</code>, <code>who_is_there</code> (names, cats, left/ahead/right).
+- <strong>Limits:</strong> 66° × 52° view (vs ~102° before): the robot turns more. Manual focus: set it to ~1.5 m before assembly (the lens tool comes with the camera). Faces work face-on, in decent light, up to ~3 m; from behind, the clothing-colour lock carries on.
+- Tests: <code>pytest</code> covers the follow controller, the tracker (including someone else walking through), face matching and the headlight PWM.</p>
+<h2>Headlights (Nov 2026)</h2>
+<p>Two <strong>COB LED discs</strong> (Ø30 × 4 mm, 12 V 2.4 W, ~200–250 lm each) beside the sonar, for the camera at night: ~75 lux at 1 m, ~20 lux at 2 m (the eyes alone: ~8 / ~2 lux).
+- <strong>Mounting:</strong> each disc sits in a collar on the inside of the front panel, 3 mm behind a 45° window (Ø24 -&gt; Ø30, prints face-down without support), clamped by a printed retainer with 2 × M2×6 into inserts.
+- <strong>Driver:</strong> Pololu D36V6F12 (6S -&gt; 12 V, 600 mA) + IRLB8721 MOSFET on a 25 × 20 mm piece of perfboard, on 2 M2 bosses left of the sonar. 1 A inline fuse in its PDB feed. The Pi's hardware PWM0 (GPIO12, header pin 32) switches it at 1 kHz (no banding in the video); 100 k pull-down keeps it off while the Pi boots. Software cap 70 % (<code>headlight.py</code>): the discs sit in PETG.
+- <strong>Use:</strong> the existing "Headlight" button / voice tool now switches the discs and the eyes' white light together.
+- Checks: electrical rules (12 V rail 0.4 of 0.6 A, fuse vs 22 AWG), fit check with the real parts (clear), wire routing (clear).</p>
+<h2>Face-first landings</h2>
+<p>The robot lands on its front when it falls, and every stand-up from face-down starts there. So:
+- <strong>Camera lens ~3 mm behind the face</strong> (was 0.5 mm) behind a <strong>1 mm polycarbonate window</strong> in a pocket 0.5 mm below the face.
+- <strong>4 rubber bumpers</strong> (Ø11 × 2.5, self-adhesive) on the face (Y ±48.5, Z 39.5 / 127 — just outside the eye wells, from <code>BUMPER_*</code> in body_case.py): the robot rests on them, not on the windows. Headlight discs are 3 mm back; the eye diffusers 0.8 mm back.</p>
+<h2>Vertical charging dock, autonomous docking (Nov 2026)</h2>
+<p>The robot finds the charger itself, backs into it, leans back 8° onto it and charges with its motors off; it stands
+up off it again on command. Simulated in <code>sim/dock_sim.py</code>: the real C++ controller + the real Pi docking code
+(<code>pi/robot/dock.py</code>) + the dock as collision geometry, the rods and funnels as forces, a noisy 360-ray lidar.</p>
+<p><strong>The dock</strong> (<code>build_dock</code> in case/body_case.py; prints as foot + head + mast + 2 wings + 2 floor ridges, none needs support — the column is split where it steps back, and the face slab reaches down to that plane so its 176 mm-wide sides grow from the bed):
+- An 80 mm column, 310 mm tall: the lidar finds its flat face, also with the robot leaning 8° from 0.6 m away.
+- Face slab (leaning back 8°) with two sprung Ø4 brass rods and a centring tongue; soft side wings.
+- <strong>No magnets. A saddle under each wheel holds it instead:</strong> rear lip 1.2 mm, a trough tilted 0.3 mm towards the front,
+  front lip 1.8 mm starting 5.5 mm ahead of the axle, then an 80 mm lead-in (≤ 2°). The trough and front lip are a ribbed TPU 95A insert (0.4 mm ribs,
+  grip for climbing out) that pushes up into a dovetail window in a PETG track frame; the frames drop into T slots in
+  the floor plate. Leaning on the dock pushes the robot forward only ~0.6 N, so it stays put with the motors off.
+- The column steps back 32 mm below the slab and the floor plate starts 62 mm behind the axle: room to roll back
+  under itself when it leaves.</p>
+<p><strong>Robot side:</strong> 10 mm contact plate with two lead-in funnels (mouth stretched downwards: the plate drops ~6 mm onto
+the rods as the robot leans back) down to <strong>M5</strong> brass countersunk heads (Ø9.3: contact up to ±4.5 mm off centre).</p>
+<p><strong>Finding the dock: reflective tape + IR beacon</strong> (<code>dock.py</code> on the Pi):
+- <em>Tape:</em> two 25 mm retro-reflective strips on the column face, 49 mm apart, in 0.3 mm recessed guides. The LD19
+  reports intensity per point: the strips read &gt;200, walls and furniture 60–160. So the pilot locks onto the face by
+  its tape (position ±few mm, angle from the two strip centres) and can't mistake a chair leg or a box for the dock.
+  Range for a good fix: ~1.2 m.
+- <em>IR beacon</em> (<code>firmware/dock_beacon</code>, ATtiny85, 38 kHz): code 'A' (600 µs bursts) from 4 LEDs all round the
+  column top, code 'C' (1200 µs) from 1 LED in a tube on the face, a ±6° beam along the dock's axis. Robot: 4
+  TSOP38238 receivers in black hoods on the top skin at (±15, ±54) mm — symmetric, fully on the flat top (<code>IR_RX_XY</code>), 90° windows facing the four diagonals — on GPIO13–16;
+  the ESP32 decodes them (<code>ir_decode.h</code>, 100 ms windows) into the telemetry <code>ir</code> byte. Which receivers hear 'A' gives
+  the bearing to ±22°; it carries from metres away (typically 3–5 m, more in line of sight).
+- <em>Estimate:</em> every tape fix is a measurement of the same fixed dock pose in the odometry frame; they are averaged
+  (close fixes weigh more) and odometry carries it between scans, so the steering doesn't jitter with lidar noise.</p>
+<p><strong>Dock electronics</strong> (<code>firmware/dock_beacon/</code>, schematic on the site: <em>Wiring diagram → Dock</em>): one ATtiny85 runs
+the IR beacon and a rod switch. Safety extra-low voltage only (25.2 V from a certified, short-proof charger), a 1.1 A
+PTC fuse, a TVS and a reverse-polarity MOSFET at the input. <strong>The rods are dead unless the robot is on them:</strong> a weak
+sense current (≤ 0.25 mA) looks for the robot's own 112 kΩ detect divider; only after 0.5 s of that does a high-side
+P-MOSFET put 25.2 V on them. A coin, key, hand, short or nothing keeps them off; a short while live switches off in
+~10 ms (3 faults latch it off); every 2 s it drops the rods for 30 ms to check the robot is still there, so they go
+dead within 2 s of it leaving. Without firmware the switch is held off by its pull-ups. The logic is unit-tested
+(<code>test_dock_logic.cpp</code>, 16 checks) and modelled in the dock simulation.</p>
+<p><strong>How it docks</strong> (<code>DockPilot</code>, then <code>ST_DOCK_LAND</code> / <code>ST_UNDOCK</code> in the controller):
+1. Known dock and far away: plan a path to its approach point first (the first dock saves its map pose in
+   <code>data/dock.json</code>; low battery then docks by itself).
+2. <em>Find:</em> turn on the spot until it sees the tape or hears the beacon. <em>Home:</em> turn to the beacon's bearing and drive
+   to it (the closest lidar return near that bearing sharpens it); if it ends up behind or beside the column (something
+   45 cm ahead, no tape), it circles the column at 50 cm until the tape shows up.
+3. <em>Line up:</em> back off if too close to turn, drive to the point 45 cm out on the dock's axis, turn to face away.
+4. <em>Reverse</em> at 7 → 4 cm/s, steering onto the axis to ±1–3 mm (the robot can't slide sideways, so the lidar has to
+   centre it, not the funnels). The distance is corrected for the body's lean (the lidar is 16 cm above the axle).
+5. With the axle on the ridge's crest, the ESP32 leans it back under control (a pitch target): it rolls back down
+   into place as it leans. Contacts touch → damping only → still → CHARGING, motors off.
+6. Undock: wheels roll back under the body (speed-limited) until upright, then normal balancing; it drives 0.4 m out
+   over the ridge. If the contacts open again within a minute of docking, the Pi docks again.</p>
+<p><strong>What the simulation changed on the way:</strong> magnets strong enough to hold it made it spin its wheels leaving a
+slippery floor; free wheels without anything in front let it roll out like a ladder → the ridge. A 4–6 mm wave, or
+one raised 2 mm, made it stall and then surge into the dock; leaning from behind the ridge meant rolling down it
+into the dock uncontrolled → 1.5 mm, floor level under the wheel, lean starts on the crest. Stopping hard after
+the undock peel made the wheels hop and spin → hand over with the speed it has. The attitude filter trusts the gyro
+while landing/undocking/docked (the plate bumps fool the accelerometer by up to 5°).</p>
+<p><strong>Results</strong> (every run randomised: mass, CoM, inertia, floor friction 0.4–1.0, battery, torque, delay, IMU bias
+and tilt, lidar noise; 0.15 N rod friction; <code>sim/dock_sim.py</code>):
+- <em>From close by</em> (40 starts anywhere 15–50 cm from the face, ±65° off the axis, any heading; tape + line-up):
+  <strong>36/40 docked and held charging with the motors off (28 first try), 36/36 undocked, none fell.</strong> Docked lean
+  8.9–9.2°, 11–52 s. Misses: 3 × contacts not meeting after 3 tries, 1 line-up that didn't converge (now capped at
+  35 s per try). <code>results/dock_report.json</code>, <code>dock_sweep.png</code>.
+  Re-run with the dock's rod switch modelled (rods live 0.5 s after contact, 30 ms re-check gaps): identical, 36/40.
+- <em>IR homing from 1–4 m</em> (24 starts all round, behind the dock too; IR model: hoods ±55°, 5 m range with ±20 %
+  spread, 5 % missed windows, line of sight by ray cast): <strong>every run found the dock; 21/24 docked</strong> (16 first try),
+  26–65 s. Misses: 2 × contacts not meeting after 3 tries, 1 line-up that never converged.
+  <code>results/home_report.json</code>, <code>home_sweep.png</code>.
+- These are with the taller body and 1400 mAh pack (CoM +3 mm). The same sweeps on the shorter robot gave 37/40 and
+  22/24 with fewer retries: the higher body makes the lean-back landing a little less sure. Worth tuning
+  (<code>dock_lean_rate</code>, <code>X_LEAN</code>) once the real robot can be measured.
+- Videos: <code>results/dock_5starts.mp4</code> (5 starts round the dock, all docked) and <code>results/undock_2runs.mp4</code> (leaving on a
+  slippery and a grippy floor), made by <code>sim/dock_video.py</code> and <code>sim/undock_video.py</code>.
+- Earlier saddle results (starts 0.6 m out facing away, lidar shape fit only): 33/41. The tape lifted it to 37/40
+  from much harder starts. A 2.5 mm front lip docked at only ~6° lean (contacts barely touching). Results from before
+  the MuJoCo degrees-vs-radians fix (floor bumps were a staircase) are void.</p>
+<h2>Electrical checks in simulation (Nov 2026)</h2>
+<p>What the wiring check and the CAN unit tests could not see: real voltages, currents and bus timing. Scripts: <code>sim/power_sim.py</code>, <code>elec/can_ground_check.py</code>, results in <code>sim/results/power_report.json</code> and <code>elec/can_ground_report.json</code>.</p>
+<p><strong>Battery sag at stand-up</strong> (robot sim with the battery as open-circuit voltage + series resistance; 16 stand-ups per case, 4 charge levels × 3 pack resistances 35 / 75 / 120 mΩ):
+- Stand-up works down to an empty pack (19.8 V) with a bad, 120 mΩ pack: 191/192 overall, 180 at the first try. The one failure (half charge, 75 mΩ) is the same ~1-in-30 miss the fixed-voltage tests show from the back, not a power limit: the empty/bad cases all got up.
+- Peak current from the battery 25–33 A, above 30 A for at most 10 ms: the 30 A blade fuse (rated to carry 135 % for minutes) and the BMS's 40 A trip are not reached.
+- Lowest bus voltage 16.8 V (empty + bad pack): the 5 V regulator (needs &gt; ~6 V) and the motor drives (7.4–32 V) keep running. The firmware's low-battery filter ignores these few-ms dips.</p>
+<p><strong>Braking energy (regeneration):</strong>
+- Braking sends up to 6 A back into the battery, up to 1.7 J per stand-up or hard stop. With a healthy BMS the pack absorbs it: the rail rises at most 0.7 V (25.9 V with a full, worn pack).
+- If the BMS blocks charge current (a cell at its over-voltage limit, e.g. right after a full charge with an unbalanced cell), that energy has only the ~0.9 mF of capacitors on the rail: <strong>0.18 J is enough to reach 32 V</strong>, the drives' limit, in about a millisecond. Too fast for firmware.
+- Fix, two layers: a <strong>5KP24A TVS diode</strong> across the PDB output (conducts from ~27 V, holds the rail ≤ ~30 V at 6 A; ~€1), and the firmware switches the motors off (motor fault, event <code>6S over-voltage … V: motors off</code>) when the rail reads &gt; 26.8 V twice in a row. Motors off ends the braking current (back-EMF stays below the rail).</p>
+<p><strong>CAN bus timing</strong> (1 Mbit/s, 500 Hz control loop):
+- 138 µs per frame worst case (bit stuffing); 3 frames per cycle while balancing = 21 % bus load (28 % while off). 9 retransmissions would still fit in one cycle.
+- New in the firmware: <strong>bus-off recovery</strong>. A noise burst or a loose plug can make the ESP32's CAN controller shut itself off; before this fix it never restarted (robot falls, needs a reset). Now <code>LkMotors::service()</code> restarts it: ~1.4 ms + one cycle, well under the 20 ms CAN timeout, so a single bus-off doesn't even disarm. Logged as <code>CAN bus-off #n</code> / <code>CAN back after … ms</code>. Unit tests: 68 checks (bus-off → recovery → restart, a second bus-off, a stuck bus → motor fault, then recovery).</p>
+<p><strong>Ground offset:</strong> the CAN pair has no ground wire; the transceiver (ESP32 ground) and the motors (their V−) meet at the PDB. Worst case 60 mV between them (16.5 A in a motor's 6 cm 16 AWG return + 4.7 A in the perfboard's 14 cm 20 AWG ground); the SN65HVD230 tolerates −2…+7 V: 33× margin.</p>
+<p><strong>Still for the bench:</strong> the motors' own CAN timeout (5a), real reply delay, motor PWM noise into the IMU/mics/amp, a USB ground loop with the battery connected, and the BMS's real over-voltage threshold (read it in its datasheet: ≥ 4.25 V/cell wanted).</p>
+<h2>Build and run</h2>
+<ul>
+<li><strong>Firmware:</strong>
+  <code>cd firmware/esp32 &amp;&amp; ./sync_core.sh &amp;&amp; pio run -t upload</code></li>
+<li><strong>Pi</strong> (Raspberry Pi OS Bookworm Lite 64-bit). Copy the repo to <code>/home/pi/robot</code>, then:
+  <code>cd pi &amp;&amp; ./install.sh</code>
+  Reboot, then open <code>http://&lt;hostname&gt;.local:8080</code> on the phone.</li>
+<li>The web app has live video, a joystick, arm/disarm, turn 90°/180°, explore, auto stand-up and avoidance toggles, the headlight, and the live map. Tap the map to send the robot there.</li>
+<li>Maps go to <code>data/map.png</code> and <code>data/map.npz</code>. Every lidar scan is stored with its pose in <code>data/scans/*.npz</code>.</li>
+<li><strong>Simulation:</strong>
+  <code>cd sim &amp;&amp; python3 build_model.py &amp;&amp; python3 build_model.py --arena &amp;&amp; python3 design_lqr.py 0.06 0.6 10
+  cd ../core &amp;&amp; g++ -O2 -std=c++17 -shared -fPIC controller.cpp sim_api.cpp -o ../sim/libbot.so
+  cd ../sim &amp;&amp; python3 run_tests.py 40 &amp;&amp; python3 make_video.py &amp;&amp; python3 nav_sim.py 150 --video</code></li>
+<li><strong>Tests:</strong>
+  <code>cd pi &amp;&amp; python3 -m pytest -q tests</code>
+  The tests compile the real firmware protocol header with g++ and check that it matches the Python parser byte for byte.</li>
+</ul>
+<h2>Not tested yet (needs the hardware)</h2>
+<p>These can't be simulated: the AI Camera stream and its detections, the LED-eye panel wiring order (<code>serpentine</code>), the real LD19 byte stream, the real bus's reply delays, motor encoder scaling, ADC calibration, the IP2368 6S setting, and how the real tyres scrub when turning. The simulation's contact model is a rounded tyre touching at one point.</p>
+<p><strong>Lower-latency video (optional).</strong> MJPEG works in every browser. For WebRTC, install mediamtx with its <code>rpiCamera</code> source and point the web page's <code>&lt;img&gt;</code> to its WHEP page instead.</p>
+<h2>Cheaper motors (simulation, <code>sim/wobble_compare.py</code>)</h2>
+<p>Same robot and firmware, 10 randomized runs each (battery 21–25 V, ±10 % torque, 1–2 cycles of CAN delay, IMU noise and bias).</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>Motor (pair price)</th>
+<th>Standing 10 s: pitch wobble p-p</th>
+<th>Torque jitter</th>
+<th>Push survived (1.5 / 2.0 N·s)</th>
+<th>Drive 1 m/s, stop, turn</th>
+<th>Stand-up</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MF6015-V2 (current, ~$320)</td>
+<td>0.38°</td>
+<td>0.5 mN·m</td>
+<td>10/10 · 0/10</td>
+<td>10/10</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>MF5015-V2 10T (~$240)</td>
+<td>0.39°</td>
+<td>0.6 mN·m</td>
+<td>10/10 · 0/10</td>
+<td>10/10</td>
+<td>no (0.7 N·m)</td>
+</tr>
+<tr>
+<td>DM-H6215, firmware speed from Hall counts (~$120)</td>
+<td>1.97°</td>
+<td>39.5 mN·m</td>
+<td>9/10 · 0/10</td>
+<td>10/10</td>
+<td>no (~1.7 m/s top)</td>
+</tr>
+<tr>
+<td>DM-H6215, drive's speed with 5 ms lag</td>
+<td>53° (limit cycle)</td>
+<td>1458 mN·m</td>
+<td>9/10 · 1/10</td>
+<td>10/10</td>
+<td>no</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>MF5015-V2 balances exactly like the MF6015; the push limit is set by the controller, not the motor.</li>
+<li>DM-H6215: the coarse Hall encoder (84 counts/rev) is fine only if the firmware computes wheel speed from the counts over ~20 ms. Feeding the controller a delayed speed sample makes it oscillate (MF5015 too: 2 ms of lag already gives 3.6° p-p), so the LK driver must keep using the fresh speed in each reply.</li>
+<li>H6215 numbers use an estimated rotor inertia (600 g·cm²) and Kt from the no-load speed.</li>
+</ul></div>
+<script>
+function tab(p){document.querySelectorAll('.tabs button').forEach(b=>{const on=b.dataset.p===p;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
+document.querySelectorAll('.pane').forEach(x=>x.hidden=x.id!==p)}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{tab(b.dataset.p);history.replaceState(null,'','#'+b.dataset.p)}));
+if(location.hash==='#readme')tab('readme');
+</script></body></html>

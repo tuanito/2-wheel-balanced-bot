@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Balancing robot V1.1 – wiring diagram</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1d2330;--mut:#667085;--ac:#2f6fd0;--card:#fff;--bd:#e2e5ea;--box:#fff;--hd:#eef2f8}
+@media (prefers-color-scheme:dark){:root{--bg:#15171b;--fg:#e8eaee;--mut:#9aa2ae;--ac:#6ea3ff;--card:#1f2228;--bd:#30343c;--box:#22262d;--hd:#2a303a}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 -apple-system,system-ui,Segoe UI,Roboto,sans-serif}
+header{padding:12px 14px 6px}h1{font-size:17px;margin:0 0 2px}header p{margin:0;color:var(--mut);font-size:13px}a{color:var(--ac)}
+nav.top{display:flex;gap:6px;overflow-x:auto;padding:6px 14px 8px;scrollbar-width:none}nav.top::-webkit-scrollbar{display:none}
+nav.top a{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:999px;padding:7px 13px;font-size:14px;text-decoration:none}
+nav.top a.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.ctl{display:flex;gap:6px;align-items:center;padding:4px 14px 8px;flex-wrap:wrap}
+.ctl button{border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer;min-height:36px;min-width:40px}
+#info{margin:0 12px 8px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;font-size:14px;min-height:44px}
+#info b{display:block}#info span{color:var(--mut)}
+#wrap{overflow:auto;margin:0 12px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--card);max-height:78vh;touch-action:pan-x pan-y}
+svg{display:block}
+svg .mod rect.b{fill:var(--box);stroke:var(--bd);stroke-width:1.2}svg .mod rect.h{fill:var(--hd)}
+svg text{fill:var(--fg);font:11px -apple-system,system-ui,Segoe UI,Roboto,sans-serif}svg text.t{font-weight:600;font-size:12px}
+svg .pin{cursor:pointer}svg .pin:hover rect{fill:color-mix(in srgb,var(--ac) 15%,transparent)}
+svg path.w{fill:none;stroke-linecap:round;cursor:pointer;transition:opacity .15s}svg path.u{fill:none;stroke:#0006;stroke-linecap:round;pointer-events:none}
+svg.sel path.w,svg.sel path.u{opacity:.08}svg.sel path.w.on,svg.sel path.u.on{opacity:1}
+.card{margin:6px 12px 14px;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}.card h2{font-size:16px;margin:0 0 6px}
+.tw{overflow-x:auto}.tw table{border-collapse:collapse;font-size:13px;min-width:640px}.tw th,.tw td{border-bottom:1px solid var(--bd);padding:5px 8px;text-align:left;vertical-align:top}
+.sw{display:inline-block;width:22px;height:8px;border-radius:4px;border:1px solid #0003;vertical-align:middle}
+.sub{display:flex;gap:6px;padding:0 14px 8px}.sub a{border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:13px;text-decoration:none;color:var(--fg);background:var(--card)}.sub a.on{border-color:var(--ac);color:var(--ac);font-weight:600}
+</style></head><body>
+<header><h1>Balancing robot V1.1 — wiring diagram</h1>
+<p>Every wire, pin to pin, in its real colour; line width follows the gauge. The same data draws the wires in the 3D viewer's Wiring view. Tap a wire, a pin or a module title to highlight it; tap the background to clear.</p></header>
+<nav class="top" aria-label="Pages"><a href="index.html">3D viewer</a><a href="wiring_boards.html" class="on" aria-current="page">Wiring diagram</a><a href="print.html">How it prints</a><a href="docs.html">README &amp; install</a><a href="code.html">Source code</a><a href="bom.html">Parts list</a></nav>
+<div class="sub"><a href="wiring_boards.html">Board pictures</a><a href="wiring.html" class="on" aria-current="page">Pin list diagram + wire table</a><a href="dock_wiring.html">Dock</a></div>
+<div class="ctl"><button type="button" id="zo" aria-label="Zoom out">−</button><button type="button" id="zi" aria-label="Zoom in">+</button><button type="button" id="zf">Fit width</button>
+<span style="color:var(--mut);font-size:13px">Left: power · middle: controllers · right: devices</span></div>
+<div id="info" role="status" aria-live="polite"><b>Nothing selected</b><span>89 wires in 31 harnesses.</span></div>
+<div id="wrap"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wiring diagram"></svg></div>
+<div class="card"><h2>All wires</h2><div class="tw"><table id="tab"><tr><th></th><th>Signal</th><th>From</th><th>To</th><th>Gauge</th><th>Routed</th><th>Harness</th></tr></table></div>
+<p style="color:var(--mut);font-size:13px;margin:8px 0 0">Routed lengths come from the 3D routing; cut each wire ~30 % longer. Plug pin orders for the Adafruit, Pololu and LK parts follow their silkscreen/drawings: check them on your boards before crimping.</p></div>
+<script>
+const D=__DATA__;
+const AWG={3.4:'12 AWG',2.6:'16 AWG',1.8:'20 AWG',1.5:'22 AWG',1.3:'24 AWG',1.1:'26 AWG',0.9:'28 AWG'};
+const NS='http://www.w3.org/2000/svg',svg=document.getElementById('svg');
+const BW=270,GAP=230,X=[20,20+BW+GAP,20+2*(BW+GAP)],RH=15,HH=24,SP=16;
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;};
+const pos={},modCol={};let H=0;
+D.cols.forEach((col,ci)=>{let y=20;col.forEach(m=>{const pins=D.pins[m]||[];modCol[m]=ci;const h=HH+pins.length*RH+6;
+  const g=el('g',{class:'mod'});el('rect',{class:'b',x:X[ci],y,width:BW,height:h,rx:8},g);el('rect',{class:'h',x:X[ci]+1,y:y+1,width:BW-2,height:HH-2,rx:7},g);
+  const t=el('text',{class:'t',x:X[ci]+10,y:y+16},g);t.textContent=m;g.style.cursor='pointer';g.addEventListener('click',e=>{e.stopPropagation();selMod(m);});
+  pins.forEach((p,k)=>{const yy=y+HH+k*RH+RH/2+2;pos[m+'|'+p]={l:[X[ci],yy],r:[X[ci]+BW,yy]};
+    const pg=el('g',{class:'pin'},g);el('rect',{x:X[ci]+2,y:yy-RH/2,width:BW-4,height:RH,fill:'transparent'},pg);
+    const tt=el('text',{x:X[ci]+10,y:yy+4},pg);tt.textContent=p.length>44?p.slice(0,43)+'…':p;
+    pg.addEventListener('click',e=>{e.stopPropagation();selPin(m,p);});});
+  y+=h+SP;});H=Math.max(H,y);});
+const W=X[2]+BW+20;svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+const paths=[];
+D.wires.forEach((w,i)=>{const A=pos[w.a.join('|')],B=pos[w.b.join('|')],ca=modCol[w.a[0]],cb=modCol[w.b[0]];let p,q,d;
+  if(ca<cb){p=A.r;q=B.l;}else if(ca>cb){p=A.l;q=B.r;}else{p=A.r;q=B.r;}
+  const off=(i%7)*3;
+  if(ca===cb){const xm=p[0]+40+off;d=`M${p[0]},${p[1]} C${xm},${p[1]} ${xm},${q[1]} ${q[0]},${q[1]}`;}
+  else{const dx=Math.abs(q[0]-p[0])*.45+off;const s=p[0]<q[0]?1:-1;d=`M${p[0]},${p[1]} C${p[0]+s*dx},${p[1]} ${q[0]-s*dx},${q[1]} ${q[0]},${q[1]}`;}
+  const sw=1+w.d*.8;const u=el('path',{class:'u',d,'stroke-width':sw+1.4});const pa=el('path',{class:'w',d,stroke:w.col,'stroke-width':sw});
+  const hit=el('path',{d,stroke:'transparent','stroke-width':10,fill:'none',style:'cursor:pointer'});hit.addEventListener('click',e=>{e.stopPropagation();selWire(i);});
+  paths.push([pa,u]);});
+const info=document.getElementById('info');
+function show(idx,title,sub){svg.classList.toggle('sel',idx!==null);paths.forEach(([a,b],i)=>{const on=idx&&idx.has(i);a.classList.toggle('on',!!on);b.classList.toggle('on',!!on);});
+  info.innerHTML='';const b=document.createElement('b');b.textContent=title;const s=document.createElement('span');s.textContent=sub;info.append(b,s);}
+function selWire(i){const w=D.wires[i];show(new Set([i]),w.sig,`${w.a[0]} · ${w.a[1]}  →  ${w.b[0]} · ${w.b[1]} · ${AWG[w.d]||''} · ${w.L} cm routed · harness: ${w.harness}`);}
+function selPin(m,p){const s=new Set();D.wires.forEach((w,i)=>{if((w.a[0]===m&&w.a[1]===p)||(w.b[0]===m&&w.b[1]===p))s.add(i);});
+  show(s,`${m} · ${p}`,[...s].map(i=>{const w=D.wires[i];const o=w.a[0]===m&&w.a[1]===p?w.b:w.a;return `${w.sig} → ${o[0]} · ${o[1]}`;}).join('  |  '));}
+function selMod(m){const s=new Set();D.wires.forEach((w,i)=>{if(w.a[0]===m||w.b[0]===m)s.add(i);});show(s,m,`${s.size} wires`);}
+svg.addEventListener('click',()=>show(null,'Nothing selected',`${D.wires.length} wires in ${D.harnesses.length} harnesses.`));
+let sc=1;const wrap=document.getElementById('wrap');
+function zoom(f){sc=f;svg.setAttribute('width',Math.round(W*sc));svg.setAttribute('height',Math.round(H*sc));}
+document.getElementById('zi').onclick=()=>zoom(Math.min(sc*1.25,3));document.getElementById('zo').onclick=()=>zoom(Math.max(sc/1.25,.2));
+document.getElementById('zf').onclick=()=>zoom((wrap.clientWidth-2)/W);
+zoom(Math.max(.55,(wrap.clientWidth-2)/W));
+const tab=document.getElementById('tab');
+D.wires.forEach((w,i)=>{const tr=document.createElement('tr');tr.innerHTML=`<td><span class="sw" style="background:${w.col}"></span></td><td></td><td></td><td></td><td>${AWG[w.d]||''}</td><td>${w.L} cm</td><td></td>`;
+  tr.children[1].textContent=w.sig;tr.children[2].textContent=w.a[0]+' · '+w.a[1];tr.children[3].textContent=w.b[0]+' · '+w.b[1];tr.children[6].textContent=w.harness;
+  tr.style.cursor='pointer';tr.onclick=()=>{selWire(i);wrap.scrollIntoView({behavior:'smooth'});};tab.appendChild(tr);});
+</script></body></html>

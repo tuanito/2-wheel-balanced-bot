@@ -1,7 +1,8 @@
+import os as _os; WS = (_os.environ.get("BOT_WS") or ("/home/claude" if _os.path.isdir("/home/claude/case") else _os.path.expanduser("~/bot-ws"))).rstrip("/") + "/"   # workspace root (tools/make_workspace.sh)
 import os; os.environ["MUJOCO_GL"]="osmesa"
 import mujoco, numpy as np, pathlib
 from PIL import Image, ImageDraw, ImageFont
-D=pathlib.Path("/home/claude/case/assembly")
+D=pathlib.Path(WS + "case/assembly")
 parts=[l.split("|") for l in open(D/"parts.txt").read().splitlines()]
 def xml(skip=()):
     a="".join(f'<mesh name="{k}" file="{D}/{k}.stl" scale="0.001 0.001 0.001"/>' for k,_ in parts if k not in skip)
@@ -18,4 +19,4 @@ ims=[shot((),-150,-15,0.55,"Front: camera, sonar, lidar on top"),
      shot(("cover","c_perfboardESP32CANboard","wheel+1","wheel-1","c_lidarLD19"),35,-30,0.42,"Inside: perfboard, wheels, lidar hidden",look=(0,0,0.03))]
 W=sum(i.width for i in ims); out=Image.new("RGB",(W,1000),"white"); x=0
 for i in ims: out.paste(i,(x,0)); x+=i.width
-out.save("/home/claude/case/case_preview.png"); print(out.size)
+out.save(WS + "case/case_preview.png"); print(out.size)

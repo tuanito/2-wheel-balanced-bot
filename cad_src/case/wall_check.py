@@ -1,4 +1,5 @@
-import sys, importlib; sys.path.insert(0,"/home/claude/case")
+import os as _os; WS = (_os.environ.get("BOT_WS") or ("/home/claude" if _os.path.isdir("/home/claude/case") else _os.path.expanduser("~/bot-ws"))).rstrip("/") + "/"   # workspace root (tools/make_workspace.sh)
+import sys, importlib; sys.path.insert(0,WS + "case")
 import body_case as bc
 from design_variants import VARIANTS
 for name,spec in VARIANTS.items():

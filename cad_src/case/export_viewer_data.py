@@ -1,7 +1,8 @@
+import os as _os; WS = (_os.environ.get("BOT_WS") or ("/home/claude" if _os.path.isdir("/home/claude/case") else _os.path.expanduser("~/bot-ws"))).rstrip("/") + "/"   # workspace root (tools/make_workspace.sh)
 import sys, json, base64, struct, numpy as np
-sys.path.insert(0,'/home/claude/case'); sys.path.insert(0,'/home/claude/wheel_adapter')
+sys.path.insert(0,WS + 'case'); sys.path.insert(0,WS + 'wheel_adapter')
 import cadquery as cq
-exec(open('/home/claude/case/assemble.py').read().split("print(\"== interference")[0])  # reuse part construction
+exec(open(WS + 'case/assemble.py').read().split("print(\"== interference")[0])  # reuse part construction
 def mesh(shape, tol):
     v,t=shape.tessellate(tol,0.35)
     V=np.array([[p.x,p.y,p.z] for p in v],dtype=np.float64); T=np.array(t,dtype=np.uint32)
@@ -77,5 +78,5 @@ add("mat_wpos","Charging dock wiring: + (jack -> controller -> + rod), 22 AWG re
 add("mat_wneg","Charging dock wiring: - (jack -> controller -> - rod), 22 AWG black",bc.build_dock("wires_neg").val().translate((0, 0, -R)),"#212121","mat",[0,0,0])
 add("mat_wled","Charging dock wiring: controller -> 5 IR LEDs, 26 AWG pairs",bc.build_dock("wires_led").val().translate((0, 0, -R)),"#8e24aa","mat",[0,0,0])
 add("mat_irled","Charging dock: IR beacon LEDs (4 all round + 1 centre tube, TSAL6200)",bc.build_dock("ir_leds").val().translate((0, 0, -R)),"#c0392b","mat",[0,0,0])
-json.dump(parts,open('/home/claude/case/viewer_parts_v11.json','w'))
-import os; print(os.path.getsize('/home/claude/case/viewer_parts_v11.json')/1e6,"MB")
+json.dump(parts,open(WS + 'case/viewer_parts_v11.json','w'))
+import os; print(os.path.getsize(WS + 'case/viewer_parts_v11.json')/1e6,"MB")
