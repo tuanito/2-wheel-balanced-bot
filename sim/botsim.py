@@ -7,7 +7,7 @@ speeds (relative to the body), sonar, battery voltage. Motors are modelled as th
 import ctypes as C, pathlib, math, os, numpy as np, mujoco
 
 HERE = pathlib.Path(__file__).parent
-LIB = C.CDLL(str(HERE / "libbot.so"))
+LIB = C.CDLL(str(HERE / ("libbot.dylib" if (HERE / "libbot.dylib").exists() and os.uname().sysname == "Darwin" else "libbot.so")))   # macOS: built by ml/setup_mac.sh
 # IMU full scale: MPU6050 = +-2000 dps, +-16 g (env GYRO_DPS / ACC_G to try a wide-range IMU such as the ICM-20649)
 GYRO_MAX = math.radians(float(os.environ.get("GYRO_DPS", "2000"))); ACC_MAX = 9.81 * float(os.environ.get("ACC_G", "16"))
 
@@ -169,3 +169,5 @@ LIB.bot_lift_mode.argtypes = [C.c_void_p, C.c_int, C.c_float, C.c_float]
 LIB.bot_limits.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
 LIB.bot_recover.argtypes = [C.c_void_p, C.c_float, C.c_float]
 LIB.bot_dock.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
+LIB.bot_standup.argtypes = [C.c_void_p, C.c_int, C.c_float]
+LIB.bot_standup_obs.argtypes = [C.c_void_p, C.POINTER(C.c_float)]

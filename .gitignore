@@ -10,3 +10,7 @@ sim/results/*.mp4
 # secrets: the Claude API key lives in /etc/robot.env on the Pi, never in the repo
 robot.env
 *.env
+
+# ML training output and the Mac venv / library (ml/setup_mac.sh)
+ml/runs/
+.venv/

@@ -1,4 +1,5 @@
 #include "controller.hpp"
+#include "standup_policy.hpp"
 #include "gains.hpp"
 #include <cmath>
 #include <algorithm>
@@ -94,6 +95,16 @@ float Controller::sonar_speed_limit(const Inputs& in) {
   return vmax;
 }
 
+void Controller::standup_obs(float* o) const {
+  // side-normalised (+ = towards upright from the side it lies on), roughly scaled to [-1, 1]
+  o[0] = pitch_ * side_;
+  o[1] = 0.1f * pitch_rate_ * side_;
+  o[2] = wheel_w_ * side_ / WHEEL_W_MAX;
+  o[3] = t_state_ / STANDUP_TIMEOUT;
+  o[4] = 0.5f * (vbat_ - 23.f);
+  o[5] = nn_tsum_ / (2 * torque_limit);
+}
+
 float Controller::body_energy() const {
   return 0.5f * pitch_rate_ * pitch_rate_ - Params::WN2 * (1 - std::cos(pitch_));
 }
@@ -179,6 +190,7 @@ Outputs Controller::step(const Inputs& in) {
   if (st_ != ST_CHARGING) hold_on_ = false;
   if (!cmd_.arm && st_ != ST_CHARGING && st_ != ST_DISARMED) go(ST_DISARMED);
   const float wheel_rel = 0.5f * std::fabs(in.wl + in.wr);
+  wheel_w_ = 0.5f * (in.wl + in.wr); vbat_ = in.vbat;
   if (st_ >= ST_LIFT && st_ <= ST_BALANCE && wheel_rel > 0.95f * WHEEL_W_MAX) go(ST_FALLEN);   // runaway: cut, then retry
 
   switch (st_) {
@@ -254,10 +266,22 @@ Outputs Controller::step(const Inputs& in) {
         if (++tries_ > MAX_TRIES) { go(ST_FAULT); break; }
         yaw_ref_ = yaw_;
         last_side_ = side_;
+        nn_tick_ = 0; nn_tsum_ = 0;
         go(ST_LIFT);
       }
       break;
     case ST_LIFT: {
+      if (standup_mode == 2 || (standup_mode == 1 && STANDUP_POLICY_TRAINED)) {
+        // learned stand-up: the policy sets the push every STANDUP_HOLD ticks (10 ms), from lying until the catch
+        if (standup_mode == 2) nn_tsum_ = ext_tsum;
+        else if (nn_tick_ % STANDUP_HOLD == 0) { float o[STANDUP_NOBS]; standup_obs(o); nn_tsum_ = standup_policy(o) * 2 * torque_limit; }
+        ++nn_tick_;
+        t_sum = side_ * clampf(nn_tsum_, -2 * torque_limit, 2 * torque_limit);
+        t_diff = Params::KP_YAW * (yaw_ref_ - yaw_) - Params::KD_YAW * yaw_rate_;
+        if (std::fabs(pitch_) < catch_pitch) { hold_here(); recovering_ = true; go(ST_BALANCE); }
+        else if (pitch_ * side_ < -LYING_PITCH || t_state_ > STANDUP_TIMEOUT) go(ST_FALLEN);   // went over / gave up
+        break;
+      }
       // Kick: full push towards the side the top points to; the reaction swings the body up.
       // Stop as soon as the body has (almost) the energy to reach upright, the COAST phase trims the rest.
       t_sum = side_ * lift_torque * 2;

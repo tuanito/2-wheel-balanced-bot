@@ -99,6 +99,11 @@ class Controller {
   float energy_gain = 0.03f;    // N·m per (rad^2/s^2 · rad/s), coast energy shaping
   float recover_accel = 1.0f;   // m/s^2: braking right after a stand-up
   float recover_hold = 0.0f;    // s: keep the catch speed this long while the attitude settles
+  // Learned stand-up (ml/): 0 = the hand-tuned kick + energy shaping above, 1 = the neural policy in standup_policy.hpp
+  // (falls back to 0 while that file holds no trained policy), 2 = torque from outside (the trainer, sim only)
+  uint8_t standup_mode = 0;
+  float ext_tsum = 0;           // mode 2: N·m for both motors together, in the side-normalised frame (+ = push up)
+  void standup_obs(float* o) const;   // the policy's inputs (STANDUP_NOBS floats), same in the sim and on the robot
   // Backflip, KENBOT style (tuned in sim/flip_tune2.py)
   float flip_lie_torque = 0.6f; // N·m per motor to tip over onto the back
   float flip_lie_time = 0.15f;  // s
@@ -148,6 +153,8 @@ class Controller {
   // state machine
   State st_ = ST_DISARMED;
   int8_t side_ = 0;
+  float wheel_w_ = 0, vbat_ = 22.2f, nn_tsum_ = 0;   // learned stand-up: wheel speed (rad/s), battery, held action
+  uint16_t nn_tick_ = 0;
   float t_state_ = 0;
   uint8_t tries_ = 0;
   uint8_t obstacle_ = 0;

@@ -23,3 +23,7 @@ extern "C" void bot_dock(void* p, float lean_tgt, float lean_rate, float press_m
 extern "C" void bot_dock_hold(void* p, float kp, float kd, float max_tq) {
   auto* c = static_cast<bot::Controller*>(p); c->dock_hold_kp = kp; c->dock_hold_kd = kd; c->dock_hold_max = max_tq;
 }
+extern "C" void bot_standup(void* p, int mode, float ext_tsum) {
+  auto* c = static_cast<bot::Controller*>(p); c->standup_mode = (uint8_t)mode; c->ext_tsum = ext_tsum;
+}
+extern "C" void bot_standup_obs(void* p, float* o) { static_cast<bot::Controller*>(p)->standup_obs(o); }
