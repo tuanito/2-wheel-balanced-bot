@@ -14,15 +14,15 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sim")); sys.path.insert(0, str(ROOT / "ml"))
 from botsim import BotSim, LIB, CTRL_DT  # noqa: E402
 
-MODEL = None
-
 
 def trial(args):
-    seed, side, mode = args
+    # the model path travels in the task, not in a global: multiprocessing uses spawn on
+    # macOS, where a worker re-imports this module and would not see a module-level MODEL.
+    seed, side, mode, model_path = args
     model = None
     if mode == "model":
         from stable_baselines3 import PPO
-        model = PPO.load(MODEL, device="cpu")
+        model = PPO.load(model_path, device="cpu")
     s = BotSim(seed=seed, randomize=True)
     s.place(pitch=1.8 * side)
     LIB.bot_standup(s.ctl, {"hand": 0, "model": 2, "compiled": 1}[mode], 0.0)
@@ -42,9 +42,9 @@ def trial(args):
     return ok, (L[up[0], 0] if len(up) else np.nan), float(np.hypot(L[-1, 9] - L[0, 9], L[-1, 10] - L[0, 10]))
 
 
-def run(mode):
+def run(mode, model_path=None):
     with Pool() as p:
-        R = p.map(trial, [(3000 + i, side, mode) for i in range(30) for side in (1, -1)])
+        R = p.map(trial, [(3000 + i, side, mode, model_path) for i in range(30) for side in (1, -1)])
     ok = [r[0] for r in R]
     print(f"{mode:9s} face-down {sum(ok[0::2])}/30  back-down {sum(ok[1::2])}/30  "
           f"median time to upright {np.nanmedian([r[1] for r in R]):.2f} s  median travel {np.median([r[2] for r in R]):.2f} m")
@@ -55,5 +55,4 @@ if __name__ == "__main__":
     if "--compiled" in sys.argv: run("compiled")
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if args:
-        MODEL = args[0]
-        run("model")
+        run("model", args[0])
