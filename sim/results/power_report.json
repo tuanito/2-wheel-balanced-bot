@@ -1,0 +1,148 @@
+{
+ "standup": {
+  "full 25.2 V, new 35 mΩ": {
+   "success": "16/16",
+   "first_try": "14/16",
+   "peak_bus_A": 32.4,
+   "min_bus_V": 24.06,
+   "s_above_30A": 0.004,
+   "peak_regen_A": 5.1,
+   "regen_J": 1.53,
+   "max_bus_V": 25.38
+  },
+  "full 25.2 V, worn/cold 75 mΩ": {
+   "success": "16/16",
+   "first_try": "16/16",
+   "peak_bus_A": 25.2,
+   "min_bus_V": 23.31,
+   "s_above_30A": 0.0,
+   "peak_regen_A": 5.2,
+   "regen_J": 0.67,
+   "max_bus_V": 25.59
+  },
+  "full 25.2 V, bad 120 mΩ": {
+   "success": "16/16",
+   "first_try": "15/16",
+   "peak_bus_A": 31.5,
+   "min_bus_V": 21.42,
+   "s_above_30A": 0.002,
+   "peak_regen_A": 6.0,
+   "regen_J": 0.92,
+   "max_bus_V": 25.92
+  },
+  "half 22.8 V, new 35 mΩ": {
+   "success": "16/16",
+   "first_try": "16/16",
+   "peak_bus_A": 25.1,
+   "min_bus_V": 21.92,
+   "s_above_30A": 0.0,
+   "peak_regen_A": 5.0,
+   "regen_J": 0.5,
+   "max_bus_V": 22.98
+  },
+  "half 22.8 V, worn/cold 75 mΩ": {
+   "success": "15/16",
+   "first_try": "14/16",
+   "peak_bus_A": 32.9,
+   "min_bus_V": 20.34,
+   "s_above_30A": 0.01,
+   "peak_regen_A": 4.7,
+   "regen_J": 1.67,
+   "max_bus_V": 23.15
+  },
+  "half 22.8 V, bad 120 mΩ": {
+   "success": "16/16",
+   "first_try": "15/16",
+   "peak_bus_A": 25.2,
+   "min_bus_V": 19.78,
+   "s_above_30A": 0.0,
+   "peak_regen_A": 4.8,
+   "regen_J": 0.55,
+   "max_bus_V": 23.37
+  },
+  "low 21.0 V (3.5 V/cell), new 35 mΩ": {
+   "success": "16/16",
+   "first_try": "15/16",
+   "peak_bus_A": 31.8,
+   "min_bus_V": 19.89,
+   "s_above_30A": 0.002,
+   "peak_regen_A": 5.1,
+   "regen_J": 0.44,
+   "max_bus_V": 21.18
+  },
+  "low 21.0 V (3.5 V/cell), worn/cold 75 mΩ": {
+   "success": "16/16",
+   "first_try": "15/16",
+   "peak_bus_A": 30.1,
+   "min_bus_V": 18.74,
+   "s_above_30A": 0.002,
+   "peak_regen_A": 4.4,
+   "regen_J": 0.44,
+   "max_bus_V": 21.33
+  },
+  "low 21.0 V (3.5 V/cell), bad 120 mΩ": {
+   "success": "16/16",
+   "first_try": "16/16",
+   "peak_bus_A": 25.5,
+   "min_bus_V": 17.94,
+   "s_above_30A": 0.0,
+   "peak_regen_A": 3.9,
+   "regen_J": 0.26,
+   "max_bus_V": 21.46
+  },
+  "empty 19.8 V (3.3 V/cell), new 35 mΩ": {
+   "success": "16/16",
+   "first_try": "16/16",
+   "peak_bus_A": 25.0,
+   "min_bus_V": 18.92,
+   "s_above_30A": 0.0,
+   "peak_regen_A": 4.7,
+   "regen_J": 0.35,
+   "max_bus_V": 19.96
+  },
+  "empty 19.8 V (3.3 V/cell), worn/cold 75 mΩ": {
+   "success": "16/16",
+   "first_try": "15/16",
+   "peak_bus_A": 25.5,
+   "min_bus_V": 17.88,
+   "s_above_30A": 0.0,
+   "peak_regen_A": 4.6,
+   "regen_J": 0.41,
+   "max_bus_V": 20.15
+  },
+  "empty 19.8 V (3.3 V/cell), bad 120 mΩ": {
+   "success": "16/16",
+   "first_try": "15/16",
+   "peak_bus_A": 25.1,
+   "min_bus_V": 16.79,
+   "s_above_30A": 0.0,
+   "peak_regen_A": 4.6,
+   "regen_J": 0.47,
+   "max_bus_V": 20.35
+  }
+ },
+ "drive": {
+  "full 25.2 V": {
+   "ok": "6/8",
+   "peak_bus_A": 23.1,
+   "peak_regen_A": 4.7,
+   "regen_J": 0.44,
+   "min_bus_V": 23.47,
+   "max_bus_V": 25.55
+  },
+  "empty 19.8 V (3.3 V/cell)": {
+   "ok": "6/8",
+   "peak_bus_A": 23.2,
+   "peak_regen_A": 3.6,
+   "regen_J": 0.26,
+   "min_bus_V": 18.06,
+   "max_bus_V": 20.07
+  }
+ },
+ "bms_blocks_charge": {
+  "C_bus_uF": 910,
+  "worst_regen_J_per_manoeuvre": 1.67,
+  "bus_V_if_all_into_caps": 65.6,
+  "J_to_reach_32V": 0.177
+ }
+}

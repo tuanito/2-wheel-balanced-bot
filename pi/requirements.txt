@@ -1,0 +1,10 @@
+# Raspberry Pi OS Bookworm (64-bit Lite), Pi Zero 2 W.
+# System packages first:  sudo apt install -y python3-picamera2 python3-numpy python3-scipy python3-pil python3-serial python3-aiohttp libportaudio2 espeak-ng
+# Then (in a venv created with --system-site-packages):
+adafruit-circuitpython-neopixel-spi>=1.0
+adafruit-blinka>=8.0
+sounddevice>=0.4      # microphones + speaker (I2S voice card)
+vosk>=0.3.45          # offline speech recognition
+anthropic>=0.40       # Claude API (voice orders)
+pytest>=8          # only for the tests
+pytest-aiohttp>=1.0

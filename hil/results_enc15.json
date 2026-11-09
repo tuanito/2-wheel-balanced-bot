@@ -1,0 +1,78 @@
+{
+ "drive_1": {
+  "cycles": 5025,
+  "sim_s": 10.05,
+  "dt_ms_median": 2.0,
+  "dt_ms_p99": 2.437,
+  "dt_ms_max": 6.69,
+  "host_ms_p99": 0.52,
+  "host_ms_max": 6.55,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -1.2,
+  "speed_cmd": 0.5,
+  "speed_true": 0.474,
+  "dist_true_m": 1.41,
+  "odo_x_m": 1.424,
+  "turn_cmd_deg": 90,
+  "yaw_true_deg": 89.2,
+  "upright": true,
+  "wall_s": 33.4
+ },
+ "balance_push_1": {
+  "cycles": 5776,
+  "sim_s": 11.56,
+  "dt_ms_median": 2.0,
+  "dt_ms_p99": 2.24,
+  "dt_ms_max": 4.85,
+  "host_ms_p99": 0.528,
+  "host_ms_max": 3.22,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -1.6,
+  "pushes": [
+   {
+    "impulse_Ns": 1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": -1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": 1.5,
+    "upright": true,
+    "state": "BALANCE"
+   }
+  ],
+  "still_pitch_std_deg": 0.369,
+  "still_drift_mm": 13,
+  "wall_s": 36.9
+ }
+}

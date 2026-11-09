@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Robot</title>
+<style>
+  :root { --bg:#14161a; --panel:#1f2329; --fg:#e8eaed; --muted:#9aa0a6; --accent:#4fb3ff; --warn:#ffb347; --bad:#ff5c5c; --ok:#5ee08c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px system-ui, sans-serif; -webkit-user-select:none; user-select:none; }
+  main { max-width: 900px; margin: 0 auto; padding: 10px; display: grid; gap: 10px; }
+  .video { width:100%; aspect-ratio: 4/3; background:#000; border-radius: 12px; object-fit: cover; display:block; }
+  .bar { display:flex; flex-wrap:wrap; gap:8px 14px; background:var(--panel); padding:10px 12px; border-radius:12px; }
+  .bar b { font-weight:600; }
+  .state { padding:2px 10px; border-radius:999px; background:#333; font-weight:700; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+  .pad { position:relative; aspect-ratio:1; background:var(--panel); border-radius:16px; touch-action:none; }
+  .pad .knob { position:absolute; width:64px; height:64px; margin:-32px 0 0 -32px; left:50%; top:50%; border-radius:50%; background:var(--accent); opacity:.85; pointer-events:none; }
+  .pad .hint { position:absolute; inset:auto 0 8px 0; text-align:center; color:var(--muted); font-size:13px; }
+  .buttons { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; align-content:start; }
+  button { min-height:48px; border:0; border-radius:12px; background:var(--panel); color:var(--fg); font:600 15px system-ui; }
+  button.on { background:var(--accent); color:#001b2e; }
+  button.arm { background:#225c38; } button.disarm { background:#6b2323; }
+  canvas { width:100%; aspect-ratio:1; background:#808080; border-radius:12px; touch-action: manipulation; }
+  .events { color:var(--muted); font-size:13px; white-space:pre-line; }
+  label { display:flex; align-items:center; gap:6px; }
+.voice{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.voice #talk{font-size:18px;padding:12px 18px}.voice input{flex:1;min-width:180px;padding:10px;border-radius:8px;border:1px solid #444;background:#111;color:#eee}
+.vstate{width:100%;font-size:13px;color:#aaa}
+</style>
+</head>
+<body>
+<main>
+  <img class="video" src="/stream.mjpg" alt="Live camera">
+  <div class="bar" id="tele">
+    <span class="state" id="st">…</span>
+    <span>battery <b id="vb">–</b> V</span>
+    <span>pitch <b id="pi">–</b>°</span>
+    <span>speed <b id="sp">–</b> m/s</span>
+    <span>sonar <b id="so">–</b> m</span>
+    <span>mode <b id="md">–</b></span>
+  </div>
+  <div class="row">
+    <div class="pad" id="pad" aria-label="Drive joystick"><div class="knob" id="knob"></div><div class="hint">drag to drive</div></div>
+    <div class="buttons">
+      <button class="arm" data-cmd="arm">Arm</button>
+      <button class="disarm" data-cmd="disarm">Disarm</button>
+      <button data-cmd="stop">Stop</button>
+      <button data-cmd="turn" data-angle="90">⟲ 90°</button>
+      <button data-cmd="turn" data-angle="180">180°</button>
+      <button data-cmd="turn" data-angle="-90">⟳ 90°</button>
+      <button data-cmd="explore">Explore</button>
+      <button data-cmd="follow">Follow me</button>
+      <button data-cmd="dock">Dock &amp; charge</button>
+      <button data-cmd="undock">Undock</button>
+      <button data-toggle="auto_standup" class="on">Auto stand-up</button>
+      <button data-toggle="avoid" class="on">Avoid</button>
+      <button data-toggle="light">Headlight</button>
+      <button data-cmd="save_map">Save map</button>
+      <button data-cmd="clear_map">Clear map</button>
+    </div>
+  </div>
+  <div class="voice" id="voice">
+    <button id="talk" type="button">🎤 Talk</button>
+    <input id="ask" type="text" placeholder="…or type an order for Claude" aria-label="Type an order">
+    <div class="vstate"><b id="vst">voice off</b> <span id="vlvl"></span><br><span id="vheard"></span><br><i id="vreply"></i></div>
+  </div>
+  <form class="voice" id="people" aria-label="Teach the robot a person">
+    <input name="name" type="text" placeholder="Person's name" aria-label="Person's name" required>
+    <input name="photos" type="file" accept="image/*" multiple aria-label="Photos of the face (3-5 is best)" required>
+    <button type="submit">Teach face</button> <span id="pmsg" role="status" aria-live="polite"></span>
+  </form>
+  <div class="events" id="seen" aria-live="polite"></div>
+  <canvas id="map" width="600" height="600" aria-label="Map: tap to send the robot there"></canvas>
+  <div class="events" id="ev"></div>
+</main>
+<script>
+const ws = new WebSocket(`ws://${location.host}/ws`);
+const send = o => ws.readyState === 1 && ws.send(JSON.stringify(o));
+let S = null, mapInfo = null, mapImg = new Image(), view = {cx: 0, cy: 0, scale: 60};
+const VMAX = 0.8, WMAX = 1.2;
+
+ws.onmessage = e => {
+  S = JSON.parse(e.data);
+  if (S.voice) {
+    vst.textContent = S.voice.state + (S.voice.error ? ' · ' + S.voice.error : '');
+    vlvl.textContent = 'mic ' + S.voice.level + ' dBFS' + (S.voice.bearing ? ' · ' + S.voice.bearing + '°' : '');
+    vheard.textContent = S.voice.heard ? '“' + S.voice.heard + '”' : '';
+    vreply.textContent = S.voice.reply || '';
+  }
+  st.textContent = S.state + (S.armed ? '' : ' · disarmed') + (S.charging ? ' · charging' : '');
+  st.style.background = S.state === 'BALANCE' ? '#225c38' : (S.state === 'FAULT' || S.battery_low) ? '#6b2323' : '#5a4a1a';
+  vb.textContent = S.vbat.toFixed(1); pi.textContent = S.pitch.toFixed(1); sp.textContent = S.v.toFixed(2);
+  so.textContent = S.sonar > 0 ? S.sonar.toFixed(2) : '–'; md.textContent = S.mode;
+  ev.textContent = S.events.join('\n');
+  document.getElementById('seen').textContent = (S.following ? `following ${S.following} · ` : '') + ((S.seen || []).map(d => d.name || (d.label === 'cat' ? 'cat' : 'person')).join(', ') || 'nobody in view');
+  for (const b of document.querySelectorAll('[data-toggle]')) b.classList.toggle('on', !!S[b.dataset.toggle] || (b.dataset.toggle === 'light' && b.classList.contains('on')));
+  draw();
+};
+
+// ---- joystick: up = forward, left = turn left ----
+const pad = document.getElementById('pad'), knob = document.getElementById('knob');
+let joy = {v: 0, w: 0}, active = false;
+function setKnob(x, y) { knob.style.left = (50 + 50 * x) + '%'; knob.style.top = (50 + 50 * y) + '%'; }
+function onMove(e) {
+  const r = pad.getBoundingClientRect();
+  let x = ((e.clientX - r.left) / r.width) * 2 - 1, y = ((e.clientY - r.top) / r.height) * 2 - 1;
+  const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+  setKnob(x, y);
+  joy = {v: -y * Math.abs(y) * VMAX, w: -x * Math.abs(x) * WMAX};
+}
+pad.addEventListener('pointerdown', e => { active = true; pad.setPointerCapture(e.pointerId); onMove(e); });
+pad.addEventListener('pointermove', e => active && onMove(e));
+const release = () => { active = false; joy = {v: 0, w: 0}; setKnob(0, 0); send({type: 'joy', v: 0, w: 0}); };
+pad.addEventListener('pointerup', release); pad.addEventListener('pointercancel', release);
+setInterval(() => { if (active) send({type: 'joy', v: joy.v, w: joy.w}); }, 50);
+
+// ---- buttons ----
+document.getElementById('people').onsubmit = async e => {
+  e.preventDefault(); const f = e.target, fd = new FormData();
+  fd.append('name', f.name.value.trim()); for (const x of f.photos.files) fd.append('photo', x, x.name);
+  const m = document.getElementById('pmsg'); m.textContent = 'uploading…';
+  try { const r = await (await fetch('/api/people', {method: 'POST', body: fd})).json();
+        m.textContent = r.ok ? `${r.name}: face found in ${r.faces_found} of ${r.photos} photos` : r.error; }
+  catch (_) { m.textContent = 'upload failed'; }
+};
+for (const b of document.querySelectorAll('[data-cmd]'))
+  b.onclick = () => send({type: 'cmd', name: b.dataset.cmd, angle: +(b.dataset.angle || 0)});
+for (const b of document.querySelectorAll('[data-toggle]'))
+  b.onclick = () => { const on = !b.classList.contains('on'); b.classList.toggle('on', on); send({type: 'cmd', name: b.dataset.toggle, on}); };
+
+// ---- map: robot-centred, tap to go there ----
+const cv = document.getElementById('map'), ctx = cv.getContext('2d');
+fetch('/map.json').then(r => r.json()).then(j => mapInfo = j);
+setInterval(() => { const im = new Image(); im.onload = () => { mapImg = im; draw(); }; im.src = '/map.png?' + Date.now(); }, 2000);
+function w2c(x, y) { return [cv.width / 2 + (x - view.cx) * view.scale, cv.height / 2 - (y - view.cy) * view.scale]; }
+function draw() {
+  if (!S || !mapInfo) return;
+  view.cx = S.pose[0]; view.cy = S.pose[1];
+  ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const size = mapInfo.n * mapInfo.res, [x0, y0] = w2c(mapInfo.origin, mapInfo.origin + size);
+  ctx.imageSmoothingEnabled = false;
+  if (mapImg.complete) ctx.drawImage(mapImg, x0, y0, size * view.scale, size * view.scale);
+  const [rx, ry] = w2c(S.pose[0], S.pose[1]), th = S.pose[2];
+  ctx.fillStyle = '#ff4fa0';
+  for (const [px, py] of S.scan) {        // lidar points (V2: remembered sonar obstacles), robot frame -> world
+    const wx = S.pose[0] + px * Math.cos(th) - py * Math.sin(th), wy = S.pose[1] + px * Math.sin(th) + py * Math.cos(th);
+    const [cx, cy] = w2c(wx, wy); ctx.fillRect(cx - 1.5, cy - 1.5, 3, 3);
+  }
+  ctx.fillStyle = '#4fb3ff'; ctx.beginPath(); ctx.arc(rx, ry, 0.11 * view.scale, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(rx, ry);
+  ctx.lineTo(rx + 0.25 * view.scale * Math.cos(th), ry - 0.25 * view.scale * Math.sin(th)); ctx.stroke();
+}
+cv.addEventListener('click', e => {
+  if (!S) return;
+  const r = cv.getBoundingClientRect(), px = (e.clientX - r.left) * cv.width / r.width, py = (e.clientY - r.top) * cv.height / r.height;
+  send({type: 'cmd', name: 'goto', x: view.cx + (px - cv.width / 2) / view.scale, y: view.cy - (py - cv.height / 2) / view.scale});
+});
+document.getElementById('talk').onclick = () => send({type: 'talk'});
+document.getElementById('ask').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.value.trim()) { send({type: 'ask', text: e.target.value.trim()}); e.target.value = ''; }
+});
+</script>
+</body>
+</html>

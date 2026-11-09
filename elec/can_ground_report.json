@@ -1,0 +1,20 @@
+{
+ "can": {
+  "frame_us_worst": 138,
+  "per_cycle_on_us": 414,
+  "load_on_pct": 21,
+  "per_cycle_off_us": 552,
+  "load_off_pct": 28,
+  "retransmits_that_fit_in_a_cycle": 9,
+  "bus_off_recovery_ms": 1.41,
+  "can_timeout_ms": 20,
+  "note": "Replies are read at the start of the next cycle (1 cycle of latency, modelled in the sim). A bus-off costs ~1.4 ms + one cycle: below the 20 ms CAN timeout, so the robot keeps balancing."
+ },
+ "ground": {
+  "motor_return_mOhm": 0.82,
+  "perfboard_gnd_mOhm": 4.6,
+  "worst_offset_mV": 60,
+  "transceiver_tolerance": "-2 V ... +7 V common mode (SN65HVD230)",
+  "margin_x": 33
+ }
+}

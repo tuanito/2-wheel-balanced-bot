@@ -1,0 +1,36 @@
+{
+  "lidar": true,
+  "esp32_port": "/dev/serial0",
+  "lidar_port": "/dev/ttyUSB0",
+  "lidar_offset_deg": 0.0,
+  "lidar_clockwise": true,
+  "data_dir": "/home/pi/robot-data",
+  "log_scans": true,
+  "explore_speed": 0.4,
+  "goto_speed": 0.4,
+  "eyes": true,
+  "camera_size": [
+    800,
+    600
+  ],
+  "camera_fps": 20,
+  "http_port": 8080,
+  "voice": {
+    "enabled": true,
+    "wake_phrase": "hey robot|robot",
+    "push_to_talk_only": false,
+    "language": "en",
+    "stt": "vosk",
+    "vosk_model": "/home/pi/models/vosk-model-small-en-us-0.15",
+    "stt_url": "",
+    "tts": "piper",
+    "piper_model": "/home/pi/models/en_US-lessac-low.onnx",
+    "claude_model": "claude-haiku-5-5",
+    "mic_gain_db": 0.0,
+    "face_speaker": true,
+    "mic_spacing_m": 0.124
+  },
+  "ai_camera": true,
+  "auto_dock": true,
+  "halt_on_power_off": true
+}

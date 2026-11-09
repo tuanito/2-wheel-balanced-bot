@@ -1,0 +1,82 @@
+{
+ "stand-up from face-down": {
+  "success": "30/30",
+  "side_detected_correctly": "30/30",
+  "first_try": "30/30",
+  "median_time_s": 0.176,
+  "max_time_s": 0.2,
+  "peak_speed_m_s": 4.17,
+  "median_travel_m": 0.71,
+  "max_travel_m": 0.93
+ },
+ "stand-up from back-down": {
+  "success": "30/30",
+  "side_detected_correctly": "30/30",
+  "first_try": "29/30",
+  "median_time_s": 0.17,
+  "max_time_s": 0.2,
+  "peak_speed_m_s": 4.11,
+  "median_travel_m": 0.75,
+  "max_travel_m": 0.95
+ },
+ "balance 10 s (randomised)": {
+  "runs": 10,
+  "median_drift_mm": 1.0,
+  "max_drift_mm": 3.2,
+  "pitch_std_deg": 0.01,
+  "push_recovered": "20/20",
+  "push_max_pitch_deg": 38.4
+ },
+ "mission (nominal robot)": {
+  "stand still: drift (mm)": 71.876,
+  "stand still: pitch wobble (deg, std)": 0.362,
+  "cruise: true speed over last 1 s (m/s)": 1.13,
+  "cruise: max pitch (deg)": 16.802,
+  "stop: distance after the stop command (m)": 0.625,
+  "stop: residual speed after 3 s (m/s)": 0.012,
+  "turn +90°: heading error (deg)": -0.374,
+  "turn +90°: position drift while turning (mm)": 106.168,
+  "turn +180°: heading error (deg)": -0.747,
+  "turn +180°: position drift while turning (mm)": 4.66,
+  "turn -135°: heading error (deg)": 0.528,
+  "turn -135°: position drift while turning (mm)": 0.476,
+  "turn to heading 30°: heading error (deg)": 0.204,
+  "turn to heading 30°: position drift while turning (mm)": 0.452,
+  "final: still balancing": true,
+  "final: drift in the last 2 s (mm)": 35.061,
+  "whole mission: max |pitch| after stand-up (deg)": 16.802,
+  "odometry error at the end (mm)": 86.706
+ },
+ "mission (randomised robot)": {
+  "stand still: drift (mm)": 83.46,
+  "stand still: pitch wobble (deg, std)": 0.413,
+  "cruise: true speed over last 1 s (m/s)": 1.16,
+  "cruise: max pitch (deg)": 15.758,
+  "stop: distance after the stop command (m)": 0.591,
+  "stop: residual speed after 3 s (m/s)": 0.014,
+  "turn +90°: heading error (deg)": 0.141,
+  "turn +90°: position drift while turning (mm)": 114.04,
+  "turn +180°: heading error (deg)": -0.039,
+  "turn +180°: position drift while turning (mm)": 8.062,
+  "turn -135°: heading error (deg)": 3.247,
+  "turn -135°: position drift while turning (mm)": 0.609,
+  "turn to heading 30°: heading error (deg)": 2.921,
+  "turn to heading 30°: position drift while turning (mm)": 0.29,
+  "final: still balancing": true,
+  "final: drift in the last 2 s (mm)": 36.851,
+  "whole mission: max |pitch| after stand-up (deg)": 15.758,
+  "odometry error at the end (mm)": 69.798
+ },
+ "knocked over -> gets up again": {
+  "states": [
+   "DISARMED",
+   "BALANCE",
+   "FALLEN",
+   "LYING",
+   "LIFT",
+   "COAST",
+   "BALANCE"
+  ],
+  "back_up": true
+ }
+}

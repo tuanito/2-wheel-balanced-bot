@@ -1,0 +1,1727 @@
+{
+ "findings": [
+  {
+   "sev": "ERROR",
+   "check": "firmware pin map",
+   "msg": "GPIO1 (PIN_VBAT) reads the battery + through a divider, but no wire brings the battery + to the perfboard: the ADC reads 0 V.",
+   "fix": "Add a 26 AWG sense wire from the battery + to the divider input on the perfboard."
+  },
+  {
+   "sev": "CHECK",
+   "check": "CAN",
+   "msg": "Termination: 120 ohm on the CAN board (1 known); the LK motors' built-in termination is not documented. The bus needs 120 ohm at each end (60 ohm between H and L).",
+   "fix": "Power off, measure H-L at the motor L plug: ~60 ohm OK; ~120 ohm -> add 120 ohm across H/L there; ~40 ohm -> one motor's terminator must be switched off."
+  },
+  {
+   "sev": "WARN",
+   "check": "current",
+   "msg": "5 V rail (D24V50F5): 4.66 A worst case = 93 % of 5.0 A.",
+   "fix": ""
+  },
+  {
+   "sev": "CHECK",
+   "check": "current",
+   "msg": "Motor L plug: 8.7 A peak on V+/V- (stand-up, from the sim) through the LK motor plug (rating not documented).",
+   "fix": "Check the LK cable set's contact rating; it must take ~10 A for a second."
+  },
+  {
+   "sev": "CHECK",
+   "check": "current",
+   "msg": "Motor R plug: 8.7 A peak on V+/V- (stand-up, from the sim) through the LK motor plug (rating not documented).",
+   "fix": "Check the LK cable set's contact rating; it must take ~10 A for a second."
+  },
+  {
+   "sev": "INFO",
+   "check": "power",
+   "msg": "The Pi is fed through its GPIO 5 V pins (J5 -> pin 2): this bypasses the Pi's USB input protection. Fine with the regulated 5 V rail; never plug a USB supply into the Pi's PWR port at the same time.",
+   "fix": ""
+  },
+  {
+   "sev": "INFO",
+   "check": "power",
+   "msg": "MAX98357A GAIN and SD are left open: 9 dB gain, SD pulled up on the Adafruit board -> (L+R)/2 mix. Matches a mono speaker.",
+   "fix": ""
+  },
+  {
+   "sev": "INFO",
+   "check": "power",
+   "msg": "Dock charger and IP2368 both feed BMS P+; they can charge at the same time (each is a current-limited CC/CV source).",
+   "fix": ""
+  }
+ ],
+ "rails": [
+  {
+   "src": "Battery 6S 1400::lead +",
+   "label": "6S pack",
+   "A": 18.93,
+   "max": 130,
+   "pct": 15
+  },
+  {
+   "src": "Perfboard: ESP32-S3 + level shifter::ESP.3V3",
+   "label": "DevKitC 3.3 V LDO (budget left for add-ons)",
+   "A": 0.02,
+   "max": 0.5,
+   "pct": 3
+  },
+  {
+   "src": "5 V regulator (D24V50F5)::VOUT",
+   "label": "5 V rail (D24V50F5)",
+   "A": 4.66,
+   "max": 5.0,
+   "pct": 93
+  },
+  {
+   "src": "Raspberry Pi Zero 2 W::pin 17 (3V3)",
+   "label": "Pi 3V3 pin (budget for add-ons)",
+   "A": 0.0,
+   "max": 0.05,
+   "pct": 2
+  },
+  {
+   "src": "Headlight driver (D36V6F12 + IRLB8721)::DRV.12V",
+   "label": "12 V headlight rail (D36V6F12)",
+   "A": 0.4,
+   "max": 0.6,
+   "pct": 67
+  }
+ ],
+ "wires": [
+  {
+   "i": 0,
+   "harness": "Battery -> BMS",
+   "sig": "B+",
+   "awg": 12,
+   "A": 18.93,
+   "awg_A": 55.4,
+   "conn": [
+    "XT60 (60.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 1,
+   "harness": "Battery -> BMS",
+   "sig": "B-",
+   "awg": 12,
+   "A": 18.93,
+   "awg_A": 55.4,
+   "conn": [
+    "XT60 (60.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 2,
+   "harness": "Battery -> BMS",
+   "sig": "Balance (7-wire, JST-XH)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 3,
+   "harness": "BMS -> 30 A fuse -> power switch",
+   "sig": "P+ (30 A fuse inline)",
+   "awg": 16,
+   "A": 18.93,
+   "awg_A": 29.7,
+   "conn": [
+    "solder (99 A)",
+    "XT60 cover plug (female on the BMS side) (60.0 A)"
+   ]
+  },
+  {
+   "i": 4,
+   "harness": "BMS -> 30 A fuse -> power switch",
+   "sig": "P-",
+   "awg": 16,
+   "A": 18.93,
+   "awg_A": 29.7,
+   "conn": [
+    "solder (99 A)",
+    "XT60 cover plug (female on the BMS side) (60.0 A)"
+   ]
+  },
+  {
+   "i": 5,
+   "harness": "Power switch -> PDB",
+   "sig": "BAT+ switched",
+   "awg": 16,
+   "A": 18.93,
+   "awg_A": 29.7,
+   "conn": [
+    "solder (99 A)",
+    "XT60 cover plug (female on the switch side) (60.0 A)"
+   ]
+  },
+  {
+   "i": 6,
+   "harness": "Power switch -> PDB",
+   "sig": "BAT-",
+   "awg": 16,
+   "A": 18.93,
+   "awg_A": 29.7,
+   "conn": [
+    "solder (99 A)",
+    "XT60 cover plug (female on the switch side) (60.0 A)"
+   ]
+  },
+  {
+   "i": 7,
+   "harness": "Power button -> switch",
+   "sig": "Button A",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "JST-XH 3p cover plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 8,
+   "harness": "Power button -> switch",
+   "sig": "Button B",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "JST-XH 3p cover plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 9,
+   "harness": "Power button -> switch",
+   "sig": "Switch GND (control)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "JST-XH 3p cover plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 10,
+   "harness": "ESP32 GPIO21 -> switch OFF",
+   "sig": "OFF (flat battery)",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 11,
+   "harness": "PDB -> motor L power",
+   "sig": "V+",
+   "awg": 16,
+   "A": 8.7,
+   "awg_A": 29.7,
+   "conn": [
+    "solder (99 A)",
+    "LK motor plug (rating not documented) (None A)"
+   ]
+  },
+  {
+   "i": 12,
+   "harness": "PDB -> motor L power",
+   "sig": "V-",
+   "awg": 16,
+   "A": 8.7,
+   "awg_A": 29.7,
+   "conn": [
+    "solder (99 A)",
+    "LK motor plug (rating not documented) (None A)"
+   ]
+  },
+  {
+   "i": 13,
+   "harness": "PDB -> motor R power",
+   "sig": "V+",
+   "awg": 16,
+   "A": 8.7,
+   "awg_A": 29.7,
+   "conn": [
+    "solder (99 A)",
+    "LK motor plug (rating not documented) (None A)"
+   ]
+  },
+  {
+   "i": 14,
+   "harness": "PDB -> motor R power",
+   "sig": "V-",
+   "awg": 16,
+   "A": 8.7,
+   "awg_A": 29.7,
+   "conn": [
+    "solder (99 A)",
+    "LK motor plug (rating not documented) (None A)"
+   ]
+  },
+  {
+   "i": 15,
+   "harness": "PDB -> 5 V regulator",
+   "sig": "VIN (3 A inline fuse)",
+   "awg": 20,
+   "A": 1.27,
+   "awg_A": 14.9,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 16,
+   "harness": "PDB -> 5 V regulator",
+   "sig": "GND",
+   "awg": 20,
+   "A": 1.27,
+   "awg_A": 14.9,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 17,
+   "harness": "5 V regulator -> perfboard J1",
+   "sig": "5 V",
+   "awg": 20,
+   "A": 4.66,
+   "awg_A": 14.9,
+   "conn": [
+    "solder (99 A)",
+    "XT30PW (15.0 A)"
+   ]
+  },
+  {
+   "i": 18,
+   "harness": "5 V regulator -> perfboard J1",
+   "sig": "GND",
+   "awg": 20,
+   "A": 4.66,
+   "awg_A": 14.9,
+   "conn": [
+    "solder (99 A)",
+    "XT30PW (15.0 A)"
+   ]
+  },
+  {
+   "i": 19,
+   "harness": "Perfboard J5 -> Pi (5 V, GND, UART, eye data)",
+   "sig": "5 V",
+   "awg": 24,
+   "A": 2.3,
+   "awg_A": 4.7,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont on the Pi header (3.0 A)"
+   ]
+  },
+  {
+   "i": 20,
+   "harness": "Perfboard J5 -> Pi (5 V, GND, UART, eye data)",
+   "sig": "GND",
+   "awg": 24,
+   "A": 2.3,
+   "awg_A": 4.7,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont on the Pi header (3.0 A)"
+   ]
+  },
+  {
+   "i": 21,
+   "harness": "Perfboard J5 -> Pi (5 V, GND, UART, eye data)",
+   "sig": "ESP TX (GPIO17) -> Pi RXD",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont on the Pi header (3.0 A)"
+   ]
+  },
+  {
+   "i": 22,
+   "harness": "Perfboard J5 -> Pi (5 V, GND, UART, eye data)",
+   "sig": "Pi TXD -> ESP RX (GPIO18)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont on the Pi header (3.0 A)"
+   ]
+  },
+  {
+   "i": 23,
+   "harness": "Perfboard J5 -> Pi (5 V, GND, UART, eye data)",
+   "sig": "Eye data: Pi MOSI -> 74AHCT125",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont on the Pi header (3.0 A)"
+   ]
+  },
+  {
+   "i": 24,
+   "harness": "ESP32 -> CAN board (perfboard jumpers)",
+   "sig": "3V3",
+   "awg": 26,
+   "A": 0.01,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont (3.0 A)"
+   ]
+  },
+  {
+   "i": 25,
+   "harness": "ESP32 -> CAN board (perfboard jumpers)",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.01,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont (3.0 A)"
+   ]
+  },
+  {
+   "i": 26,
+   "harness": "ESP32 -> CAN board (perfboard jumpers)",
+   "sig": "CAN TX (GPIO4) -> CTX",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont (3.0 A)"
+   ]
+  },
+  {
+   "i": 27,
+   "harness": "ESP32 -> CAN board (perfboard jumpers)",
+   "sig": "CAN RX (GPIO5) <- CRX",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont (3.0 A)"
+   ]
+  },
+  {
+   "i": 28,
+   "harness": "CAN bus -> motor R",
+   "sig": "CAN-H",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "screw terminal (6.0 A)",
+    "LK motor plug (rating not documented) (None A)",
+    "JST-XH 2p cover plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 29,
+   "harness": "CAN bus -> motor R",
+   "sig": "CAN-L",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "screw terminal (6.0 A)",
+    "LK motor plug (rating not documented) (None A)",
+    "JST-XH 2p cover plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 30,
+   "harness": "CAN bus -> motor L (branch)",
+   "sig": "CAN-H",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "LK motor plug (rating not documented) (None A)",
+    "LK motor plug (rating not documented) (None A)"
+   ]
+  },
+  {
+   "i": 31,
+   "harness": "CAN bus -> motor L (branch)",
+   "sig": "CAN-L",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "LK motor plug (rating not documented) (None A)",
+    "LK motor plug (rating not documented) (None A)"
+   ]
+  },
+  {
+   "i": 32,
+   "harness": "Perfboard J3 -> IMU",
+   "sig": "3V3",
+   "awg": 26,
+   "A": 0.01,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont 1x4 (3.0 A)"
+   ]
+  },
+  {
+   "i": 33,
+   "harness": "Perfboard J3 -> IMU",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.01,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont 1x4 (3.0 A)"
+   ]
+  },
+  {
+   "i": 34,
+   "harness": "Perfboard J3 -> IMU",
+   "sig": "SCL (GPIO9)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont 1x4 (3.0 A)"
+   ]
+  },
+  {
+   "i": 35,
+   "harness": "Perfboard J3 -> IMU",
+   "sig": "SDA (GPIO8)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont 1x4 (3.0 A)"
+   ]
+  },
+  {
+   "i": 36,
+   "harness": "Perfboard J2 -> sonar",
+   "sig": "5 V",
+   "awg": 26,
+   "A": 0.01,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont 1x4 (3.0 A)"
+   ]
+  },
+  {
+   "i": 37,
+   "harness": "Perfboard J2 -> sonar",
+   "sig": "TRIG (GPIO10)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont 1x4 (3.0 A)"
+   ]
+  },
+  {
+   "i": 38,
+   "harness": "Perfboard J2 -> sonar",
+   "sig": "ECHO (GPIO11 via 1k/2k)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont 1x4 (3.0 A)"
+   ]
+  },
+  {
+   "i": 39,
+   "harness": "Perfboard J2 -> sonar",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.01,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "Dupont 1x4 (3.0 A)"
+   ]
+  },
+  {
+   "i": 40,
+   "harness": "Perfboard J4 -> eye R",
+   "sig": "5 V",
+   "awg": 26,
+   "A": 2.05,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 41,
+   "harness": "Perfboard J4 -> eye R",
+   "sig": "DIN (via 330 ohm)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 42,
+   "harness": "Perfboard J4 -> eye R",
+   "sig": "GND",
+   "awg": 26,
+   "A": 2.05,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 43,
+   "harness": "Eye R -> eye L (chain)",
+   "sig": "5 V",
+   "awg": 26,
+   "A": 1.02,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 44,
+   "harness": "Eye R -> eye L (chain)",
+   "sig": "DOUT -> DIN",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 45,
+   "harness": "Eye R -> eye L (chain)",
+   "sig": "GND",
+   "awg": 26,
+   "A": 1.02,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 46,
+   "harness": "Pi I2S -> I2S junction",
+   "sig": "BCLK (GPIO18)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 47,
+   "harness": "Pi I2S -> I2S junction",
+   "sig": "WS/LRCLK (GPIO19)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 48,
+   "harness": "Pi I2S -> I2S junction",
+   "sig": "Mic DOUT -> Pi DIN (GPIO20)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 49,
+   "harness": "Pi I2S -> I2S junction",
+   "sig": "Amp DIN (GPIO21)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 50,
+   "harness": "Pi I2S -> I2S junction",
+   "sig": "3V3",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 51,
+   "harness": "Pi I2S -> I2S junction",
+   "sig": "5 V (amp)",
+   "awg": 24,
+   "A": 1.0,
+   "awg_A": 4.7,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 52,
+   "harness": "Pi I2S -> I2S junction",
+   "sig": "GND",
+   "awg": 24,
+   "A": 1.0,
+   "awg_A": 4.7,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 53,
+   "harness": "I2S junction -> mic L",
+   "sig": "3V",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 54,
+   "harness": "I2S junction -> mic L",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 55,
+   "harness": "I2S junction -> mic L",
+   "sig": "BCLK",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 56,
+   "harness": "I2S junction -> mic L",
+   "sig": "DOUT",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 57,
+   "harness": "I2S junction -> mic L",
+   "sig": "WS",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 58,
+   "harness": "I2S junction -> mic L",
+   "sig": "SEL -> GND (left)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 59,
+   "harness": "I2S junction -> mic R",
+   "sig": "3V",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 60,
+   "harness": "I2S junction -> mic R",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 61,
+   "harness": "I2S junction -> mic R",
+   "sig": "BCLK",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 62,
+   "harness": "I2S junction -> mic R",
+   "sig": "DOUT",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 63,
+   "harness": "I2S junction -> mic R",
+   "sig": "WS",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 64,
+   "harness": "I2S junction -> mic R",
+   "sig": "SEL -> 3V3 (right)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 65,
+   "harness": "I2S junction -> amp",
+   "sig": "LRC (WS)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 66,
+   "harness": "I2S junction -> amp",
+   "sig": "BCLK",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 67,
+   "harness": "I2S junction -> amp",
+   "sig": "DIN",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 68,
+   "harness": "I2S junction -> amp",
+   "sig": "GND",
+   "awg": 24,
+   "A": 1.0,
+   "awg_A": 4.7,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 69,
+   "harness": "I2S junction -> amp",
+   "sig": "5 V",
+   "awg": 24,
+   "A": 1.0,
+   "awg_A": 4.7,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 70,
+   "harness": "Amp -> speaker",
+   "sig": "SPK+",
+   "awg": 24,
+   "A": 0.0,
+   "awg_A": 4.7,
+   "conn": [
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 71,
+   "harness": "Amp -> speaker",
+   "sig": "SPK-",
+   "awg": 24,
+   "A": 0.0,
+   "awg_A": 4.7,
+   "conn": [
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 72,
+   "harness": "Camera FPC (22 -> 15 pin)",
+   "sig": "FPC (15/22 conductors)",
+   "awg": 22,
+   "A": 0.0,
+   "awg_A": 9.5,
+   "conn": []
+  },
+  {
+   "i": 73,
+   "harness": "Pi OTG -> LD19 USB adapter",
+   "sig": "USB (90\u00b0 OTG cable)",
+   "awg": 16,
+   "A": 0.3,
+   "awg_A": 29.7,
+   "conn": []
+  },
+  {
+   "i": 74,
+   "harness": "LD19 -> USB adapter",
+   "sig": "P5V",
+   "awg": 28,
+   "A": 0.3,
+   "awg_A": 1.9,
+   "conn": []
+  },
+  {
+   "i": 75,
+   "harness": "LD19 -> USB adapter",
+   "sig": "GND",
+   "awg": 28,
+   "A": 0.3,
+   "awg_A": 1.9,
+   "conn": []
+  },
+  {
+   "i": 76,
+   "harness": "LD19 -> USB adapter",
+   "sig": "Tx",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": []
+  },
+  {
+   "i": 77,
+   "harness": "LD19 -> USB adapter",
+   "sig": "PWM",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": []
+  },
+  {
+   "i": 78,
+   "harness": "Dock pads -> diode + fuse",
+   "sig": "Pad + (charge in)",
+   "awg": 22,
+   "A": 0.0,
+   "awg_A": 9.5,
+   "conn": []
+  },
+  {
+   "i": 79,
+   "harness": "Dock pads -> diode + fuse",
+   "sig": "Pad -",
+   "awg": 22,
+   "A": 0.0,
+   "awg_A": 9.5,
+   "conn": []
+  },
+  {
+   "i": 80,
+   "harness": "Diode -> BMS P",
+   "sig": "SB560 cathode -> P+",
+   "awg": 22,
+   "A": 0.0,
+   "awg_A": 9.5,
+   "conn": [
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 81,
+   "harness": "Diode -> BMS P",
+   "sig": "P-",
+   "awg": 22,
+   "A": 0.0,
+   "awg_A": 9.5,
+   "conn": [
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 82,
+   "harness": "IP2368 <-> side USB-C",
+   "sig": "USB-C cable (CAB-15455)",
+   "awg": 16,
+   "A": 0.0,
+   "awg_A": 29.7,
+   "conn": []
+  },
+  {
+   "i": 83,
+   "harness": "IP2368 -> BMS P",
+   "sig": "BAT+",
+   "awg": 20,
+   "A": 0.0,
+   "awg_A": 14.9,
+   "conn": [
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 84,
+   "harness": "IP2368 -> BMS P",
+   "sig": "BAT-",
+   "awg": 20,
+   "A": 0.0,
+   "awg_A": 14.9,
+   "conn": [
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 85,
+   "harness": "Arm button + LED -> perfboard J6",
+   "sig": "Button (GPIO12)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 86,
+   "harness": "Arm button + LED -> perfboard J6",
+   "sig": "LED R (GPIO38)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 87,
+   "harness": "Arm button + LED -> perfboard J6",
+   "sig": "LED G (GPIO39)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 88,
+   "harness": "Arm button + LED -> perfboard J6",
+   "sig": "LED B (GPIO40)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 89,
+   "harness": "Arm button + LED -> perfboard J6",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 90,
+   "harness": "IR receivers -> perfboard J8",
+   "sig": "3V3 (VS, chained to all 4)",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 91,
+   "harness": "IR receivers -> perfboard J8",
+   "sig": "GND (chained to all 4)",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 92,
+   "harness": "IR receivers -> perfboard J8",
+   "sig": "IR front-left (GPIO13)",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 93,
+   "harness": "IR receivers -> perfboard J8",
+   "sig": "IR front-right (GPIO14)",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 94,
+   "harness": "IR receivers -> perfboard J8",
+   "sig": "IR back-left (GPIO15)",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 95,
+   "harness": "IR receivers -> perfboard J8",
+   "sig": "IR back-right (GPIO16)",
+   "awg": 28,
+   "A": 0.0,
+   "awg_A": 1.9,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 96,
+   "harness": "Dock sense -> perfboard J7",
+   "sig": "Dock sense (pad +, before the diode)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 97,
+   "harness": "USB sense -> perfboard J7",
+   "sig": "USB VBUS sense",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 98,
+   "harness": "PDB -> headlight driver",
+   "sig": "VIN (1 A inline fuse)",
+   "awg": 22,
+   "A": 0.26,
+   "awg_A": 9.5,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 99,
+   "harness": "PDB -> headlight driver",
+   "sig": "GND",
+   "awg": 22,
+   "A": 0.26,
+   "awg_A": 9.5,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 100,
+   "harness": "Pi -> headlight driver (PWM)",
+   "sig": "PWM (GPIO12)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 101,
+   "harness": "Pi -> headlight driver (PWM)",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "Dupont on the Pi header (3.0 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 102,
+   "harness": "Headlight driver -> headlight R",
+   "sig": "+12 V",
+   "awg": 24,
+   "A": 0.2,
+   "awg_A": 4.7,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 103,
+   "harness": "Headlight driver -> headlight R",
+   "sig": "switched -",
+   "awg": 24,
+   "A": 0.2,
+   "awg_A": 4.7,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 104,
+   "harness": "Headlight driver -> headlight L",
+   "sig": "+12 V",
+   "awg": 24,
+   "A": 0.2,
+   "awg_A": 4.7,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 105,
+   "harness": "Headlight driver -> headlight L",
+   "sig": "switched -",
+   "awg": 24,
+   "A": 0.2,
+   "awg_A": 4.7,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  }
+ ],
+ "power_inputs": [
+  {
+   "pin": "Power switch + 30 A fuse::VIN (BAT+ from the fuse)",
+   "V": 25.2,
+   "range": [
+    4.5,
+    40
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "5 V regulator (D24V50F5)::VIN",
+   "V": 25.2,
+   "range": [
+    5.5,
+    38
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Motor L (MF6015)::plug V+",
+   "V": 25.2,
+   "range": [
+    18,
+    30
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Motor R (MF6015)::plug V+",
+   "V": 25.2,
+   "range": [
+    18,
+    30
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "CAN board (SN65HVD230)::3V3",
+   "V": 3.3,
+   "range": [
+    3.0,
+    3.6
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Perfboard: ESP32-S3 + level shifter::ESP.5V",
+   "V": 5.0,
+   "range": [
+    4.75,
+    5.25
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Perfboard: ESP32-S3 + level shifter::U1.VCC",
+   "V": 5.0,
+   "range": [
+    4.5,
+    5.5
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "IR receivers (4 x TSOP38238)::front-left VS",
+   "V": 3.3,
+   "range": [
+    2.5,
+    5.5
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Raspberry Pi Zero 2 W::PI.5V",
+   "V": 5.0,
+   "range": [
+    4.75,
+    5.25
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "IMU (GY-521)::VCC",
+   "V": 3.3,
+   "range": [
+    3.0,
+    5.5
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Sonar (HC-SR04)::Vcc",
+   "V": 5.0,
+   "range": [
+    4.5,
+    5.5
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Eye R (8x8 WS2812)::5V",
+   "V": 5.0,
+   "range": [
+    3.5,
+    5.3
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Eye L (8x8 WS2812)::5V",
+   "V": 5.0,
+   "range": [
+    3.5,
+    5.3
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Mic L (ICS-43434)::3V",
+   "V": 3.3,
+   "range": [
+    1.65,
+    3.63
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Mic R (ICS-43434)::3V",
+   "V": 3.3,
+   "range": [
+    1.65,
+    3.63
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Amp (MAX98357A)::Vin",
+   "V": 5.0,
+   "range": [
+    2.5,
+    5.5
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "LD19 lidar::P5V",
+   "V": 5.0,
+   "range": [
+    4.5,
+    5.5
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Headlight driver (D36V6F12 + IRLB8721)::VIN (1 A inline fuse)",
+   "V": 25.2,
+   "range": [
+    12.2,
+    50.0
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Headlight L (COB disc)::+",
+   "V": 12.0,
+   "range": [
+    10.8,
+    13.2
+   ],
+   "gnd": true
+  },
+  {
+   "pin": "Headlight R (COB disc)::+",
+   "V": 12.0,
+   "range": [
+    10.8,
+    13.2
+   ],
+   "gnd": true
+  }
+ ],
+ "firmware": [
+  {
+   "pin": "PIN_VBAT",
+   "gpio": 1,
+   "expect": "battery +",
+   "ok": false
+  },
+  {
+   "pin": "PIN_CAN_TX",
+   "gpio": 4,
+   "expect": "CAN board (SN65HVD230)::CTX",
+   "ok": true
+  },
+  {
+   "pin": "PIN_CAN_RX",
+   "gpio": 5,
+   "expect": "CAN board (SN65HVD230)::CRX",
+   "ok": true
+  },
+  {
+   "pin": "PIN_DOCK_SENSE",
+   "gpio": 6,
+   "expect": "dock pad + (before the diode)",
+   "ok": true
+  },
+  {
+   "pin": "PIN_USB_SENSE",
+   "gpio": 7,
+   "expect": "IP2368 VBUS",
+   "ok": true
+  },
+  {
+   "pin": "PIN_I2C_SDA",
+   "gpio": 8,
+   "expect": "IMU (GY-521)::SDA",
+   "ok": true
+  },
+  {
+   "pin": "PIN_I2C_SCL",
+   "gpio": 9,
+   "expect": "IMU (GY-521)::SCL",
+   "ok": true
+  },
+  {
+   "pin": "PIN_SONAR_TRIG",
+   "gpio": 10,
+   "expect": "Sonar (HC-SR04)::Trig",
+   "ok": true
+  },
+  {
+   "pin": "PIN_SONAR_ECHO",
+   "gpio": 11,
+   "expect": "Sonar (HC-SR04)::Echo",
+   "ok": true
+  },
+  {
+   "pin": "PIN_ARM_BTN",
+   "gpio": 12,
+   "expect": "Arm button + RGB LED::Arm button",
+   "ok": true
+  },
+  {
+   "pin": "PIN_IR_FL",
+   "gpio": 13,
+   "expect": "IR receivers (4 x TSOP38238)::front-left OUT",
+   "ok": true
+  },
+  {
+   "pin": "PIN_IR_FR",
+   "gpio": 14,
+   "expect": "IR receivers (4 x TSOP38238)::front-right OUT",
+   "ok": true
+  },
+  {
+   "pin": "PIN_IR_BL",
+   "gpio": 15,
+   "expect": "IR receivers (4 x TSOP38238)::back-left OUT",
+   "ok": true
+  },
+  {
+   "pin": "PIN_IR_BR",
+   "gpio": 16,
+   "expect": "IR receivers (4 x TSOP38238)::back-right OUT",
+   "ok": true
+  },
+  {
+   "pin": "PIN_PI_TX",
+   "gpio": 17,
+   "expect": "Raspberry Pi Zero 2 W::pin 10 (GPIO15 RXD)",
+   "ok": true
+  },
+  {
+   "pin": "PIN_PI_RX",
+   "gpio": 18,
+   "expect": "Raspberry Pi Zero 2 W::pin 8 (GPIO14 TXD)",
+   "ok": true
+  },
+  {
+   "pin": "PIN_PWR_OFF",
+   "gpio": 21,
+   "expect": "Power switch + 30 A fuse::OFF",
+   "ok": true
+  },
+  {
+   "pin": "PIN_LED_R",
+   "gpio": 38,
+   "expect": "Arm button + RGB LED::RGB LED R",
+   "ok": true
+  },
+  {
+   "pin": "PIN_LED_G",
+   "gpio": 39,
+   "expect": "Arm button + RGB LED::RGB LED G",
+   "ok": true
+  },
+  {
+   "pin": "PIN_LED_B",
+   "gpio": 40,
+   "expect": "Arm button + RGB LED::RGB LED B",
+   "ok": true
+  }
+ ],
+ "pi": [
+  {
+   "item": "UART on GPIO14/15 (PL011, console off)",
+   "ok": true
+  },
+  {
+   "item": "SPI for the eyes",
+   "ok": true
+  },
+  {
+   "item": "I2S overlay",
+   "ok": true
+  },
+  {
+   "item": "Pi TXD -> ESP32 RX",
+   "ok": true
+  },
+  {
+   "item": "ESP32 TX -> Pi RXD",
+   "ok": true
+  },
+  {
+   "item": "Pi MOSI -> 74AHCT125",
+   "ok": true
+  },
+  {
+   "item": "BCLK -> mic L",
+   "ok": true
+  },
+  {
+   "item": "BCLK -> mic R",
+   "ok": true
+  },
+  {
+   "item": "BCLK -> amp",
+   "ok": true
+  },
+  {
+   "item": "LRCLK -> amp",
+   "ok": true
+  },
+  {
+   "item": "LRCLK -> mics",
+   "ok": true
+  },
+  {
+   "item": "mic data -> PCM_DIN",
+   "ok": true
+  },
+  {
+   "item": "mic R data -> PCM_DIN",
+   "ok": true
+  },
+  {
+   "item": "PCM_DOUT -> amp",
+   "ok": true
+  },
+  {
+   "item": "mic L SEL = GND (left channel)",
+   "ok": true
+  },
+  {
+   "item": "mic R SEL = 3V3 (right)",
+   "ok": true
+  },
+  {
+   "item": "level shifter -> eye R",
+   "ok": true
+  },
+  {
+   "item": "eye R -> eye L",
+   "ok": true
+  }
+ ],
+ "can": {
+  "H": [
+   "CAN board (SN65HVD230)::terminal H",
+   "Motor L (MF6015)::plug CAN-H",
+   "Motor R (MF6015)::plug CAN-H"
+  ],
+  "L": [
+   "CAN board (SN65HVD230)::terminal L",
+   "Motor L (MF6015)::plug CAN-L",
+   "Motor R (MF6015)::plug CAN-L"
+  ]
+ },
+ "fuses": [
+  {
+   "fuse": "30 A",
+   "harness": "BMS -> 30 A fuse -> power switch",
+   "under": []
+  },
+  {
+   "fuse": "5 A",
+   "harness": "Dock pads -> diode + fuse",
+   "under": []
+  },
+  {
+   "fuse": "3 A",
+   "harness": "PDB -> 5 V regulator",
+   "under": []
+  },
+  {
+   "fuse": "1 A",
+   "harness": "PDB -> headlight driver",
+   "under": []
+  }
+ ],
+ "echo_at_gpio11": 3.333333333333333,
+ "nets": 46,
+ "wires_n": 106,
+ "pins_n": 215,
+ "key_fix_applied": false
+}

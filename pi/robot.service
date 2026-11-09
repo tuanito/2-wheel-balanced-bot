@@ -1,0 +1,16 @@
+# sudo cp robot.service /etc/systemd/system/ && sudo systemctl enable --now robot
+[Unit]
+Description=Balancing robot (Pi side)
+After=network-online.target
+
+[Service]
+EnvironmentFile=-/etc/robot.env
+User=pi
+WorkingDirectory=/home/pi/robot/pi
+ExecStart=/home/pi/robot/venv/bin/python -m robot --config /home/pi/robot/pi/config.json
+Restart=always
+RestartSec=2
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

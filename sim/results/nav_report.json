@@ -1,0 +1,14 @@
+{
+ "seconds": 150.0,
+ "collisions_contact_steps": 34,
+ "distance_driven_m": 25.45478734234214,
+ "pose_error_final_m": 0.7326849373195967,
+ "pose_error_max_m": 0.7703437530499547,
+ "odometry_only_error_final_m": 0.8550172663370429,
+ "heading_error_final_deg": 2.5681373773444145,
+ "odometry_heading_error_final_deg": 6.068137377344502,
+ "time_balancing_pct": 98.86666666666667,
+ "avoid_blocked_ticks": 0,
+ "mapped_occupied_cells": 1488,
+ "mapped_free_cells": 23657
+}

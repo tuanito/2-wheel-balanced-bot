@@ -1,0 +1,57 @@
+<mujoco model="robot_c">
+  <compiler meshdir="/home/claude/robot/sim" autolimits="true"/>
+  <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <size memory="20M"/>
+  <visual><global offwidth="1280" offheight="720"/><quality shadowsize="2048"/></visual>
+  <default><geom friction="0.9 0.005 0.0001" solref="0.008 1"/></default>
+  <asset>
+    <mesh name="m_body" file="meshes/body.stl" scale="0.001 0.001 0.001" inertia="shell"/><mesh name="m_cover" file="meshes/cover.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_front" file="meshes/front.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_shelf" file="meshes/shelf.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_cap" file="meshes/cap.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_tray" file="meshes/tray.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_ret_l" file="meshes/ret_l.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_ret_r" file="meshes/ret_r.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_plate_l" file="meshes/plate_l.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_ring" file="meshes/ring.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_micc_l" file="meshes/micc_l.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_micc_r" file="meshes/micc_r.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_lret_l" file="meshes/lret_l.stl" scale="0.001 0.001 0.001" inertia="exact"/><mesh name="m_lret_r" file="meshes/lret_r.stl" scale="0.001 0.001 0.001" inertia="exact"/>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.86 0.86 0.84" rgb2="0.74 0.74 0.72" width="256" height="256"/>
+    <material name="grid" texture="grid" texrepeat="16 16"/>
+    <texture type="skybox" builtin="gradient" rgb1="0.9 0.92 0.95" rgb2="0.6 0.65 0.7" width="64" height="64"/>
+  </asset>
+  <worldbody>
+    <light pos="0 0 4" dir="0 0 -1" directional="true" castshadow="false"/><light pos="2 -2 3" dir="-0.5 0.5 -1" directional="true" diffuse="0.3 0.3 0.3" castshadow="false"/>
+    <geom name="floor" type="plane" pos="0 0 -0.0543" size="10 10 0.1" material="grid"/>
+    
+    <body name="chassis" pos="0 0 0">
+      <freejoint name="root"/>
+      <geom name="body" type="mesh" mesh="m_body" mass="0.1672" contype="1" conaffinity="1" rgba="0.70 0.86 0.78 1"/><geom name="cover" type="mesh" mesh="m_cover" mass="0.0808" contype="1" conaffinity="1" rgba="0.70 0.86 0.78 1"/><geom name="front" type="mesh" mesh="m_front" mass="0.0704" contype="1" conaffinity="1" rgba="0.98 0.97 0.94 1"/><geom name="shelf" type="mesh" mesh="m_shelf" mass="0.0274" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="cap" type="mesh" mesh="m_cap" mass="0.0324" contype="1" conaffinity="1" rgba="0.98 0.97 0.94 1"/><geom name="tray" type="mesh" mesh="m_tray" mass="0.0061" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="ret_l" type="mesh" mesh="m_ret_l" mass="0.0035" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="ret_r" type="mesh" mesh="m_ret_r" mass="0.0035" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="plate_l" type="mesh" mesh="m_plate_l" mass="0.0037" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="ring" type="mesh" mesh="m_ring" mass="0.0020" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="micc_l" type="mesh" mesh="m_micc_l" mass="0.0011" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="micc_r" type="mesh" mesh="m_micc_r" mass="0.0011" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="lret_l" type="mesh" mesh="m_lret_l" mass="0.0015" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/><geom name="lret_r" type="mesh" mesh="m_lret_r" mass="0.0015" contype="0" conaffinity="0" rgba="0.9 0.6 0.2 1"/>
+      <geom name="c0" type="box" pos="0.0000 0.0209 0.0257" size="0.0070 0.0089 0.0073" mass="0.0060" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c1" type="box" pos="0.0000 -0.0209 0.0257" size="0.0070 0.0089 0.0073" mass="0.0060" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c2" type="box" pos="-0.0075 0.0040 0.0730" size="0.0200 0.0390 0.0210" mass="0.2220" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c3" type="box" pos="0.0165 0.0000 -0.0146" size="0.0102 0.0089 0.0044" mass="0.0030" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c4" type="box" pos="-0.0200 0.0000 -0.0185" size="0.0080 0.0065 0.0045" mass="0.0250" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c5" type="box" pos="-0.0020 0.0000 -0.0175" size="0.0080 0.0105 0.0015" mass="0.0020" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c6" type="box" pos="0.0273 0.0000 0.0800" size="0.0078 0.0225 0.0100" mass="0.0090" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c7" type="box" pos="-0.0195 0.0440 0.1105" size="0.0035 0.0325 0.0150" mass="0.0160" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c8" type="box" pos="0.0218 0.0000 0.1131" size="0.0017 0.0125 0.0134" mass="0.0040" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c9" type="box" pos="-0.0130 -0.0290 0.1200" size="0.0100 0.0350 0.0250" mass="0.0350" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c10" type="box" pos="0.0100 0.0360 0.1405" size="0.0060 0.0060 0.0075" mass="0.0030" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c11" type="box" pos="-0.0290 0.0280 0.1370" size="0.0025 0.0128 0.0100" mass="0.0030" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c12" type="box" pos="0.0100 -0.0360 0.1405" size="0.0060 0.0060 0.0075" mass="0.0030" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c13" type="box" pos="0.0325 0.0000 0.1040" size="0.0017 0.0510 0.0130" mass="0.0080" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="lidar" type="box" pos="0.0000 0.0000 0.1694" size="0.0193 0.0193 0.0174" mass="0.0470" contype="1" conaffinity="1" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c15" type="box" pos="0.0010 0.0500 0.0620" size="0.0090 0.0060 0.0030" mass="0.0050" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c16" type="box" pos="-0.0369 0.0000 0.1110" size="0.0005 0.0297 0.0047" mass="0.0040" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c17" type="box" pos="0.0040 0.0720 0.0895" size="0.0175 0.0050 0.0185" mass="0.0200" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c18" type="box" pos="0.0080 0.0790 0.0660" size="0.0110 0.0070 0.0040" mass="0.0060" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c19" type="box" pos="-0.0010 -0.0490 0.0575" size="0.0090 0.0030 0.0035" mass="0.0050" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c20" type="box" pos="-0.0015 -0.0747 0.1140" size="0.0095 0.0048 0.0090" mass="0.0020" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c21" type="box" pos="-0.0020 -0.0765 0.0860" size="0.0200 0.0085 0.0200" mass="0.0270" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c22" type="box" pos="0.0323 0.0612 0.1000" size="0.0013 0.0064 0.0085" mass="0.0010" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c23" type="box" pos="0.0323 -0.0628 0.1000" size="0.0013 0.0064 0.0085" mass="0.0010" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/><geom name="c24" type="box" pos="-0.0297 0.0000 0.0688" size="0.0018 0.0440 0.0168" mass="0.0200" contype="0" conaffinity="0" rgba="0.75 0.45 0.2 1" group="1"/>
+      <geom name="stator1" type="cylinder" size="0.026 0.017" pos="0 0.039 0" zaxis="0 1 0" mass="0.15" contype="0" conaffinity="0" rgba="0.6 0.6 0.65 1"/><geom name="stator-1" type="cylinder" size="0.026 0.017" pos="0 -0.039 0" zaxis="0 1 0" mass="0.15" contype="0" conaffinity="0" rgba="0.6 0.6 0.65 1"/>
+      <geom name="wires" type="box" size="0.02 0.03 0.01" pos="0 0 0.03" mass="0.04" contype="0" conaffinity="0" group="1"/>
+      <site name="imu" pos="-0.002 0 -0.0175"/>
+      
+      
+      <body name="wheel_left" pos="0 0.0815 0">
+        <!-- contact: ellipsoid = rounded foam tyre touching at one point (a flat MuJoCo cylinder scrubs at both rim edges) -->
+        <joint name="left_hinge" type="hinge" axis="0 1 0" damping="0.0005" armature="0.0000515"/>
+        <geom name="tyre_left" type="ellipsoid" size="0.0543 0.0225 0.0543" mass="0.2335" rgba="0.12 0.12 0.13 1"
+              friction="1.0 0.01 0.0001" condim="4"/>
+        <geom type="cylinder" size="0.0543 0.0225" zaxis="0 1 0" mass="0" contype="0" conaffinity="0" rgba="0.12 0.12 0.13 1"/>
+        <geom type="box" size="0.0326 0.0230 0.004" contype="0" conaffinity="0" mass="0" rgba="0.85 0.85 0.8 1"/>
+      </body>
+      <body name="wheel_right" pos="0 -0.0815 0">
+        <!-- contact: ellipsoid = rounded foam tyre touching at one point (a flat MuJoCo cylinder scrubs at both rim edges) -->
+        <joint name="right_hinge" type="hinge" axis="0 1 0" damping="0.0005" armature="0.0000515"/>
+        <geom name="tyre_right" type="ellipsoid" size="0.0543 0.0225 0.0543" mass="0.2335" rgba="0.12 0.12 0.13 1"
+              friction="1.0 0.01 0.0001" condim="4"/>
+        <geom type="cylinder" size="0.0543 0.0225" zaxis="0 1 0" mass="0" contype="0" conaffinity="0" rgba="0.12 0.12 0.13 1"/>
+        <geom type="box" size="0.0326 0.0230 0.004" contype="0" conaffinity="0" mass="0" rgba="0.85 0.85 0.8 1"/>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor name="m_left" joint="left_hinge" ctrlrange="-3 3"/>
+    <motor name="m_right" joint="right_hinge" ctrlrange="-3 3"/>
+  </actuator>
+  <sensor>
+    <gyro name="gyro" site="imu" noise="0.005"/>
+    <accelerometer name="accel" site="imu" noise="0.05"/>
+    <jointpos name="ql" joint="left_hinge"/>
+    <jointpos name="qr" joint="right_hinge"/>
+    <jointvel name="wl" joint="left_hinge"/>
+    <jointvel name="wr" joint="right_hinge"/>
+    
+  </sensor>
+</mujoco>

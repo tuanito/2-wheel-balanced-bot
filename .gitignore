@@ -1,0 +1,12 @@
+# build outputs
+firmware/**/.pio/
+**/__pycache__/
+*.so
+*.dylib
+.pytest_cache/
+# regenerable sim output
+sim/results/*frames*/
+sim/results/*.mp4
+# secrets: the Claude API key lives in /etc/robot.env on the Pi, never in the repo
+robot.env
+*.env
