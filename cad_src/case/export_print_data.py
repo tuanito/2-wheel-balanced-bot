@@ -1,7 +1,7 @@
 """Every printed part in its print orientation on the bed (z = 0 = bed), plus an overhang analysis.
-Writes /home/claude/case/print_parts_v11.json for print.html."""
+Writes print_parts_v11.json (see robot_paths.OUT) for print.html."""
 import sys, json, base64, math, numpy as np
-sys.path.insert(0, '/home/claude/case'); sys.path.insert(0, '/home/claude/wheel_adapter')
+import robot_paths as RP; RP.add_sources()
 import cadquery as cq, body_case as bc, wheel_adapter as wa
 
 def rot(shape, axis, deg):
@@ -76,4 +76,4 @@ for name, label, shape, ori, col, how in P:
     out.append(dict(name=name, label=label, color=col, how=how, size=[round(b.xlen, 1), round(b.ylen, 1), round(b.zlen, 1)],
                     vol=round(s.Volume() / 1000, 1), bridge_mm2=round(float(flat)), steep_mm2=round(float(steep)), **mesh(V, T)))
     print(f"{name:14s} {b.xlen:6.1f} x {b.ylen:6.1f} x {b.zlen:6.1f}  bridges {flat:7.0f} mm2  >45deg {steep:6.0f} mm2  ori {ori}")
-json.dump(out, open('/home/claude/case/print_parts_v11.json', 'w'))
+json.dump(out, open(RP.out('print_parts_v11.json'), 'w'))

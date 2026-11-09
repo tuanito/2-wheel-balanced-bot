@@ -502,6 +502,19 @@ What the wiring check and the CAN unit tests could not see: real voltages, curre
   cd ../core && g++ -O2 -std=c++17 -shared -fPIC controller.cpp sim_api.cpp -o ../sim/libbot.so
   cd ../sim && python3 run_tests.py 40 && python3 make_video.py && python3 nav_sim.py 150 --video
   ```
+- **CAD and electrical scripts** (`cad_src/`, `elec/`). The electrical ones are plain Python; the CAD ones need
+  [CadQuery](https://cadquery.readthedocs.io) and the bought-part models (`models/fetch_models.sh`, plus the MF6015
+  STEP from the dealer's page, saved as `models/bought/mf6015.step`).
+  ```
+  python3 elec/erc.py && python3 elec/test_erc.py     # electrical rules check + its 8 mutation tests
+  python3 cad_src/case/dump_wiring.py                 # -> wiring_data.json, wiring_diagram.json
+  python3 cad_src/case/assemble.py                    # -> assembly/, sim/meshes/*.stl, sim/cad_mass.json
+  ```
+  These scripts were written on a machine that kept the sources in `/home/claude/case`, `/home/claude/wheel_adapter`
+  and `/home/claude/robot`. They no longer assume that: `cad_src/case/robot_paths.py` works out where everything is
+  from its own location, so the same code runs from a checkout at any path and from the original layout. Override any
+  root with `ROBOT_CASE`, `ROBOT_WHEEL_ADAPTER`, `ROBOT_ROOT`, `ROBOT_OUT`, `ROBOT_MODELS` or `ROBOT_MF6015_STEP`.
+  Generated artifacts go next to the case sources by default (git-ignored); set `ROBOT_OUT` to collect them elsewhere.
 - **Tests:**
   ```
   cd pi && python3 -m pytest -q tests

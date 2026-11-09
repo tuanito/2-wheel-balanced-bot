@@ -1,8 +1,8 @@
 """Fit check with the real bought-part models. Writes real_fit_report.json."""
 import sys, json, itertools
-sys.path.insert(0, '/home/claude/case'); sys.path.insert(0, '/home/claude/wheel_adapter')
+import robot_paths as RP; RP.add_sources()
 import cadquery as cq
-exec(open('/home/claude/case/assemble.py').read().split("# ---------------- placeholder components")[0])   # printed parts + motors
+exec(open(RP.source('assemble.py')).read().split("# ---------------- placeholder components")[0])   # printed parts + motors
 import real_parts as rp
 from real_parts import box as B
 
@@ -79,6 +79,6 @@ if __name__ == "__main__":
     for a, b in itertools.combinations(names, 2):     # bought vs bought
         v = vol(ALL[a][0], ALL[b][0])
         if v > 0.3: rep["clashes"].append([a, b, round(v, 1), kind(ALL[a][0], ALL[b][0])])
-    json.dump(rep, open('/home/claude/case/real_fit_report.json', 'w'), indent=1)
+    json.dump(rep, open(RP.out('real_fit_report.json'), 'w'), indent=1)
     for c in rep["clashes"]: print("CLASH", c)
     print(len(rep["clashes"]), "clashes")

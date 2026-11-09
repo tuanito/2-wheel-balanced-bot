@@ -1,7 +1,8 @@
 """Check every harness bundle and every plug housing against every part. Overlaps within 7 mm of one of the
 harness's own pins are the connection itself and are ignored."""
 import sys, json, math
-exec(open('/home/claude/case/real_assembly.py').read().split('if __name__ == "__main__":')[0])
+import robot_paths as RP; RP.add_sources()
+exec(open(RP.source('real_assembly.py')).read().split('if __name__ == "__main__":')[0])
 import wiring as W
 HS = W.harnesses()
 targets = dict(PRINTED); targets.update({k: v[0] for k, v in ALL.items()})
@@ -30,4 +31,4 @@ for h in HS:
     L = [round(W.length(W.conductor_path(h, c))) for c in h["conds"]]
     res.append(dict(name=h["name"], wires=len(h["conds"]), length_mm=max(L), hits=hits))
     print(f"{h['name'][:50]:50s} {max(L):5d} mm  {'OK' if not hits else hits}")
-json.dump(res, open('/home/claude/case/wire_report.json', 'w'), indent=1)
+json.dump(res, open(RP.out('wire_report.json'), 'w'), indent=1)

@@ -2,20 +2,20 @@
 Checks interference, ground contact when lying flat, centre of mass; renders views with MuJoCo.
 """
 import sys, math, pathlib, os
-sys.path.insert(0, "/home/claude/case"); sys.path.insert(0, "/home/claude/wheel_adapter")
+import robot_paths as RP; RP.add_sources()
 import cadquery as cq
 import body_case as bc
 import wheel_adapter as wa
 from OCP.BRepBuilderAPI import BRepBuilderAPI_Sewing, BRepBuilderAPI_MakeSolid
 from OCP.TopoDS import TopoDS
 
-OUT = pathlib.Path("/home/claude/case/assembly"); OUT.mkdir(exist_ok=True)
+OUT = RP.ASSEMBLY; OUT.mkdir(parents=True, exist_ok=True)
 
 def box(x0, x1, y0, y1, z0, z1):
     return cq.Workplane("XY").box(x1 - x0, y1 - y0, z1 - z0, centered=False).translate((x0, y0, z0)).val()
 
 # ---------------- motor (sewn into solids so boolean checks work) ----------------
-m = cq.importers.importStep("/home/claude/mf_step/mf6015.step").val()
+m = cq.importers.importStep(str(RP.mf6015_step())).val()
 sew = BRepBuilderAPI_Sewing(0.01); sew.Add(m.wrapped); sew.Perform()
 msol = []
 for s in cq.Shape.cast(sew.SewedShape()).Shells():
@@ -182,7 +182,7 @@ print("\nexported", len(mesh_parts), "meshes")
 
 # ---------------- sim data (robot/sim: cad_mass.json + meshes) ----------------
 import json
-SIM = pathlib.Path("/home/claude/robot/sim"); (SIM / "meshes").mkdir(exist_ok=True)
+SIM = RP.SIM; (SIM / "meshes").mkdir(parents=True, exist_ok=True)
 printed = {"body": body, "cover": cover, "front": front, "shelf": shelf, "cap": cap, "tray": tray, "ret_l": ret_l, "ret_r": ret_r,
            "plate_l": plate_l, "ring": ring, "micc_l": micc_l, "micc_r": micc_r, "lret_l": lret_l, "lret_r": lret_r}
 pm = {}

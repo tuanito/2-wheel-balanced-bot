@@ -1,7 +1,7 @@
 """List body surfaces that face the print bed (build direction = -X, bed at x = X_IN_F) and are not on the bed.
 Faces steeper than 45 deg from vertical, i.e. normal_x > cos(45), would need support (small bridges are OK)."""
 import sys, importlib, math
-sys.path.insert(0, '/home/claude/case')
+import robot_paths as RP; RP.add_sources()
 import cadquery as cq
 from OCP.BRepGProp import BRepGProp_Face
 from OCP.gp import gp_Pnt, gp_Vec

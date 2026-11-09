@@ -8,7 +8,11 @@ Model: netlist.py (every harness wire from case/wiring.py + board internals). Ch
   5 dividers solved (sonar echo, sense inputs)            9 fuses vs the wires they protect
 """
 import json, re, os, sys, collections
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+for _p in (os.path.join(HERE, os.pardir, "cad_src", "case"), "/home/claude/case"):
+    if os.path.isdir(_p): sys.path.append(_p)       # robot_paths: this machine's layout
+import robot_paths as RP
 import netlist as N
 
 LEVEL = {'3V3': 3.3, '5V': 5.0}
@@ -208,7 +212,7 @@ def device_ends(uf, nets, n, through_res=True):
 
 
 def check_firmware_map(uf, nets):
-    cfg = open('/home/claude/robot/firmware/esp32/include/config.h').read()
+    cfg = open(RP.FIRMWARE_CONFIG).read()
     pins = dict((k, int(v)) for k, v in re.findall(r'constexpr int (PIN_\w+)\s*=\s*(\d+)', cfg))
     expect = {'PIN_CAN_TX': node(N.CAN, 'CTX'), 'PIN_CAN_RX': node(N.CAN, 'CRX'), 'PIN_I2C_SDA': node(N.IMU, 'SDA'),
               'PIN_I2C_SCL': node(N.IMU, 'SCL'), 'PIN_PI_TX': node(N.PI, 'pin 10 (GPIO15 RXD)'), 'PIN_PI_RX': node(N.PI, 'pin 8 (GPIO14 TXD)'),
@@ -243,7 +247,7 @@ def check_firmware_map(uf, nets):
 
 
 def check_pi_map(uf, nets):
-    inst = open('/home/claude/robot/pi/install.sh').read()
+    inst = open(RP.PI_INSTALL).read()
     rows = []
     def chk(name, cond, msg, fix=''):
         rows.append(dict(item=name, ok=bool(cond)))

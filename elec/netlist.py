@@ -7,11 +7,12 @@ Pin attributes (all optional):
   kind  : 'src' (power source, V, Imax) | 'pin' (power input, range, I) | 'gnd' | 'out' (logic out, level)
           | 'in' (logic in, vmax, needs a driver unless pull) | 'io' | 'pass' (passive) | 'bus' (CAN H/L)
 """
-import json, os
+import json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
-WD = '/home/claude/case/wiring_diagram.json'
-if not os.path.exists(WD):
-    WD = os.path.join(HERE, 'wiring_diagram.json')
+for _p in (os.path.join(HERE, os.pardir, "cad_src", "case"), "/home/claude/case"):
+    if os.path.isdir(_p): sys.path.append(_p)       # robot_paths: this machine's layout
+import robot_paths as RP
+WD = RP.artifact('wiring_diagram.json')
 
 PINS, LINKS, RES, DIODES, NOTES = {}, [], [], [], []
 

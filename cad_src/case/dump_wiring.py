@@ -1,6 +1,6 @@
 """wiring_data.json (for the viewer) + wiring_diagram.json (modules, pins, wires) from wiring.py."""
 import sys, json
-sys.path.insert(0, '/home/claude/case')
+import robot_paths as RP; RP.add_sources()
 import real_parts as rp
 rp.real_parts()                                   # fills the placements used for pin positions
 import wiring as W
@@ -9,7 +9,7 @@ wd = [dict(name=h["name"], desc=h["desc"], a_conn=h["a_conn"], b_conn=h["b_conn"
            path=[[round(v, 2) for v in p] for p in h["path"]],
            conds=[dict(sig=c["sig"], col=c["col"], d=c["d"], a=[round(v, 2) for v in c["a"]], b=[round(v, 2) for v in c["b"]],
                        a_lbl=c["a_lbl"], b_lbl=c["b_lbl"], awg=c["awg"], L=round((W.length(W.conductor_path(h, c)) + h.get("slack", 0)) / 10, 1)) for c in h["conds"]]) for h in HS]
-json.dump(wd, open('/home/claude/case/wiring_data.json', 'w'))
+json.dump(wd, open(RP.out('wiring_data.json'), 'w'))
 RULES = [("Pi pin", "Raspberry Pi Zero 2 W", "Pi "), ("Pi CSI", "Raspberry Pi Zero 2 W", "Pi "), ("Pi micro-USB", "Raspberry Pi Zero 2 W", "Pi "),
          ("Perfboard: ESP32", "Perfboard: ESP32-S3 + level shifter", "Perfboard: "),
          ("Perfboard", "Perfboard: ESP32-S3 + level shifter", "Perfboard "), ("CAN board", "CAN board (SN65HVD230)", "CAN board "),
@@ -42,5 +42,5 @@ for hi, h in enumerate(wd):
         wires.append(dict(h=hi, harness=h["name"], sig=c["sig"], col=c["col"], d=c["d"], awg=c["awg"], a_lbl=c["a_lbl"], b_lbl=c["b_lbl"], a=[ma, pa], b=[mb, pb], L=c["L"]))
 missing = [m for m in pins if not any(m in col for col in COLS)]
 assert not missing, missing
-json.dump(dict(cols=COLS, pins=pins, wires=wires, harnesses=[h["name"] for h in wd]), open('/home/claude/case/wiring_diagram.json', 'w'))
+json.dump(dict(cols=COLS, pins=pins, wires=wires, harnesses=[h["name"] for h in wd]), open(RP.out('wiring_diagram.json'), 'w'))
 print(len(wires), "wires,", len(pins), "modules")

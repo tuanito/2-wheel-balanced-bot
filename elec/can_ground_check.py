@@ -1,7 +1,11 @@
 """CAN bus load / timing and ground offset between the ESP32's CAN transceiver and the motors' CAN reference.
 Lengths and gauges come from the harness model (case/wiring_data.json)."""
-import json
-WD = json.load(open("/home/claude/case/wiring_data.json"))
+import json, os, sys
+HERE = os.path.dirname(os.path.abspath(__file__))
+for _p in (os.path.join(HERE, os.pardir, "cad_src", "case"), "/home/claude/case"):
+    if os.path.isdir(_p): sys.path.append(_p)       # robot_paths: this machine's layout
+import robot_paths as RP
+WD = json.load(open(RP.artifact("wiring_data.json")))
 OHM_PER_M = {12: 0.00521, 16: 0.0132, 20: 0.0333, 22: 0.0530, 24: 0.0842, 26: 0.134}
 def wire(h, sig):
     for x in WD:

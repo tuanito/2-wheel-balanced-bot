@@ -14,3 +14,19 @@ robot.env
 # ML training output and the Mac venv / library (ml/setup_mac.sh)
 ml/runs/
 .venv/
+
+# CAD/electrical artifacts generated into the source dir (robot_paths.OUT; set ROBOT_OUT to move them)
+cad_src/case/assembly/
+cad_src/case/wiring_data.json
+cad_src/case/wiring_diagram.json
+cad_src/case/viewer_parts_v11.json
+cad_src/case/print_parts_v11.json
+cad_src/case/real_fit_report.json
+cad_src/case/wire_report.json
+cad_src/case/case_preview.png
+# downloaded by models/fetch_models.sh (incl. the non-redistributable MF6015 STEP)
+models/bought/
+models/drawings/
+# regenerable CAD exports written next to their script (the kept copies are in cad/)
+cad_src/wheel_adapter/*.step
+cad_src/wheel_adapter/*.stl

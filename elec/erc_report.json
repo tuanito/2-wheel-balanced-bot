@@ -1,12 +1,6 @@
 {
  "findings": [
   {
-   "sev": "ERROR",
-   "check": "firmware pin map",
-   "msg": "GPIO1 (PIN_VBAT) reads the battery + through a divider, but no wire brings the battery + to the perfboard: the ADC reads 0 V.",
-   "fix": "Add a 26 AWG sense wire from the battery + to the divider input on the perfboard."
-  },
-  {
    "sev": "CHECK",
    "check": "CAN",
    "msg": "Termination: 120 ohm on the CAN board (1 known); the LK motors' built-in termination is not documented. The bus needs 120 ohm at each end (60 ohm between H and L).",
@@ -1190,6 +1184,17 @@
   },
   {
    "i": 96,
+   "harness": "VBAT sense -> perfboard J7",
+   "sig": "VBAT sense (switched BAT+)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 97,
    "harness": "Dock sense -> perfboard J7",
    "sig": "Dock sense (pad +, before the diode)",
    "awg": 26,
@@ -1200,7 +1205,7 @@
    ]
   },
   {
-   "i": 97,
+   "i": 98,
    "harness": "USB sense -> perfboard J7",
    "sig": "USB VBUS sense",
    "awg": 26,
@@ -1211,7 +1216,7 @@
    ]
   },
   {
-   "i": 98,
+   "i": 99,
    "harness": "PDB -> headlight driver",
    "sig": "VIN (1 A inline fuse)",
    "awg": 22,
@@ -1223,7 +1228,7 @@
    ]
   },
   {
-   "i": 99,
+   "i": 100,
    "harness": "PDB -> headlight driver",
    "sig": "GND",
    "awg": 22,
@@ -1235,7 +1240,7 @@
    ]
   },
   {
-   "i": 100,
+   "i": 101,
    "harness": "Pi -> headlight driver (PWM)",
    "sig": "PWM (GPIO12)",
    "awg": 26,
@@ -1247,7 +1252,7 @@
    ]
   },
   {
-   "i": 101,
+   "i": 102,
    "harness": "Pi -> headlight driver (PWM)",
    "sig": "GND",
    "awg": 26,
@@ -1259,7 +1264,7 @@
    ]
   },
   {
-   "i": 102,
+   "i": 103,
    "harness": "Headlight driver -> headlight R",
    "sig": "+12 V",
    "awg": 24,
@@ -1271,7 +1276,7 @@
    ]
   },
   {
-   "i": 103,
+   "i": 104,
    "harness": "Headlight driver -> headlight R",
    "sig": "switched -",
    "awg": 24,
@@ -1283,7 +1288,7 @@
    ]
   },
   {
-   "i": 104,
+   "i": 105,
    "harness": "Headlight driver -> headlight L",
    "sig": "+12 V",
    "awg": 24,
@@ -1295,7 +1300,7 @@
    ]
   },
   {
-   "i": 105,
+   "i": 106,
    "harness": "Headlight driver -> headlight L",
    "sig": "switched -",
    "awg": 24,
@@ -1494,7 +1499,7 @@
    "pin": "PIN_VBAT",
    "gpio": 1,
    "expect": "battery +",
-   "ok": false
+   "ok": true
   },
   {
    "pin": "PIN_CAN_TX",
@@ -1719,9 +1724,9 @@
    "under": []
   }
  ],
- "echo_at_gpio11": 3.333333333333333,
- "nets": 46,
- "wires_n": 106,
+ "echo_at_gpio11": 3.3333333333333335,
+ "nets": 45,
+ "wires_n": 107,
  "pins_n": 215,
  "key_fix_applied": false
 }

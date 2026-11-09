@@ -1,4 +1,5 @@
-import sys, importlib; sys.path.insert(0,"/home/claude/case")
+import sys, importlib
+import robot_paths as RP; RP.add_sources()
 import body_case as bc
 from design_variants import VARIANTS
 for name,spec in VARIANTS.items():

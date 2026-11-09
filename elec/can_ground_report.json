@@ -11,10 +11,10 @@
   "note": "Replies are read at the start of the next cycle (1 cycle of latency, modelled in the sim). A bus-off costs ~1.4 ms + one cycle: below the 20 ms CAN timeout, so the robot keeps balancing."
  },
  "ground": {
-  "motor_return_mOhm": 0.82,
-  "perfboard_gnd_mOhm": 4.6,
-  "worst_offset_mV": 60,
+  "motor_return_mOhm": 1.04,
+  "perfboard_gnd_mOhm": 6.79,
+  "worst_offset_mV": 74,
   "transceiver_tolerance": "-2 V ... +7 V common mode (SN65HVD230)",
-  "margin_x": 33
+  "margin_x": 27
  }
 }
