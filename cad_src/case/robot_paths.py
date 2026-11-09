@@ -19,6 +19,11 @@ Every root can be overridden by an environment variable:
 
     ROBOT_CASE  ROBOT_WHEEL_ADAPTER  ROBOT_ROOT  ROBOT_OUT  ROBOT_MODELS  ROBOT_MF6015_STEP
 
+BOT_WS is also honoured, for the workspace layout tools/make_workspace.sh builds
+(case/, wheel_adapter/, robot/, v2site/, bom/, models/, mf_step/ side by side, all
+symlinked back into this repo). Each of its directories is used only if it exists, so a
+partial workspace falls back to the layout found from this file.
+
 From a script in this directory:   import robot_paths as RP
 From anywhere else in the repo:    import sys, pathlib
                                    sys.path.insert(0, str(pathlib.Path(__file__).resolve()
@@ -38,16 +43,27 @@ def _env(name):
     return Path(v).expanduser() if v else None
 
 
+_WS = _env("BOT_WS")                # workspace built by tools/make_workspace.sh, if any
+
+
+def _ws(*parts):
+    """A directory inside the BOT_WS workspace, but only if it is really there."""
+    if _WS is None:
+        return None
+    p = _WS.joinpath(*parts)
+    return p if p.is_dir() else None
+
+
 # ---------------------------------------------------------------- source trees
 # This file sits in the case source directory, so its own parent is the answer on
 # both machines: /home/claude/case on the VM, <repo>/cad_src/case in a checkout.
-CASE = _env("ROBOT_CASE") or Path(__file__).resolve().parent
+CASE = _env("ROBOT_CASE") or _ws("case") or Path(__file__).resolve().parent
 # ... and the wheel adapter is its sibling in both layouts.
-WHEEL_ADAPTER = _env("ROBOT_WHEEL_ADAPTER") or CASE.parent / "wheel_adapter"
+WHEEL_ADAPTER = _env("ROBOT_WHEEL_ADAPTER") or _ws("wheel_adapter") or CASE.parent / "wheel_adapter"
 
 
 def _find_repo():
-    p = _env("ROBOT_ROOT")
+    p = _env("ROBOT_ROOT") or _ws("robot")
     if p:
         return p
     for d in [CASE, *CASE.parents]:                     # a checkout: walk up to the root
@@ -62,6 +78,8 @@ def _find_repo():
 
 REPO = _find_repo()
 SIM = REPO / "sim"
+SITE = _ws("v2site") or REPO / "site"            # the published pages and their builders
+BOM = _ws("bom") or REPO / "bom"
 FIRMWARE_CONFIG = REPO / "firmware" / "esp32" / "include" / "config.h"
 PI_INSTALL = REPO / "pi" / "install.sh"
 
@@ -124,15 +142,17 @@ def models_dir():
     p = _env("ROBOT_MODELS")
     if p:
         return p
-    for d in (REPO / "models" / "bought", _VM / "models" / "bought"):
-        if d.is_dir():
+    for d in (_ws("models", "bought"), REPO / "models" / "bought", _VM / "models" / "bought"):
+        if d and d.is_dir():
             return d
     return REPO / "models" / "bought"
 
 
 def mf6015_step():
     """The MF6015 motor STEP. Not redistributable: it comes from the LKMTECH product page."""
-    for p in (_env("ROBOT_MF6015_STEP"), models_dir() / "mf6015.step", _VM / "mf_step" / "mf6015.step"):
+    _ws_step = _ws("mf_step")
+    for p in (_env("ROBOT_MF6015_STEP"), models_dir() / "mf6015.step",
+              _ws_step / "mf6015.step" if _ws_step else None, _VM / "mf_step" / "mf6015.step"):
         if p and p.exists():
             return p
     raise FileNotFoundError(
