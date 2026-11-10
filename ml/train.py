@@ -33,16 +33,19 @@ class EnvStats(BaseCallback):
         self.rate = collections.deque(maxlen=n)
         self.pitch = collections.deque(maxlen=n)
         self.v = collections.deque(maxlen=n)
+        self.curric = collections.deque(maxlen=n)
 
     def _on_step(self):
         for i in self.locals.get("infos", ()):
             if "success" in i: self.succ.append(float(i["success"]))
             if "catch_rate" in i: self.rate.append(i["catch_rate"])
             if "catch_v" in i: self.v.append(i["catch_v"])
+            if "curric" in i: self.curric.append(float(i["curric"]))
             if "start_pitch" in i: self.pitch.append(i["start_pitch"])
         if self.succ: self.logger.record("env/success_rate", sum(self.succ) / len(self.succ))
         if self.rate: self.logger.record("env/catch_rate_rad_s", sum(self.rate) / len(self.rate))
         if self.v: self.logger.record("env/catch_v_m_s", sum(self.v) / len(self.v))
+        if self.curric: self.logger.record("env/curric_rate", sum(self.curric) / len(self.curric))
         if self.pitch: self.logger.record("env/start_pitch", sum(self.pitch) / len(self.pitch))
         return True
 

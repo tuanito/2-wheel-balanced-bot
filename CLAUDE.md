@@ -69,6 +69,17 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   Run `erc.py` again afterwards. `check.sh` already does.
 - `ml/train.py` always prints that it saved `best.zip`, but only writes it once `EvalCallback` has fired
   (~100k steps / n_envs). Short runs leave `latest.zip` only; `run_training.sh` falls back to it.
+- **`best.zip` does not mean best.** `EvalCallback` ranks checkpoints by eval reward, and that signal is
+  far too noisy here to rank anything (sigma ~2.5 on a mean of ~8). One 2 M-step run's `best.zip` was a
+  100k-step checkpoint scoring 26/60 compiled while the same run's final policy scored 171/180 - and it
+  was exported and reported as the result. `run_training.sh` now exports and scores *every* candidate with
+  `evaluate.py --compiled` and keeps the winner. Never judge a run by `best.zip` alone.
+- `evaluate.py <model>` (torch, mode 2) and `evaluate.py --compiled` (the C++ policy, mode 1) can disagree
+  wildly, and only `--compiled` is the gate: it is what the robot runs. The two forward passes differ by
+  ~1e-7 from float32 summation order, which a chaotic swing-up amplifies - traced once to an identical
+  `+1.00000` first action and pitch splitting at the 4th decimal eleven ticks later. A policy whose two
+  numbers disagree by more than a robot or two is sitting on a knife edge; `run_training.sh` prints both
+  and says so.
 - `cad_src/case/wall_check.py` imports `design_variants`, which is not in the repo. Dead script.
 - `firmware/esp32/lib/botcore/` is a copy of `core/`: run `sync_core.sh` after editing `core/`. It now
   verifies the copy with `cmp` and exits non-zero on a mismatch - it used to omit `standup_policy.hpp`
@@ -101,12 +112,18 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   (p90 0.80 s vs 1.64 s). `core/standup_policy.hpp` holds the trained weights and `STANDUP_POLICY_TRAINED`
   is `true`, **but `standup_mode` is still 0** (`core/controller.hpp:104`), so the robot behaves exactly as
   before. The sim gate is met; flipping it to 1 is a hardware decision and has not been taken.
-- Two things about that run are not what they look like, and should be fixed before trusting a fourth one:
-  the start-pitch curriculum never advanced (`env/start_pitch` was 1.200 for all 2 M steps - it only
-  ratchets on full success, which stayed at ~12%), so the policy trained entirely at 1.2 rad and generalises
-  to the real 1.8 rad by luck rather than design; and `env/success_rate` (first attempt, survived 1 s) is
-  not the same measure as `evaluate.py` (upright within 5 s, retries allowed), which is why one reads 0.125
-  where the other reads 1.00. The project gate is `evaluate.py`.
+- **The shipped policy was trained at 1.2 rad, and that is better than training on the real task.** The
+  curriculum ratchet used to gate on full success (~12%), never cleared `UP_OK`, and left every worker at
+  `PITCH_START` for all 2 M steps - it had silently collapsed to "always train at 1.2 rad". That gate is
+  now fixed (it ratchets on a catchable handover: a success, or `gentle >= GENTLE_OK`, i.e. pitch rate
+  <= ~6.7 rad/s) and verified: a fourth run climbed to the real 1.8 rad by 200k steps and stayed there.
+  It scored **171/180**, against **180/180** for the policy trained entirely at 1.2 rad. So the easy start
+  pitch is a better teacher, not a lucky accident - the alternative was measured. The shipped weights are
+  therefore the ones from before the gate was fixed: to regenerate them, check out `ml/` at `e4c9d26`.
+  Retraining with today's `ml/` should land near 171/180, which still beats the hand-tuned 155/180.
+- `env/success_rate` (caught first attempt, survived 1 s) is not the same measure as `evaluate.py` (upright
+  within 5 s, retries allowed), which is why one reads ~0.13 where the other reads 1.00. Still open, and
+  still worth reconciling: the gate is `evaluate.py`.
 - Earlier runs failed for reward-design reasons, both diagnosed, both worth not repeating: run 1 (`ent_coef`
   0) annealed its exploration away before ever reaching the success bonus; run 2 gave a flat +2.0 for
   touching the catch window, so the policy slammed through it at 16.9 rad/s and lost all 60. The fix was to

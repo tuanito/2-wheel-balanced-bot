@@ -13,6 +13,14 @@ controller's 2 s timeout and collected the shaping, and once the exploration noi
 longer discover anything better. So training starts nearer upright and each worker walks its own start pitch out
 to the real 1.8 rad as it succeeds. Evaluation always uses the real task: StandupEnv(curriculum=False).
 
+What the ratchet is gated on matters, and the third run got it wrong: it advanced only on a full success
+(caught first try AND still balancing a second later), which sat around 12%, never reached UP_OK, and so left
+every worker pinned at PITCH_START for all 2 M steps. The curriculum silently collapsed to "always train at
+1.2 rad". It is now gated on a catchable handover - a success, or reaching the catch with `gentle` >= GENTLE_OK
+(pitch rate <= ~6.7 rad/s). That is the thing the reward is pushing for, it is reached early in training, and
+it gets harder as the start pitch grows, so the ratchet has signal to climb on and self-limits. The strict
+success rate is still reported separately (env/success_rate vs env/curric_rate).
+
 The catch is a handover, not a finish line. The second run (flat CATCH_ONLY = +2.0) reached the catch window on
 every episode and lost every one of them: measured in ml/evaluate.py's loop it arrived at |pitch rate| 16.9
 rad/s median against the hand-tuned stand-up's 3.66. Both swing up equally hard (peak ~14-17 rad/s in the
@@ -51,8 +59,9 @@ FALLEN_PENALTY = -2.0         # went over, ran away or gave up (was -5: too timi
 PITCH_FULL = 1.8              # rad: lying flat, the real task
 PITCH_START = 1.2             # rad: where the curriculum begins
 PITCH_STEP = 0.05             # rad moved per adjustment
-WINDOW = 20                   # episodes the success rate is measured over
-UP_OK, UP_BAD = 0.6, 0.3      # success rate that makes the task harder / easier
+WINDOW = 20                   # episodes the curriculum signal is measured over
+UP_OK, UP_BAD = 0.6, 0.3      # rate of that signal that makes the task harder / easier
+GENTLE_OK = 0.5               # `gentle` (i.e. rate <= 6.7 rad/s) that counts as a catchable handover
 
 
 class StandupEnv(gym.Env):
@@ -69,11 +78,11 @@ class StandupEnv(gym.Env):
         self.pitch = PITCH_START if curriculum else PITCH_FULL
         self.recent = collections.deque(maxlen=WINDOW)
 
-    def _advance_curriculum(self, success):
-        """Walk the start pitch towards PITCH_FULL while it is succeeding, back off while it is not."""
+    def _advance_curriculum(self, good):
+        """Walk the start pitch towards PITCH_FULL while handovers are catchable, back off while they are not."""
         if not self.curriculum:
             return
-        self.recent.append(bool(success))
+        self.recent.append(bool(good))
         if len(self.recent) < WINDOW:
             return
         rate = sum(self.recent) / len(self.recent)
@@ -137,12 +146,15 @@ class StandupEnv(gym.Env):
             # but only in proportion to how catchable the handover was. A slam through the window earns nothing.
             gentle = math.exp(-(rate / RATE_OK) ** 2)
             r += (10.0 - 2.0 * travel) if ok else CATCH_ONLY * gentle
-            self._advance_curriculum(ok)
+            # Ratchet on a catchable handover, not on a full success: see the note at the top of the file.
+            curric = bool(ok or gentle >= GENTLE_OK)
+            self._advance_curriculum(curric)
             return obs, r, True, False, {"success": ok, "travel": travel, "catch_rate": rate,
-                                         "catch_v": true_v, "start_pitch": self.pitch}
+                                         "catch_v": true_v, "start_pitch": self.pitch, "curric": curric}
         self._advance_curriculum(False)
         # went over, ran away or gave up
-        return obs, r + FALLEN_PENALTY, True, False, {"success": False, "start_pitch": self.pitch}
+        return obs, r + FALLEN_PENALTY, True, False, {"success": False, "start_pitch": self.pitch,
+                                                      "curric": False}
 
     def close(self):
         if self.sim is not None: self.sim.close(); self.sim = None
