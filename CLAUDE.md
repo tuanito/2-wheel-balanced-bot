@@ -70,7 +70,15 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 - `ml/train.py` always prints that it saved `best.zip`, but only writes it once `EvalCallback` has fired
   (~100k steps / n_envs). Short runs leave `latest.zip` only; `run_training.sh` falls back to it.
 - `cad_src/case/wall_check.py` imports `design_variants`, which is not in the repo. Dead script.
-- `firmware/esp32/lib/botcore/` is a copy of `core/`: run `sync_core.sh` after editing `core/`.
+- `firmware/esp32/lib/botcore/` is a copy of `core/`: run `sync_core.sh` after editing `core/`. It now
+  verifies the copy with `cmp` and exits non-zero on a mismatch - it used to omit `standup_policy.hpp`
+  and still print "updated", so the ESP32 could have been built against the placeholder policy.
+- `BotSim.step()` returns `BotSim.out` itself, one ctypes struct the C++ refills in place every tick, not
+  a snapshot. Anything about a particular instant must be copied out before stepping the sim on. Reading
+  `o.pitch_rate` after a later loop reported 5.5 rad/s for a handover that happened at 16.9.
+- `mujoco` is pinned to `==4.0.0` in `ml/requirements.txt` because the committed `sim/results/report.json`
+  is version-dependent. 4.0 split the distribution (mujoco-core + mujoco-studio) and an in-place upgrade
+  from 3.x can delete files that moved: uninstall first. Verified: 4.0.0 reproduces the committed counts.
 
 ## Rules that must not be broken
 - **No secrets in git.** The Claude API key lives only in `/etc/robot.env` on the Pi (root, chmod 600), loaded
@@ -85,12 +93,28 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 ## State (Nov 2026) and open points
 - Shelf raised 10 mm (SHELF_Z 47, Z_TOP 152) so the motor leads loop gently; back cover unplugs as a module.
 - Cost: CoM 40.6 mm above the axle → hand-tuned stand-up 25/30 face-down, 23/30 back-down within 5 s (was
-  30/30), 52/60 within 12 s; docking 34/40 (was 37/40). Fix in progress: learned stand-up (`ml/`, merged to
-  main untrained and therefore inert). Set `standup_mode` to 1 only once `ml/evaluate.py --compiled` clearly
-  beats the hand-tuned one; until then leave it at 0.
+  30/30), 52/60 within 12 s; docking 34/40 (was 37/40).
+- **The learned stand-up now beats the hand-tuned one in the sim** (Nov 2026, third training run):
+  `evaluate.py --compiled` 60/60 on the usual seeds 3000-3029 and 60/60 on two held-out sets (9000, 12000),
+  against 155/180 for the hand-tuned one; median travel 0.84 m vs 0.97. It hands over to the balance
+  controller at 1.77 rad/s against the hand-tuned 3.66, and reaches the catch far more repeatably
+  (p90 0.80 s vs 1.64 s). `core/standup_policy.hpp` holds the trained weights and `STANDUP_POLICY_TRAINED`
+  is `true`, **but `standup_mode` is still 0** (`core/controller.hpp:104`), so the robot behaves exactly as
+  before. The sim gate is met; flipping it to 1 is a hardware decision and has not been taken.
+- Two things about that run are not what they look like, and should be fixed before trusting a fourth one:
+  the start-pitch curriculum never advanced (`env/start_pitch` was 1.200 for all 2 M steps - it only
+  ratchets on full success, which stayed at ~12%), so the policy trained entirely at 1.2 rad and generalises
+  to the real 1.8 rad by luck rather than design; and `env/success_rate` (first attempt, survived 1 s) is
+  not the same measure as `evaluate.py` (upright within 5 s, retries allowed), which is why one reads 0.125
+  where the other reads 1.00. The project gate is `evaluate.py`.
+- Earlier runs failed for reward-design reasons, both diagnosed, both worth not repeating: run 1 (`ent_coef`
+  0) annealed its exploration away before ever reaching the success bonus; run 2 gave a flat +2.0 for
+  touching the catch window, so the policy slammed through it at 16.9 rad/s and lost all 60. The fix was to
+  scale that credit by `exp(-(rate/8)^2)`. `ml/train.py` now logs `env/catch_rate_rad_s`, `env/catch_v_m_s`,
+  `env/success_rate` and `env/start_pitch` to TensorBoard: the eval-reward curve alone (sigma ~2.5) would
+  not have shown either failure, and both were obvious in those four numbers within 100 k steps.
 - Demo videos in `site/files/` still show the pre-raise body.
 - `ml/evaluate.py` used to fail on macOS (multiprocessing spawns there, so the workers never saw the model
-  path); fixed. No policy has been trained yet: `core/standup_policy.hpp` is still the placeholder, so
-  `standup_mode` 1 falls back to 0 and the robot behaves exactly as before.
+  path); fixed.
 - Motors: cheaper alternatives were reviewed (StepperOnline, PGFUN, VXB, gimbal motors): none fits; the only
   candidate is a low-KV outrunner + ODESC driver, not pursued.

@@ -1,4 +1,14 @@
-mujoco>=3.1
+# MuJoCo is pinned exactly: the sim's results are part of the repo (sim/results/report.json,
+# the stand-up success counts) and a different engine version quietly changes them. 4.0.0 is
+# what the committed numbers reproduce on (verified: face-down 25/30, back-down 23/30, the same
+# as the report generated on the Linux VM before 4.0 existed).
+#
+# Upgrading from 3.x is not a plain `pip install -U`: 4.0 split the distribution into
+# mujoco-core + mujoco-studio (both pulled in by `mujoco`), and an in-place upgrade can delete
+# files that moved. Uninstall first:  pip uninstall -y mujoco && pip install -r ml/requirements.txt
+# Only mujoco-core is actually needed to run the sim; `mujoco` is kept for the viewer.
+# Before changing this pin: ./check.sh sim, and treat any changed success count as a regression.
+mujoco==4.0.0
 numpy
 gymnasium>=1.0
 stable-baselines3>=2.3
