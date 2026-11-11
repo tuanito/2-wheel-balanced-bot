@@ -5,6 +5,11 @@ Off-the-shelf parts are boxes with their real mass at their CAD position. Units:
 Robot frame: X forward, Y left, Z up, origin on the wheel axle. The floor is at z = -WHEEL_R in robot frame.
 
   python3 build_model.py [--arena]   # --arena adds a room with obstacles, a 360-ray lidar and a sonar
+  python3 build_model.py --stairs [--rise 0.10] [--tread 0.30] [--steps 6] [--edge 1.2]
+        # a landing that ENDS at --edge metres, then a staircase descending in +X, plus the
+        # lidar fan and sonar. Riser and tread are parameters on purpose: whether the robot can
+        # see a step and whether it can survive one are different questions with different answers,
+        # so both get measured across a range instead of being fixed here.
 """
 import json, sys, pathlib, math
 
@@ -37,7 +42,7 @@ def comp_geoms():
     return out
 
 
-def xml(arena=False):
+def xml(arena=False, stairs=None):
     meshes = "".join(f'<mesh name="m_{k}" file="meshes/{k}.stl" scale="0.001 0.001 0.001" inertia="{'shell' if k == 'body' else 'exact'}"/>' for k in CAD["printed"])
     printed = []
     for k, g in CAD["printed"].items():
@@ -61,7 +66,8 @@ def xml(arena=False):
       </body>'''
     rays = ""
     sensors_extra = ""
-    if arena:
+    sense = arena or stairs is not None       # the ray fan and sonar: needed by both
+    if sense:
         lid_z = 0.152 + 0.025          # body top (Z_TOP 152 mm above the axle) + LD19 scan plane 25 mm above its base
         for i in range(LIDAR_RAYS):
             a = 2 * math.pi * i / LIDAR_RAYS
@@ -80,6 +86,28 @@ def xml(arena=False):
         # a low post (18 cm): below the lidar's scan plane (21 cm), only the sonar sees it
         world += f'<geom name="leg0" type="cylinder" pos="1.0 -1.0 {-R + 0.09:.4f}" size="0.03 0.09" rgba="0.3 0.2 0.1 1"/>'
     floor_z = -R
+    # The default floor is an infinite plane, which cannot have an edge to fall off. A staircase
+    # therefore replaces it with a finite landing, one box per tread, and a floor at the bottom.
+    if stairs is None:
+        floor = f'<geom name="floor" type="plane" pos="0 0 {floor_z:.4f}" size="10 10 0.1" material="grid"/>'
+    else:
+        rise, tread, nstep, edge = stairs["rise"], stairs["tread"], stairs["steps"], stairs["edge"]
+        HW, TH = 0.60, 0.15                   # half-width of the treads, half-thickness of each slab
+        g = [f'<geom name="landing" type="box" pos="{(edge - 3.0) / 2:.4f} 0 {floor_z - TH:.4f}" '
+             f'size="{(edge + 3.0) / 2:.4f} {HW:.4f} {TH:.4f}" material="grid"/>']
+        for i in range(nstep):
+            top = floor_z - (i + 1) * rise
+            g.append(f'<geom name="tread{i}" type="box" pos="{edge + (i + 0.5) * tread:.4f} 0 {top - TH:.4f}" '
+                     f'size="{tread / 2:.4f} {HW:.4f} {TH:.4f}" material="grid"/>')
+        bottom = floor_z - nstep * rise
+        g.append(f'<geom name="bottom" type="box" pos="{edge + nstep * tread + 1.5:.4f} 0 {bottom - TH:.4f}" '
+                 f'size="1.5 {HW:.4f} {TH:.4f}" material="grid"/>')
+        # Stairwell walls, so the lidar has something to range against at head height like a real
+        # staircase; they also stop the robot steering off the side of the steps.
+        for s, y in (("l", HW), ("r", -HW)):
+            g.append(f'<geom name="wall_{s}" type="box" pos="{edge + nstep * tread / 2:.4f} {y:+.4f} {floor_z + 0.5:.4f}" '
+                     f'size="{(nstep * tread + 3.0) / 2:.4f} 0.05 0.9" rgba="0.55 0.5 0.45 1"/>')
+        floor = "".join(g)
     return f'''<mujoco model="robot_c">
   <compiler meshdir="." autolimits="true"/>
   <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"/>
@@ -94,7 +122,7 @@ def xml(arena=False):
   </asset>
   <worldbody>
     <light pos="0 0 4" dir="0 0 -1" directional="true" castshadow="false"/><light pos="2 -2 3" dir="-0.5 0.5 -1" directional="true" diffuse="0.3 0.3 0.3" castshadow="false"/>
-    <geom name="floor" type="plane" pos="0 0 {floor_z:.4f}" size="10 10 0.1" material="grid"/>
+    {floor}
     {world}
     <body name="chassis" pos="0 0 0">
       <freejoint name="root"/>
@@ -123,10 +151,23 @@ def xml(arena=False):
 </mujoco>'''
 
 
+def _opt(name, default):
+    return type(default)(sys.argv[sys.argv.index(name) + 1]) if name in sys.argv else default
+
+
 if __name__ == "__main__":
     arena = "--arena" in sys.argv
-    out = HERE / ("robot_c_arena.xml" if arena else "robot_c.xml")
-    out.write_text(xml(arena))
+    stairs = None
+    if "--stairs" in sys.argv:
+        stairs = dict(rise=_opt("--rise", 0.10), tread=_opt("--tread", 0.30),
+                      steps=_opt("--steps", 6), edge=_opt("--edge", 1.2))
+    default_name = "robot_c_stairs.xml" if stairs else ("robot_c_arena.xml" if arena else "robot_c.xml")
+    out = HERE / _opt("--out", default_name)
+    out.write_text(xml(arena, stairs))
+    if stairs:
+        print(f"{out.name}: landing ends at x={stairs['edge']} m, then {stairs['steps']} steps of "
+              f"{stairs['rise']*1000:.0f} mm rise x {stairs['tread']*1000:.0f} mm tread "
+              f"({stairs['rise']/R:.1f} wheel radii per step)")
     import mujoco
     m = mujoco.MjModel.from_xml_path(str(out))
     d = mujoco.MjData(m)
