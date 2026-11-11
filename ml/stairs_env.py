@@ -100,6 +100,16 @@ ERR_OK = 0.020            # m: riser error that earns exp(-1) of MEAS
 BROAD = 2.0               # a second, wide basin, so a 50 mm error still has a gradient to follow
 ERR_BROAD = 0.080
 ERR_SUCCESS = 0.020       # m: what counts as a measurement in the reported success rate
+APPROACH_W = 2.0          # bonus for ending up standing off about D_IDEAL from the drop (see below)
+D_IDEAL, D_IDEAL_SD = 0.40, 0.15
+# Why the environment pays for a standoff at all. Without it the first 40 k steps went exactly where the
+# reward pointed: a policy that reverses away from the edge and nods blindly loses nothing (-0.8) where
+# one that nods while driving at the drop loses everything (-10), so "retreat and nod at nothing" is a
+# local optimum - and from 1.3 m back the first tread is never visible, so the +12 for measuring it can
+# never be discovered from there. The bonus is a measured property of the SENSOR, not of the episode's
+# secret riser: part C1 says the first tread is only visible from 300-500 mm, whatever the riser, so
+# "stand off about 400 mm" is as much as the reward is allowed to give away. It is capped at +2 against
+# the +12 for the measurement, so it is a stepping stone and cannot be the destination.
 NOD_COST = 0.25           # per nod: nodding is never free, so three blind nods are worse than one good one
 TIME_COST = 0.01          # per policy step
 NO_NOD = -2.0             # ran out of time without ever looking
@@ -229,6 +239,7 @@ class StairsLookEnv(gym.Env):
         else:
             if no_nod:
                 r += NO_NOD
+            r += APPROACH_W * math.exp(-((margin - D_IDEAL) / D_IDEAL_SD) ** 2)
             if margin < EDGE_SOFT:
                 r -= EDGE_SOFT_W * (EDGE_SOFT - margin) / (EDGE_SOFT - EDGE_HARD)
         err = None if self.best_rise is None else abs(self.best_rise - self.rise)

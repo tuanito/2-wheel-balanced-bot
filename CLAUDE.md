@@ -20,7 +20,7 @@ unless the robot is on them (sense divider, short = latch off). Full list: `bom/
 | `firmware/dock_beacon/` | ATtiny85 dock controller + `test_dock_logic.cpp`. |
 | `pi/` | Python on the Pi: `robot/brain.py`, `dock.py` (DockPilot), `ld19.py`, `link.py`; tests `python -m pytest -q` in `pi/` (48). |
 | `sim/` | MuJoCo + `botsim.py` (loads `libbot.so`/`.dylib`). `run_tests.py` (stand-up, balance, pushes, missions), `dock_sim.py` (40-start docking sweep), `nav_sim.py`, `build_model.py` (regenerates the XML from the CAD), `design_lqr.py 0.06 0.6 10` (the weights we use), `rebuild.sh` (all of that in order). |
-| `ml/` | RL for the stand-up: see `ml/README.md`. `setup_mac.sh` (venv, `--cad` also installs CadQuery), `run_training.sh` (the whole loop). |
+| `ml/` | RL: the stand-up and the stair-measuring nod, see `ml/README.md`. `setup_mac.sh` (venv, `--cad` also installs CadQuery), `run_training.sh` (the stand-up loop). Stairs: `stairs_env.py` (when to nod), `stairs_baseline.py` (the hand-scripted recipe it has to beat), `train_stairs.py`, `evaluate_stairs.py`. |
 | `elec/` | `netlist.py` + `erc.py` (electrical rules check; `test_erc.py` mutation tests). Current result: CHECK 3, WARN 1, INFO 3 (all known). |
 | `cad_src/case/` | CadQuery: `body_case.py` (all printed parts, named constants), `wiring.py` (3D harness routes), `real_assembly.py` (fit check), `wire_check.py`, `export_*`, `assemble.py`. `robot_paths.py` says where everything is — import it, never hard-code a path. `cad_src/rebuild.sh` runs the chain in order. |
 | `cad/` | Exported STL/STEP for printing. |
@@ -95,6 +95,21 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   outer `<!DOCTYPE>/<html>/<head>/<body>` tags into a throwaway copy and publish that; keep the repo
   file a valid standalone page. Supporting files passed in `files` (e.g. `standup.html`) are served
   unwrapped, so those keep their own doctype.
+- **A manoeuvre tested on one robot tells you nothing.** `sim/stairs_look.py` ran the look-down nod on
+  a single robot and it worked; over randomised robots it lost 7 in 10, and every failure was a robot
+  that drew two control periods of CAN latency (`BotSim.delay == 2`, which the randomisation draws half
+  the time). At the full LQR pitch gains the nod's PD is a ~130 rad/s rate loop and 4 ms of latency takes
+  it unstable: the pitch rings, the wheels get pumped to 5 m/s and the 114 rad/s runaway guard cuts the
+  motors. Half gains (`look_gain`, as the dock lean already used) gives 10/10 at the same peak pitch.
+  Any new high-gain pitch loop has to be measured against delay-2 robots, not the nominal one.
+- **Never hand a manoeuvre back to the balance law with `v_ref_ = 0` while the robot is moving.** A 34 deg
+  nod ends at ~0.55 m/s; zeroing the reference demands all of it back in one tick, `K[3]` saturates the
+  torque, the body over-rotates to -20 deg in 30 ms and the wheels run away. Hand over `v_ref_ = phi_rate_
+  * R` and let the normal `max_accel` ramp take the speed down. Same shape of bug as the stand-up's
+  fixed-torque kick tripping the runaway guard.
+- **`build_model.py --stairs` landings are finite.** The landing runs from `edge - 3.0` to `edge`, so a
+  script that reverses for a second or two can drive off the BACK of it, and that reads exactly like
+  falling over. Two of the nod-cost measurements were wrong that way before the start was moved forward.
 - `mujoco` is pinned to `==4.0.0` in `ml/requirements.txt` because the committed `sim/results/report.json`
   is version-dependent. 4.0 split the distribution (mujoco-core + mujoco-studio) and an in-place upgrade
   from 3.x can delete files that moved: uninstall first. Verified: 4.0.0 reproduces the committed counts.
