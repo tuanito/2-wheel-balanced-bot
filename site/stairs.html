@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Balancing robot V1.1 – measuring a staircase</title>
+<style>:root{--bg:#f6f7f9;--fg:#1d2330;--mut:#667085;--ac:#2f6fd0;--card:#fff;--bd:#e2e5ea;--hd:#eef2f8;
+ --pass:#15803d;--luck:#b45309;--fail:#b3261e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171b;--fg:#e8eaee;--mut:#9aa2ae;
+ --ac:#6ea3ff;--card:#1f2228;--bd:#30343c;--hd:#2a303a;--pass:#4ade80;--luck:#fbbf24;--fail:#f87171;
+ color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15171b;--fg:#e8eaee;--mut:#9aa2ae;--ac:#6ea3ff;--card:#1f2228;--bd:#30343c;
+ --hd:#2a303a;--pass:#4ade80;--luck:#fbbf24;--fail:#f87171;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);
+ font:15px/1.45 -apple-system,system-ui,Segoe UI,Roboto,sans-serif}
+header{padding:12px 14px 6px}h1{font-size:17px;margin:0 0 2px}header p{margin:0;color:var(--mut);font-size:13px;max-width:92ch}
+a{color:var(--ac)}
+nav.top{display:flex;gap:6px;overflow-x:auto;padding:6px 14px 8px;scrollbar-width:none}
+nav.top::-webkit-scrollbar{display:none}
+nav.top a{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:999px;
+ padding:7px 13px;font-size:14px;text-decoration:none}
+nav.top a.on{background:var(--ac);border-color:var(--ac);color:#fff}
+main{padding:0 14px 32px;max-width:1140px}
+h2{font-size:15px;margin:24px 0 2px}p.sub{margin:0 0 8px;color:var(--mut);font-size:13px;max-width:92ch}
+.cards{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0}
+.cards .c{flex:1 1 180px;min-width:0;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px}
+.cards .c .k{font-size:12.5px;color:var(--mut)}
+.cards .c .v{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:20px;margin-top:2px;font-variant-numeric:tabular-nums}
+.cards .c .n{font-size:12px;color:var(--mut);margin-top:2px}
+.cards .c.ok{border-left:3px solid var(--pass)}.cards .c.no{border-left:3px solid var(--fail)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px;margin-top:12px}
+.clip{background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow:hidden;min-width:0}
+.clip video{display:block;width:100%;height:auto;background:#000}
+.clip .cap{padding:10px 12px 2px;font-size:13.5px;font-weight:600}
+.clip .vd{margin:6px 12px 0;font-size:12px;border-radius:8px;padding:6px 9px;
+ font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.35}
+.vd.ok{color:var(--pass);background:rgba(21,128,61,.12)}
+.vd.luck{color:var(--luck);background:rgba(180,83,9,.13)}
+.vd.no{color:var(--fail);background:rgba(179,38,30,.12)}
+.ro{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bd);margin-top:10px;border-top:1px solid var(--bd)}
+.ro div{background:var(--card);padding:7px 9px;min-width:0}
+.ro .k{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro .v{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;margin-top:1px;font-variant-numeric:tabular-nums}
+.note{margin:10px 0 0;font-size:13.5px;color:var(--mut);max-width:92ch}
+.note b{color:var(--fg)}
+.why{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px;margin-top:10px}
+.why .w{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
+.why .w h3{font-size:14px;margin:0}.why .w p{margin:6px 0 0;font-size:13px;color:var(--mut)}
+.tw{overflow-x:auto;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--bd);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+td.m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+footer{color:var(--mut);font-size:12.5px;margin-top:26px;border-top:1px solid var(--bd);padding-top:10px;max-width:92ch}</style></head><body>
+<header><h1>Balancing robot V1.1 &mdash; measuring a staircase by nodding</h1>
+<p>The robot has to know how tall the first step is before it can think about going down it. It has one
+lidar, 231 mm up, which sees nothing of the floor while it is upright &mdash; so it has to tip forward,
+and a two-wheel balancer cannot tip forward without driving forward. Ten episodes: what that costs, and
+every way it goes wrong.</p></header>
+<nav class="top" aria-label="Pages"><a href="index.html">3D viewer</a><a href="wiring_boards.html">Wiring diagram</a><a href="print.html">How it prints</a><a href="docs.html">README &amp; install</a><a href="code.html">Source code</a><a href="bom.html">Parts list</a><a href="standup.html">Stand-up</a><a href="stairs.html" class="on" aria-current="page">Stairs</a></nav>
+<main>
+<div class="cards">
+ <div class="c ok"><div class="k">Scripted nod, held-out stairs</div><div class="v">0.37</div>
+  <div class="n">30 staircases, risers 80&ndash;170 mm, seeds never trained on</div></div>
+ <div class="c"><div class="k">Ceiling for any fixed recipe</div><div class="v">0.50</div>
+  <div class="n">grid search: one nod carries no clue which riser it faces</div></div>
+ <div class="c no"><div class="k">Learned policy, same stairs</div><div class="v">0.00</div>
+  <div class="n">eleven PPO runs, three reward bugs &mdash; all mine</div></div>
+ <div class="c"><div class="k">Best riser accuracy seen</div><div class="v">&plusmn;44 mm</div>
+  <div class="n">by the policy that drove off the edge every time</div></div>
+</div>
+<p class="note"><b>How to read the clips.</b> The yellow fan is the lidar, drawn where its rays actually
+land; the stairwell walls are made see-through for the camera only. Each clip ends with what that
+episode really did, taken from its own telemetry after it ran &mdash; not from what it was meant to show.
+A success means all three at once: the riser measured to within 20 mm, the robot still upright, and at
+least 100 mm of landing left between the wheels and the drop. <b>The clips that work are selected
+episodes</b>: the recipe succeeds on 37% of staircases, so the environment was asked for seeds until the
+outcome matched, and the seed is listed under each clip. The honest rate is the 0.37 above, not 5 of 10.</p>
+
+<h2>Ten episodes</h2>
+<p class="sub">3 clean successes, 2 right for the wrong reason, 5 failures.</p>
+<div class="grid"><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_works-100.jpg">
+ <source src="files/stairs_works-100.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">The tuned recipe, 100 mm riser</figcaption>
+<div class="vd ok">SUCCESS - riser 100 mm against 100 (+0 mm) off 550 returns, 261 mm of landing left</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">100 mm</div></div><div><div class="k">riser, read</div><div class="v">100 mm</div></div>
+<div><div class="k">returns on tread</div><div class="v">550</div></div><div><div class="k">landing left</div><div class="v">261 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
+<div><div class="k">taken at</div><div class="v">328 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">30.4&deg;</div></div><div><div class="k">seed</div><div class="v">31028</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_works-130.jpg">
+ <source src="files/stairs_works-130.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">130 mm riser, where the visibility band is widest</figcaption>
+<div class="vd ok">SUCCESS - riser 123 mm against 130 (+7 mm) off 94 returns, 223 mm of landing left</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">130 mm</div></div><div><div class="k">riser, read</div><div class="v">123 mm</div></div>
+<div><div class="k">returns on tread</div><div class="v">94</div></div><div><div class="k">landing left</div><div class="v">223 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
+<div><div class="k">taken at</div><div class="v">389 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">30.6&deg;</div></div><div><div class="k">seed</div><div class="v">31000</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_works-080.jpg">
+ <source src="files/stairs_works-080.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">80 mm riser: a shallow step, visible from further out</figcaption>
+<div class="vd ok">SUCCESS - riser 80 mm against 80 (+0 mm) off 469 returns, 258 mm of landing left</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">80 mm</div></div><div><div class="k">riser, read</div><div class="v">80 mm</div></div>
+<div><div class="k">returns on tread</div><div class="v">469</div></div><div><div class="k">landing left</div><div class="v">258 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
+<div><div class="k">taken at</div><div class="v">367 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">30.6&deg;</div></div><div><div class="k">seed</div><div class="v">31000</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_works-150.jpg">
+ <source src="files/stairs_works-150.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">150 mm riser</figcaption>
+<div class="vd luck">SUCCESS, BUT LUCKY - 142 mm against 150 (+8 mm) off only 5 returns on the tread: the right number from the wrong surface</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">150 mm</div></div><div><div class="k">riser, read</div><div class="v">142 mm</div></div>
+<div><div class="k">returns on tread</div><div class="v">5</div></div><div><div class="k">landing left</div><div class="v">196 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
+<div><div class="k">taken at</div><div class="v">365 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">30.8&deg;</div></div><div><div class="k">seed</div><div class="v">31035</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_tall-170.jpg">
+ <source src="files/stairs_tall-170.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">170 mm riser, where the band narrows to one 3 degree cell per standoff</figcaption>
+<div class="vd no">FAILED - read 1016 mm against 170 (+846 mm) off 0 returns: it measured a surface further down</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">170 mm</div></div><div><div class="k">riser, read</div><div class="v">1016 mm</div></div>
+<div><div class="k">returns on tread</div><div class="v">0</div></div><div><div class="k">landing left</div><div class="v">215 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
+<div><div class="k">taken at</div><div class="v">380 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">30.6&deg;</div></div><div><div class="k">seed</div><div class="v">31000</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_too-deep.jpg">
+ <source src="files/stairs_too-deep.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">The deepest flick the action range allows, 0.85 rad</figcaption>
+<div class="vd no">FAILED - over the edge and down the stairs</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">100 mm</div></div><div><div class="k">riser, read</div><div class="v">23 mm</div></div>
+<div><div class="k">returns on tread</div><div class="v">266</div></div><div><div class="k">landing left</div><div class="v">-70 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.85 rad</div></div>
+<div><div class="k">taken at</div><div class="v">375 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">36.6&deg;</div></div><div><div class="k">seed</div><div class="v">31000</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_too-shallow.jpg">
+ <source src="files/stairs_too-shallow.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">A flick of 0.52 rad, below the angle that clears the step nose</figcaption>
+<div class="vd no">FAILED - no reading at all (0 returns on the first tread)</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">100 mm</div></div><div><div class="k">riser, read</div><div class="v">--</div></div>
+<div><div class="k">returns on tread</div><div class="v">0</div></div><div><div class="k">landing left</div><div class="v">301 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.52 rad</div></div>
+<div><div class="k">taken at</div><div class="v">375 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">17.3&deg;</div></div><div><div class="k">seed</div><div class="v">31000</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_too-far.jpg">
+ <source src="files/stairs_too-far.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Flicking the moment the 720 mm arming gate allows it, instead of closing in</figcaption>
+<div class="vd no">FAILED - riser within 14 mm but only 74 mm of landing left, inside the 100 mm a success needs</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">100 mm</div></div><div><div class="k">riser, read</div><div class="v">114 mm</div></div>
+<div><div class="k">returns on tread</div><div class="v">27</div></div><div><div class="k">landing left</div><div class="v">74 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
+<div><div class="k">taken at</div><div class="v">665 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">30.8&deg;</div></div><div><div class="k">seed</div><div class="v">31000</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_rolling-in.jpg">
+ <source src="files/stairs_rolling-in.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Flicking while still rolling forwards, instead of reversing into it</figcaption>
+<div class="vd no">FAILED - over the edge and down the stairs</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">100 mm</div></div><div><div class="k">riser, read</div><div class="v">--</div></div>
+<div><div class="k">returns on tread</div><div class="v">0</div></div><div><div class="k">landing left</div><div class="v">-325 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
+<div><div class="k">taken at</div><div class="v">101 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">40.4&deg;</div></div><div><div class="k">seed</div><div class="v">31000</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_narrow-tread.jpg">
+ <source src="files/stairs_narrow-tread.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">A 240 mm tread: less room beyond the edge for the ray to land on</figcaption>
+<div class="vd luck">SUCCESS, BUT LUCKY - 116 mm against 130 (+14 mm) off only 0 returns on the tread: the right number from the wrong surface</div>
+<div class="ro"><div><div class="k">riser, true</div><div class="v">130 mm</div></div><div><div class="k">riser, read</div><div class="v">116 mm</div></div>
+<div><div class="k">returns on tread</div><div class="v">0</div></div><div><div class="k">landing left</div><div class="v">276 mm</div></div></div>
+<div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
+<div><div class="k">taken at</div><div class="v">336 mm</div></div>
+<div><div class="k">peak pitch</div><div class="v">30.8&deg;</div></div><div><div class="k">seed</div><div class="v">31098</div></div></div>
+</figure></div>
+
+<h2>Why it is this hard</h2>
+<p class="sub">Where the first tread is visible from, measured kinematically: body pitch in degrees that
+puts returns on it, against how far back the robot stands. Beyond about 550 mm there is no angle that
+works &mdash; the ray that clears the step nose already overflies the whole first tread.</p>
+<div class="tw"><table><thead><tr><th>standoff</th><th>80 mm riser</th><th>100 mm riser</th>
+<th>170 mm riser</th></tr></thead><tbody><tr><td>800 mm</td><td class="m">--</td><td class="m">--</td><td class="m">--</td></tr><tr><td>500 mm</td><td class="m">26</td><td class="m">--</td><td class="m">--</td></tr><tr><td>450 mm</td><td class="m">26-32</td><td class="m">26-32</td><td class="m">32</td></tr><tr><td>400 mm</td><td class="m">26-35</td><td class="m">29-35</td><td class="m">35</td></tr><tr><td>350 mm</td><td class="m">29-41</td><td class="m">32-41</td><td class="m">38-41</td></tr><tr><td>300 mm</td><td class="m">32-47</td><td class="m">35-47</td><td class="m">41-47</td></tr></tbody></table></div>
+<p class="note">At a 170 mm riser that band is one three-degree cell wide per standoff, which is why a
+fixed recipe scores 0 out of 10 there while managing 0.60 at 130 mm. And the nod is not free: gravity
+acting over the time the body is tilted adds about 1 m/s of forward speed per 34&deg; of lean, and
+shedding it costs 0.2&ndash;1.1 m of travel towards the drop. Entering the nod <em>reversing</em> is what
+pays for it; entering it rolling forwards loses the robot outright, which is the clip above.</p>
+
+<h2>Three ways the reward was wrong</h2>
+<p class="sub">Each failure was the optimiser reading my numbers correctly.</p>
+<div class="why"><div class="w"><h3>Never look</h3><p>At -2 for never looking against -10 for the drop, refusing to nod is correct arithmetic: a nod with an unlearned depth goes over the edge 30% of the time, so looking was worth -3 against a certain -2. The policy stopped nodding altogether - not one nod in twelve deterministic episodes.</p></div><div class="w"><h3>Look, then fall downstairs</h3><p>At -8 against -8, measuring and then going over was worth +12 +2 -8 = +6, better than anything safe. That policy measured the riser to 44 +- 48 mm against the script&#x27;s 205 +- 286, four times more accurate, and drove off the edge in 30 of 30 held-out episodes.</p></div><div class="w"><h3>Reverse off the back of the world</h3><p>The simulated landing only ran 3 m behind the edge, and falling off it cost -5 while never looking cost -8. The policy drove backwards off the floor, which looked perfectly safe in the margin statistics. The landing now runs 8 m back.</p></div></div>
+<p class="note">The rule they share is now an assertion that runs when the environment is imported: the
+drop has to cost more than the best possible reading is worth, and never looking has to cost more than
+a safe bad look.</p>
+
+<footer>Rendered by <span class="mono">sim/stairs_video.py</span> through the same environment, controller,
+sensor noise and estimator as <span class="mono">ml/evaluate_stairs.py</span>; this page is generated from
+the clips' own telemetry by <span class="mono">site/build_stairs.py</span>.</footer>
+</main></body></html>
