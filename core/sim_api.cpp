@@ -27,3 +27,7 @@ extern "C" void bot_standup(void* p, int mode, float ext_tsum) {
   auto* c = static_cast<bot::Controller*>(p); c->standup_mode = (uint8_t)mode; c->ext_tsum = ext_tsum;
 }
 extern "C" void bot_standup_obs(void* p, float* o) { static_cast<bot::Controller*>(p)->standup_obs(o); }
+extern "C" void bot_look(void* p, int on, float pitch, float time) {
+  auto* c = static_cast<bot::Controller*>(p);
+  c->look_mode = (uint8_t)on; c->look_pitch = pitch; c->look_time = time; c->look_t_ = 0;
+}

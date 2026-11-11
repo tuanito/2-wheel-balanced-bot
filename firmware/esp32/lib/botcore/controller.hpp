@@ -104,6 +104,17 @@ class Controller {
   uint8_t standup_mode = 0;
   float ext_tsum = 0;           // mode 2: N·m for both motors together, in the side-normalised frame (+ = push up)
   void standup_obs(float* o) const;   // the policy's inputs (STANDUP_NOBS floats), same in the sim and on the robot
+  // Look-down nod: hold a pitch target so the lidar's scan plane tilts down and sees the floor ahead.
+  // An inverted pendulum holds a pitch only by accelerating, so this ALWAYS drives the robot towards
+  // whatever it is looking at - enter it while reversing and the net travel is still away. The normal
+  // balance law cannot do it: commanded velocity tops out around 14 deg of pitch, and the geometry needs
+  // 30-40 deg to see over a step nose. So, like the dock lean, this drops the position terms and runs a
+  // PD on pitch alone; it is time-limited because it cannot be held.
+  uint8_t look_mode = 0;        // 0 = off, 1 = hold look_pitch while look_time has not run out
+  float look_pitch = 0.6f;      // rad (+ = nose down / top forward): 0.6 rad = 34 deg
+  float look_time = 0.4f;       // s: the nod holds the target this long, then flies back to upright
+  float look_return = 2.0f;     // rad/s the target slews back at (0.6 rad -> upright in 0.3 s)
+  float look_t_ = 0;            // s spent in the current nod
   // Backflip, KENBOT style (tuned in sim/flip_tune2.py)
   float flip_lie_torque = 0.6f; // N·m per motor to tip over onto the back
   float flip_lie_time = 0.15f;  // s

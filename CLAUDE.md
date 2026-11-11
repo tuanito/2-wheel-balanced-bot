@@ -87,6 +87,14 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 - `BotSim.step()` returns `BotSim.out` itself, one ctypes struct the C++ refills in place every tick, not
   a snapshot. Anything about a particular instant must be copied out before stepping the sim on. Reading
   `o.pitch_rate` after a later loop reported 5.5 rad/s for a handover that happened at 16.9.
+- **Publishing `site/index.html` as the Artifact page double-wraps it.** The Artifact tool always
+  wraps the page in its own `<!doctype html><html><head>` skeleton, and `site/index.html` is already
+  a complete document (it has to be - `site/` is served directly too). Publishing it as `file_path`
+  nests one document inside the other: two `<html>`, two `<head>`, and the three.js **importmap**
+  ends up inside the body, so `import 'three'` fails and the 3D viewer renders nothing. Strip the
+  outer `<!DOCTYPE>/<html>/<head>/<body>` tags into a throwaway copy and publish that; keep the repo
+  file a valid standalone page. Supporting files passed in `files` (e.g. `standup.html`) are served
+  unwrapped, so those keep their own doctype.
 - `mujoco` is pinned to `==4.0.0` in `ml/requirements.txt` because the committed `sim/results/report.json`
   is version-dependent. 4.0 split the distribution (mujoco-core + mujoco-studio) and an in-place upgrade
   from 3.x can delete files that moved: uninstall first. Verified: 4.0.0 reproduces the committed counts.

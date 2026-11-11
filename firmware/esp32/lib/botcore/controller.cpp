@@ -155,6 +155,24 @@ void Controller::references(float dt) {
 
 void Controller::balance(float dt, float& t_sum, float& t_diff) {
   const float R = Params::WHEEL_R;
+  if (look_mode) {
+    // Look-down nod: PD on pitch only, no position or speed terms, exactly as the dock lean does it.
+    // Keeping the position terms makes them fight the lean and the pitch never gets past ~14 deg.
+    look_t_ += dt;
+    // Hold the target, then slew it back to upright. Cutting straight back to the normal balance law
+    // at 34 deg does not recover - the position terms re-engage against a big pitch error and it goes
+    // over. The nod has to be flown back to vertical before the handover.
+    const float tgt = look_t_ < look_time ? look_pitch
+                                          : std::max(0.0f, look_pitch - (look_t_ - look_time) * look_return);
+    t_sum = clampf(-(Params::K[0] * (pitch_ - tgt) + Params::K[1] * pitch_rate_),
+                   -2 * torque_limit, 2 * torque_limit);
+    t_diff = Params::KP_YAW * (yaw_ref_ - yaw_) - Params::KD_YAW * yaw_rate_;
+    if (tgt <= 0.0f && std::fabs(pitch_) < 0.12f && std::fabs(pitch_rate_) < 1.5f) {
+      look_mode = 0; look_t_ = 0; phi_ref_ = phi_; pos_int_ = 0; v_ref_ = 0;   // upright again: hand back
+    }
+    return;
+  }
+  look_t_ = 0;
   float e_phi = phi_ - phi_ref_;
   const float e_max = 0.25f / R;                   // never chase more than 25 cm of position error
   if (e_phi > e_max) { phi_ref_ = phi_ - e_max; e_phi = e_max; }

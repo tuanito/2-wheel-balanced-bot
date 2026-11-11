@@ -166,6 +166,7 @@ class BotSim:
 
 LIB.bot_tune.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
 LIB.bot_lift_mode.argtypes = [C.c_void_p, C.c_int, C.c_float, C.c_float]
+LIB.bot_look.argtypes = [C.c_void_p, C.c_int, C.c_float, C.c_float]   # look-down nod: on, pitch target, seconds
 LIB.bot_limits.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
 LIB.bot_recover.argtypes = [C.c_void_p, C.c_float, C.c_float]
 LIB.bot_dock.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
