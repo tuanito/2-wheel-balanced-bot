@@ -26,8 +26,8 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "ml"))
 from botsim import CTRL_DT                                           # noqa: E402
 from stairs_env import (StairsLookEnv, EDGE, NOD_LO, NOD_HI, V_MAX, D_ARM, D_FENCE,   # noqa: E402
-                        MARGIN_OK)
-from stairs_baseline import Scripted                                 # noqa: E402
+                        MARGIN_OK, SWING_END_LO, SWING_END_HI)
+from stairs_baseline import Scripted, Creep                         # noqa: E402
 import stairs_env as ENV                                             # noqa: E402
 
 _model_xml = ENV.model_xml
@@ -79,16 +79,26 @@ SCENES = [
      0.10, 0.30, 0.95, dict(v_rev=-0.35), "fail"),
     ("narrow-tread", "A 240 mm tread: less room beyond the edge for the ray to land on",
      0.13, 0.24, 1.00, {}, "ok"),
+    ("swing-480", "Creeping in and oscillating from 480 mm, the amplitude growing each swing",
+     0.10, 0.30, 1.00, dict(swing=True, standoff=0.48, depth=0.95), "clean"),
+    ("swing-150", "The same oscillation taken from 150 mm, as close as the wheels can safely get",
+     0.10, 0.30, 1.00, dict(swing=True, standoff=0.15, depth=0.95), "fail"),
 ]
+
+
+def policy(over):
+    """Either recipe, selected by the scene: the one-sided flick, or the creep-and-oscillate."""
+    kw = {k: v for k, v in over.items() if k != "swing"}
+    return Creep(**kw) if over.get("swing") else Scripted(**kw)
 
 
 def dry(scene, seed):
     """Run the episode with no rendering, to find a seed whose outcome is the one being illustrated."""
     slug, caption, rise, tread, d0, over, want = scene
-    env = StairsLookEnv()
+    env = StairsLookEnv(swing=bool(over.get("swing")))
     env.reset(seed=seed)
     obs, _ = env.reset(options=dict(rise=rise, tread=tread, d0=d0))
-    pol = Scripted(**over)
+    pol = policy(over)
     pol.reset()
     while True:
         obs, r, done, _, info = env.step(pol.act(obs))
@@ -99,21 +109,25 @@ def dry(scene, seed):
 
 
 def find_seed(scene, tries=40):
+    """`want`: "ok" any success, "clean" a success whose reading really came off the first tread,
+    "fail" anything that did not work. A clip is never relabelled to match - if no seed gives the
+    outcome the scene is meant to illustrate, the scene is dropped instead."""
     want = scene[6]
     for k in range(tries):
         seed = 31_000 + 7 * k
-        ok, _ = verdict(dry(scene, seed))
-        if (want == "ok") == ok:
+        ok, line = verdict(dry(scene, seed))
+        hit = {"ok": ok, "clean": ok and "LUCKY" not in line, "fail": not ok}[want]
+        if hit:
             return seed, k + 1
     return None, tries
 
 
 def render(scene, seed, font, small, tiny):
     slug, caption, rise, tread, d0, over, want = scene
-    env = StairsLookEnv()
+    env = StairsLookEnv(swing=bool(over.get("swing")))
     env.reset(seed=seed)
     obs, _ = env.reset(options=dict(rise=rise, tread=tread, d0=d0))
-    pol = Scripted(**over)
+    pol = policy(over)
     pol.reset()
     sim = env.sim
     rend = mujoco.Renderer(sim.m, H, W)
@@ -146,7 +160,8 @@ def render(scene, seed, font, small, tiny):
                           f"speed {o.v:+5.2f} m/s   t {env.t + state['k']*CTRL_DT:4.1f} s",
                 fill=GREY, font=small)
         if state["nod"] is not None:
-            dr.text((18, 72), f"flick: target {state['nod']:.2f} rad, taken at {state['nod_d']*1000:.0f} mm",
+            word = "swing to" if env.swing else "flick:"
+            dr.text((18, 72), f"{word} {state['nod']:.2f} rad, started at {state['nod_d']*1000:.0f} mm",
                     fill=GREY, font=tiny)
         frames.append(np.asarray(im))
         return o
@@ -155,7 +170,8 @@ def render(scene, seed, font, small, tiny):
     while True:
         a = pol.act(obs)
         if a[1] > 0 and state["nod"] is None and env.d_est() <= D_ARM:
-            state["nod"] = float(NOD_LO + 0.5 * (float(np.clip(a[2], -1, 1)) + 1) * (NOD_HI - NOD_LO))
+            lo, hi = (SWING_END_LO, SWING_END_HI) if env.swing else (NOD_LO, NOD_HI)
+            state["nod"] = float(lo + 0.5 * (float(np.clip(a[2], -1, 1)) + 1) * (hi - lo))
             state["nod_d"] = EDGE - float(sim.d.qpos[0])
         obs, r, done, _, info = env.step(a)
         if done:

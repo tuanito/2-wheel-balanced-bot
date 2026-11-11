@@ -126,8 +126,8 @@ def main():
 <header><h1>Balancing robot V1.1 &mdash; measuring a staircase by nodding</h1>
 <p>The robot has to know how tall the first step is before it can think about going down it. It has one
 lidar, 231 mm up, which sees nothing of the floor while it is upright &mdash; so it has to tip forward,
-and a two-wheel balancer cannot tip forward without driving forward. Ten episodes: what that costs, and
-every way it goes wrong.</p></header>
+and a two-wheel balancer cannot tip forward without driving forward. Twelve episodes: what that costs,
+every way it goes wrong, and the two ways of taking the look compared.</p></header>
 <nav class="top" aria-label="Pages">{nav}</nav>
 <main>
 <div class="cards">
@@ -148,9 +148,36 @@ least 100 mm of landing left between the wheels and the drop. <b>The clips that 
 episodes</b>: the recipe succeeds on 37% of staircases, so the environment was asked for seeds until the
 outcome matched, and the seed is listed under each clip. The honest rate is the 0.37 above, not 5 of 10.</p>
 
-<h2>Ten episodes</h2>
+<h2>Twelve episodes</h2>
 <p class="sub">{len(good)} clean successes, {len(lucky)} right for the wrong reason, {len(rows) - len(good) - len(lucky)} failures.</p>
 <div class="grid">{''.join(clips)}</div>
+
+<h2>Two ways to take the look</h2>
+<p class="sub">A <b>flick</b> is one-sided: gravity acts forward for the whole nod, so it costs
+0.1&ndash;1.1 m of travel towards the drop. A <b>swing</b> leans back for as long as it leans forward,
+so it travels almost nothing &mdash; 650 mm of standoff became 638 mm across six cycles &mdash; and its
+amplitude grows each cycle, because the angle that sees a 170 mm riser is not the one that sees an
+80 mm riser and the robot cannot know which it faces until it has measured it.</p>
+<div class="tw"><table><thead><tr><th>look</th><th>success</th><th>riser error</th>
+<th>landing left</th><th>worst</th><th>fell or went over</th></tr></thead><tbody>
+<tr><td>one-sided flick</td><td class="m">0.37</td><td class="m">205 &plusmn; 286 mm</td>
+<td class="m">204 mm</td><td class="m">&minus;65 mm</td><td class="m">0.06</td></tr>
+<tr><td>creep in, then swing</td><td class="m">0.23</td><td class="m">314 &plusmn; 339 mm</td>
+<td class="m">237 mm</td><td class="m">&minus;386 mm</td><td class="m">0.17</td></tr>
+</tbody></table></div>
+<p class="note">Same harness, same 30 held-out staircases. The swing is the <b>safer</b> look by a wide
+margin &mdash; from a fixed standoff it leaves 350&ndash;540 mm of landing and stayed upright on 25 of 25
+randomised robots &mdash; and on a staircase whose riser is known it is much the better one: 6 of 6
+successes at 5 mm of error on a 100 mm riser. It still loses across unknown staircases, because the
+amplitude it can safely reach caps the angle, and a tall riser needs an angle it cannot get to from a
+standoff it can survive. Its failures are blind rather than dangerous, which is the better way to fail.</p>
+<p class="note"><b>And it cannot be done from close in.</b> Creeping to 150 mm is safe &mdash; the robot
+gets there without trouble and the swing is stable &mdash; and useless: 0 to 3 returns on the first
+tread, the riser read 469 mm wrong. Closer is worse, not better. The step nose subtends a larger angle
+the nearer you are, so the pitch needed to see past it rises: 41&ndash;50&deg; at 200 mm, roughly
+60&ndash;70&deg; at 150 mm, while above about 0.8 rad of amplitude the swing loses the robot. The limit
+is the lidar sitting 231 mm up, not the controller. A cheap time-of-flight sensor at ~80 mm would see
+the first tread from 600 mm with a 20&deg; nod and make the whole manoeuvre easy.</p>
 
 <h2>Why it is this hard</h2>
 <p class="sub">Where the first tread is visible from, measured kinematically: body pitch in degrees that
