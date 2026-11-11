@@ -3,6 +3,11 @@
 Nothing is placed by hand here - the real controller is flying the robot throughout, the lidar is
 sampled every control tick with LD19 noise, and the riser is estimated from that cloud alone.
 
+This is the script that showed the problem: it gets the EDGE (1.170 +- 55 mm against 1.200) but not the
+riser, because its fixed 1.5 s reverse run-up leaves the robot 640-1015 mm out when the pitch peaks, and
+from there the step nose hides the whole first tread. The timing is what `ml/stairs_env.py` learns;
+`sim/stairs_probe.py --part c` is where the two tables that explain it are measured.
+
   python sim/stairs_look.py                       # 100 mm x 300 mm steps
   python sim/stairs_look.py --rise 0.17 --tread 0.25
 """

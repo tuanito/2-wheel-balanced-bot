@@ -113,6 +113,8 @@ class Controller {
   uint8_t look_mode = 0;        // 0 = off, 1 = hold look_pitch while look_time has not run out
   float look_pitch = 0.6f;      // rad (+ = nose down / top forward): 0.6 rad = 34 deg
   float look_time = 0.4f;       // s: the nod holds the target this long, then flies back to upright
+  float look_rate = 4.0f;       // rad/s the target ramps in at: sets how deep a given target actually goes
+  float look_gain = 0.5f;       // fraction of the LQR pitch gains the nod's PD uses (the dock lean: same)
   float look_return = 2.0f;     // rad/s the target slews back at (0.6 rad -> upright in 0.3 s)
   float look_t_ = 0;            // s spent in the current nod
   // Backflip, KENBOT style (tuned in sim/flip_tune2.py)

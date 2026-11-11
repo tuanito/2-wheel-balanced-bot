@@ -47,9 +47,13 @@ def quat_pitch(q):
 
 
 class BotSim:
-    def __init__(self, xml="robot_c.xml", seed=0, randomize=False):
+    def __init__(self, xml="robot_c.xml", seed=0, randomize=False, xml_str=None):
         self.rng = np.random.default_rng(seed)
-        self.m = mujoco.MjModel.from_xml_path(str(HERE / xml))
+        # xml_str: a model built in-process (sim/build_model.py xml()), so a randomised staircase needs no
+        # temporary file and no subprocess - 30 ms to compile, against ~400 ms of simulation per episode.
+        # meshdir must be absolute in that string: from_xml_string resolves relative paths against the cwd.
+        self.m = (mujoco.MjModel.from_xml_string(xml_str) if xml_str is not None
+                  else mujoco.MjModel.from_xml_path(str(HERE / xml)))
         self.d = mujoco.MjData(self.m)
         m, rng = self.m, self.rng
         self.ch = m.body("chassis").id
@@ -167,6 +171,7 @@ class BotSim:
 LIB.bot_tune.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
 LIB.bot_lift_mode.argtypes = [C.c_void_p, C.c_int, C.c_float, C.c_float]
 LIB.bot_look.argtypes = [C.c_void_p, C.c_int, C.c_float, C.c_float]   # look-down nod: on, pitch target, seconds
+LIB.bot_look_gains.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float]   # nod ramp rate, return rate, PD gain
 LIB.bot_limits.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
 LIB.bot_recover.argtypes = [C.c_void_p, C.c_float, C.c_float]
 LIB.bot_dock.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]

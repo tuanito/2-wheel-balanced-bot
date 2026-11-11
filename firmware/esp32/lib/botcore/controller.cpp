@@ -162,13 +162,29 @@ void Controller::balance(float dt, float& t_sum, float& t_diff) {
     // Hold the target, then slew it back to upright. Cutting straight back to the normal balance law
     // at 34 deg does not recover - the position terms re-engage against a big pitch error and it goes
     // over. The nod has to be flown back to vertical before the handover.
-    const float tgt = look_t_ < look_time ? look_pitch
-                                          : std::max(0.0f, look_pitch - (look_t_ - look_time) * look_return);
-    t_sum = clampf(-(Params::K[0] * (pitch_ - tgt) + Params::K[1] * pitch_rate_),
+    // HALF gains (look_gain), like the dock lean: at the full LQR pitch gains this PD is a ~130 rad/s
+    // rate loop, and two control periods of CAN latency - which the randomised robots draw half the
+    // time - took it unstable. Measured on 10 randomised robots, a 0.8 rad nod: 3/10 stayed up at
+    // gain 1.0 and 10/10 at 0.5, with the same peak pitch. Every failure was a delay-2 robot, and
+    // every one ended the same way: the pitch loop rang, the wheels got pumped to 5 m/s and the
+    // 114 rad/s runaway guard cut the motors.
+    // The target is also ramped in rather than stepped, which is not about stability but about reach:
+    // the same 0.8 rad target peaks at 28 deg stepped and 35 deg ramped at 4 rad/s, because the body
+    // has time to follow instead of the PD saturating against its own error.
+    const float t_down = look_t_ - (look_pitch / look_rate + look_time);
+    const float tgt = t_down <= 0.0f ? std::min(look_pitch, look_t_ * look_rate)
+                                     : std::max(0.0f, look_pitch - t_down * look_return);
+    t_sum = clampf(-look_gain * (Params::K[0] * (pitch_ - tgt) + Params::K[1] * pitch_rate_),
                    -2 * torque_limit, 2 * torque_limit);
     t_diff = Params::KP_YAW * (yaw_ref_ - yaw_) - Params::KD_YAW * yaw_rate_;
     if (tgt <= 0.0f && std::fabs(pitch_) < 0.12f && std::fabs(pitch_rate_) < 1.5f) {
-      look_mode = 0; look_t_ = 0; phi_ref_ = phi_; pos_int_ = 0; v_ref_ = 0;   // upright again: hand back
+      // Upright again: hand back. v_ref_ takes the speed the nod left behind, it does NOT get zeroed.
+      // A nod to 34 deg ends at ~0.55 m/s, and handing over with v_ref_ = 0 demanded all of that back
+      // in one tick: the speed term saturated t_sum forward, the body over-rotated to -20 deg in 30 ms
+      // and the wheels ran away to 116 rad/s, past the 114 rad/s runaway guard, which cut the motors.
+      // Every deep nod ended in ST_FALLEN that way. The normal ramp (max_accel) now takes the speed
+      // down to whatever is commanded, which is what the ramp is for.
+      look_mode = 0; look_t_ = 0; phi_ref_ = phi_; pos_int_ = 0; v_ref_ = phi_rate_ * R;
     }
     return;
   }
