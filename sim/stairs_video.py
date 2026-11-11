@@ -26,7 +26,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "ml"))
 from botsim import CTRL_DT                                           # noqa: E402
 from stairs_env import (StairsLookEnv, EDGE, NOD_LO, NOD_HI, V_MAX, D_ARM, D_FENCE,   # noqa: E402
-                        MARGIN_OK, SWING_END_LO, SWING_END_HI)
+                        MARGIN_OK, ERR_SUCCESS, SWING_END_LO, SWING_END_HI)
 from stairs_baseline import Scripted, Creep                         # noqa: E402
 import stairs_env as ENV                                             # noqa: E402
 
@@ -157,7 +157,7 @@ def render(scene, seed, font, small, tiny):
         d_true = EDGE - x
         dr.text((18, 50), f"riser {rise*1000:.0f} mm   tread {tread*1000:.0f} mm   "
                           f"standoff {d_true*1000:+.0f} mm   pitch {math.degrees(o.pitch):+5.1f}deg   "
-                          f"speed {o.v:+5.2f} m/s   t {env.t + state['k']*CTRL_DT:4.1f} s",
+                          f"speed {o.v:+5.2f} m/s   t {state['k']*CTRL_DT:4.1f} s",
                 fill=GREY, font=small)
         if state["nod"] is not None:
             word = "swing to" if env.swing else "flick:"
@@ -196,6 +196,13 @@ def verdict(info):
         where = "over the edge and down the stairs" if info["off_edge"] else "fell over"
         return False, f"FAILED - {where}"
     if not info["measured"]:
+        if seen >= SEEN_REAL and not info.get("land_seen", 1.0):
+            return False, (f"FAILED - {seen} returns on the tread but the landing never in the same "
+                           f"scan: a riser is the difference between two surfaces, and there was "
+                           f"nothing left to subtract from")
+        if seen >= SEEN_REAL:
+            return False, (f"FAILED - {seen} returns on the tread but no riser out of them "
+                           f"({info.get('n_surf', 0):.0f} level surfaces found, 2 needed)")
         return False, f"FAILED - no reading at all ({seen} returns on the first tread)"
     err = info["rise_err_mm"]
     if info["success"] and seen < SEEN_REAL:
@@ -205,11 +212,25 @@ def verdict(info):
     if info["success"]:
         return True, (f"SUCCESS - riser {info['rise_est_mm']:.0f} mm against {info['rise_true_mm']:.0f} "
                       f"({err:+.0f} mm) off {seen} returns, {info['margin_mm']:.0f} mm of landing left")
-    if err > 40:
+    # Which of the two bars it missed, said correctly: a reading can be accurate enough and still fail
+    # on the margin, or be well clear of the drop and still fail on accuracy, and an earlier version of
+    # this line blamed the margin for both - including an episode with 201 mm of landing left.
+    close = err <= ERR_SUCCESS * 1000
+    tight = info["margin_mm"] < MARGIN_OK * 1000
+    if err > 40 and not tight:
         return False, (f"FAILED - read {info['rise_est_mm']:.0f} mm against {info['rise_true_mm']:.0f} "
                        f"({err:+.0f} mm) off {seen} returns: it measured a surface further down")
-    return False, (f"FAILED - riser within {err:.0f} mm but only {info['margin_mm']:.0f} mm of "
-                   f"landing left, inside the {MARGIN_OK*1000:.0f} mm a success needs")
+    if close and tight:
+        return False, (f"FAILED - riser right to {err:.0f} mm, but only {info['margin_mm']:.0f} mm of "
+                       f"landing left, inside the {MARGIN_OK*1000:.0f} mm a success needs")
+    if tight:
+        return False, (f"FAILED on both - {err:+.0f} mm out against a {ERR_SUCCESS*1000:.0f} mm bar, "
+                       f"and only {info['margin_mm']:.0f} mm of landing left of the "
+                       f"{MARGIN_OK*1000:.0f} mm needed")
+    return False, (f"FAILED - riser {info['rise_est_mm']:.0f} mm against {info['rise_true_mm']:.0f} "
+                   f"({err:+.0f} mm) off {seen} returns: {err - ERR_SUCCESS*1000:.0f} mm outside the "
+                   f"{ERR_SUCCESS*1000:.0f} mm a success needs, with {info['margin_mm']:.0f} mm of "
+                   f"landing to spare")
 
 
 def write(slug, frames, info, state, font, small):

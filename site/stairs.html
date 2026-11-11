@@ -43,6 +43,16 @@ h2{font-size:15px;margin:24px 0 2px}p.sub{margin:0 0 8px;color:var(--mut);font-s
 .why{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px;margin-top:10px}
 .why .w{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
 .why .w h3{font-size:14px;margin:0}.why .w p{margin:6px 0 0;font-size:13px;color:var(--mut)}
+.wide{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 12px 0}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.two .vd{margin:0}
+.two .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:3px}
+.ro6{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--bd);margin-top:10px;border-top:1px solid var(--bd)}
+.ro6 div{background:var(--card);padding:7px 9px;min-width:0}
+.ro6 .k{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro6 .v{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;margin-top:1px;font-variant-numeric:tabular-nums}
+@media (max-width:620px){.ro6{grid-template-columns:repeat(3,1fr)}}
 .tw{overflow-x:auto;margin-top:10px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--bd);white-space:nowrap}
@@ -53,27 +63,29 @@ footer{color:var(--mut);font-size:12.5px;margin-top:26px;border-top:1px solid va
 <header><h1>Balancing robot V1.1 &mdash; measuring a staircase by nodding</h1>
 <p>The robot has to know how tall the first step is before it can think about going down it. It has one
 lidar, 231 mm up, which sees nothing of the floor while it is upright &mdash; so it has to tip forward,
-and a two-wheel balancer cannot tip forward without driving forward. Twelve episodes: what that costs,
-every way it goes wrong, and the two ways of taking the look compared.</p></header>
+and a two-wheel balancer cannot tip forward without driving forward. Twelve episodes of what that costs
+and every way it goes wrong, then ten staircases taken twice over &mdash; once with each way of looking,
+side by side.</p></header>
 <nav class="top" aria-label="Pages"><a href="index.html">3D viewer</a><a href="wiring_boards.html">Wiring diagram</a><a href="print.html">How it prints</a><a href="docs.html">README &amp; install</a><a href="code.html">Source code</a><a href="bom.html">Parts list</a><a href="standup.html">Stand-up</a><a href="stairs.html" class="on" aria-current="page">Stairs</a></nav>
 <main>
 <div class="cards">
- <div class="c ok"><div class="k">Scripted nod, held-out stairs</div><div class="v">0.37</div>
-  <div class="n">30 staircases, risers 80&ndash;170 mm, seeds never trained on</div></div>
+ <div class="c ok"><div class="k">Flick, held-out stairs</div><div class="v">0.390</div>
+  <div class="n">78 of 200 staircases, risers 80&ndash;170 mm, seeds never trained on</div></div>
+ <div class="c"><div class="k">Swing, the same 200</div><div class="v">0.290</div>
+  <div class="n">58 of 200; the gap is 2.1&sigma;, so the flick really is ahead</div></div>
  <div class="c"><div class="k">Ceiling for any fixed recipe</div><div class="v">0.50</div>
   <div class="n">grid search: one nod carries no clue which riser it faces</div></div>
  <div class="c no"><div class="k">Learned policy, same stairs</div><div class="v">0.00</div>
   <div class="n">eleven PPO runs, three reward bugs &mdash; all mine</div></div>
- <div class="c"><div class="k">Best riser accuracy seen</div><div class="v">&plusmn;44 mm</div>
-  <div class="n">by the policy that drove off the edge every time</div></div>
 </div>
 <p class="note"><b>How to read the clips.</b> The yellow fan is the lidar, drawn where its rays actually
 land; the stairwell walls are made see-through for the camera only. Each clip ends with what that
 episode really did, taken from its own telemetry after it ran &mdash; not from what it was meant to show.
 A success means all three at once: the riser measured to within 20 mm, the robot still upright, and at
 least 100 mm of landing left between the wheels and the drop. <b>The clips that work are selected
-episodes</b>: the recipe succeeds on 37% of staircases, so the environment was asked for seeds until the
-outcome matched, and the seed is listed under each clip. The honest rate is the 0.37 above, not 5 of 10.</p>
+episodes</b>: the recipe succeeds on 39% of staircases, so the environment was asked for seeds until the
+outcome matched, and the seed is listed under each clip. The honest rate is the 0.390 above, not 5 of 12.
+The ten pairs further down are <em>not</em> selected, and are a fair sample.</p>
 
 <h2>Twelve episodes</h2>
 <p class="sub">4 clean successes, 2 right for the wrong reason, 6 failures.</p>
@@ -151,7 +163,7 @@ outcome matched, and the seed is listed under each clip. The honest rate is the 
 <video controls preload="none" playsinline poster="files/stairs_too-far.jpg">
  <source src="files/stairs_too-far.mp4" type="video/mp4">Your browser cannot play this clip.</video>
 <figcaption class="cap">Flicking the moment the 720 mm arming gate allows it, instead of closing in</figcaption>
-<div class="vd no">FAILED - riser within 14 mm but only 74 mm of landing left, inside the 100 mm a success needs</div>
+<div class="vd no">FAILED - riser right to 14 mm, but only 74 mm of landing left, inside the 100 mm a success needs</div>
 <div class="ro"><div><div class="k">riser, true</div><div class="v">100 mm</div></div><div><div class="k">riser, read</div><div class="v">114 mm</div></div>
 <div><div class="k">returns on tread</div><div class="v">27</div></div><div><div class="k">landing left</div><div class="v">74 mm</div></div></div>
 <div class="ro"><div><div class="k">flick target</div><div class="v">0.75 rad</div></div>
@@ -199,25 +211,136 @@ outcome matched, and the seed is listed under each clip. The honest rate is the 
 <div><div class="k">peak pitch</div><div class="v">0.0&deg;</div></div><div><div class="k">seed</div><div class="v">31000</div></div></div>
 </figure></div>
 
+<h2>Flick against swing, on the same staircase</h2>
+<p class="sub">10 pairs, left and right of one clip: identical riser, tread, start distance, robot and
+CAN latency, one recipe each. <b>Nothing here is selected</b> &mdash; the seeds are simply the first
+10 of the evaluation set (20000 onwards) and the staircase is whatever that seed drew, so the tally
+below is an unbiased, if small, sample of the 0.390 and 0.290 above. On these 10: flick 5/10,
+swing 2/10.</p>
+<div class="wide"><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab00.jpg">
+ <source src="files/stairs_ab00.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20000 &mdash; riser 89 mm, tread 264 mm,
+ starting 1097 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd ok">SUCCESS - riser 81 mm against 89 (+8 mm) off 217 returns, 191 mm of landing left</div></div><div><div class="lbl">Swing</div><div class="vd no">FAILED - 597 returns on the tread but the landing never in the same scan: a riser is the difference between two surfaces, and there was nothing left to subtract from</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">81 mm</div></div><div><div class="k">flick, returns</div><div class="v">217</div></div>
+<div><div class="k">flick, landing</div><div class="v">191 mm</div></div><div><div class="k">swing, read</div><div class="v">--</div></div>
+<div><div class="k">swing, returns</div><div class="v">597</div></div><div><div class="k">swing, landing</div><div class="v">170 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab01.jpg">
+ <source src="files/stairs_ab01.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20001 &mdash; riser 98 mm, tread 317 mm,
+ starting 1264 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd no">FAILED - riser 76 mm against 98 (+22 mm) off 75 returns: 2 mm outside the 20 mm a success needs, with 201 mm of landing to spare</div></div><div><div class="lbl">Swing</div><div class="vd no">FAILED - riser 73 mm against 98 (+24 mm) off 128 returns: 4 mm outside the 20 mm a success needs, with 306 mm of landing to spare</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">76 mm</div></div><div><div class="k">flick, returns</div><div class="v">75</div></div>
+<div><div class="k">flick, landing</div><div class="v">201 mm</div></div><div><div class="k">swing, read</div><div class="v">73 mm</div></div>
+<div><div class="k">swing, returns</div><div class="v">128</div></div><div><div class="k">swing, landing</div><div class="v">306 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab02.jpg">
+ <source src="files/stairs_ab02.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20002 &mdash; riser 133 mm, tread 270 mm,
+ starting 1173 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd no">FAILED - read 680 mm against 133 (+547 mm) off 0 returns: it measured a surface further down</div></div><div><div class="lbl">Swing</div><div class="vd no">FAILED - riser 97 mm against 133 (+35 mm) off 0 returns: 15 mm outside the 20 mm a success needs, with 325 mm of landing to spare</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">680 mm</div></div><div><div class="k">flick, returns</div><div class="v">0</div></div>
+<div><div class="k">flick, landing</div><div class="v">201 mm</div></div><div><div class="k">swing, read</div><div class="v">97 mm</div></div>
+<div><div class="k">swing, returns</div><div class="v">0</div></div><div><div class="k">swing, landing</div><div class="v">325 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab03.jpg">
+ <source src="files/stairs_ab03.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20003 &mdash; riser 100 mm, tread 266 mm,
+ starting 864 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd no">FAILED - riser right to 2 mm, but only 73 mm of landing left, inside the 100 mm a success needs</div></div><div><div class="lbl">Swing</div><div class="vd no">FAILED - read 23 mm against 100 (+77 mm) off 281 returns: it measured a surface further down</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">98 mm</div></div><div><div class="k">flick, returns</div><div class="v">324</div></div>
+<div><div class="k">flick, landing</div><div class="v">73 mm</div></div><div><div class="k">swing, read</div><div class="v">23 mm</div></div>
+<div><div class="k">swing, returns</div><div class="v">281</div></div><div><div class="k">swing, landing</div><div class="v">272 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab04.jpg">
+ <source src="files/stairs_ab04.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20004 &mdash; riser 94 mm, tread 261 mm,
+ starting 928 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd ok">SUCCESS - riser 95 mm against 94 (+1 mm) off 224 returns, 214 mm of landing left</div></div><div><div class="lbl">Swing</div><div class="vd ok">SUCCESS - riser 84 mm against 94 (+10 mm) off 555 returns, 389 mm of landing left</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">95 mm</div></div><div><div class="k">flick, returns</div><div class="v">224</div></div>
+<div><div class="k">flick, landing</div><div class="v">214 mm</div></div><div><div class="k">swing, read</div><div class="v">84 mm</div></div>
+<div><div class="k">swing, returns</div><div class="v">555</div></div><div><div class="k">swing, landing</div><div class="v">389 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab05.jpg">
+ <source src="files/stairs_ab05.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20005 &mdash; riser 131 mm, tread 252 mm,
+ starting 993 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd luck">SUCCESS, BUT LUCKY - 132 mm against 131 (+1 mm) off only 15 returns on the tread: the right number from the wrong surface</div></div><div><div class="lbl">Swing</div><div class="vd no">FAILED - read 777 mm against 131 (+646 mm) off 0 returns: it measured a surface further down</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">132 mm</div></div><div><div class="k">flick, returns</div><div class="v">15</div></div>
+<div><div class="k">flick, landing</div><div class="v">199 mm</div></div><div><div class="k">swing, read</div><div class="v">777 mm</div></div>
+<div><div class="k">swing, returns</div><div class="v">0</div></div><div><div class="k">swing, landing</div><div class="v">346 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab06.jpg">
+ <source src="files/stairs_ab06.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20006 &mdash; riser 136 mm, tread 281 mm,
+ starting 848 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd ok">SUCCESS - riser 122 mm against 136 (+13 mm) off 43 returns, 262 mm of landing left</div></div><div><div class="lbl">Swing</div><div class="vd no">FAILED - no reading at all (1 returns on the first tread)</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">122 mm</div></div><div><div class="k">flick, returns</div><div class="v">43</div></div>
+<div><div class="k">flick, landing</div><div class="v">262 mm</div></div><div><div class="k">swing, read</div><div class="v">--</div></div>
+<div><div class="k">swing, returns</div><div class="v">1</div></div><div><div class="k">swing, landing</div><div class="v">360 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab07.jpg">
+ <source src="files/stairs_ab07.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20007 &mdash; riser 127 mm, tread 250 mm,
+ starting 1172 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd no">FAILED - read 23 mm against 127 (+104 mm) off 0 returns: it measured a surface further down</div></div><div><div class="lbl">Swing</div><div class="vd no">FAILED - read 757 mm against 127 (+629 mm) off 0 returns: it measured a surface further down</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">23 mm</div></div><div><div class="k">flick, returns</div><div class="v">0</div></div>
+<div><div class="k">flick, landing</div><div class="v">301 mm</div></div><div><div class="k">swing, read</div><div class="v">757 mm</div></div>
+<div><div class="k">swing, returns</div><div class="v">0</div></div><div><div class="k">swing, landing</div><div class="v">377 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab08.jpg">
+ <source src="files/stairs_ab08.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20008 &mdash; riser 158 mm, tread 319 mm,
+ starting 776 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd ok">SUCCESS - riser 157 mm against 158 (+1 mm) off 125 returns, 216 mm of landing left</div></div><div><div class="lbl">Swing</div><div class="vd ok">SUCCESS - riser 158 mm against 158 (+0 mm) off 345 returns, 272 mm of landing left</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">157 mm</div></div><div><div class="k">flick, returns</div><div class="v">125</div></div>
+<div><div class="k">flick, landing</div><div class="v">216 mm</div></div><div><div class="k">swing, read</div><div class="v">158 mm</div></div>
+<div><div class="k">swing, returns</div><div class="v">345</div></div><div><div class="k">swing, landing</div><div class="v">272 mm</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_ab09.jpg">
+ <source src="files/stairs_ab09.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase 20009 &mdash; riser 142 mm, tread 296 mm,
+ starting 1164 mm back</figcaption>
+<div class="two"><div><div class="lbl">Flick</div><div class="vd no">FAILED - read 869 mm against 142 (+727 mm) off 0 returns: it measured a surface further down</div></div><div><div class="lbl">Swing</div><div class="vd no">FAILED - read 860 mm against 142 (+718 mm) off 0 returns: it measured a surface further down</div></div></div>
+<div class="ro6"><div><div class="k">flick, read</div><div class="v">869 mm</div></div><div><div class="k">flick, returns</div><div class="v">0</div></div>
+<div><div class="k">flick, landing</div><div class="v">321 mm</div></div><div><div class="k">swing, read</div><div class="v">860 mm</div></div>
+<div><div class="k">swing, returns</div><div class="v">0</div></div><div><div class="k">swing, landing</div><div class="v">393 mm</div></div></div>
+</figure></div>
+<p class="note"><b>What the pairs show that the averages do not.</b> The swing's distinctive failure
+&mdash; the one the flick almost never has, 38% of episodes against 7% &mdash; is not a bad number, it is
+<b>no number</b>: it stops close, pitches down, and every ray clears the landing and lands on the tread. A riser is the difference between two surfaces, so hundreds of returns on the tread
+measure nothing with no landing left to subtract from. One of these ten clips fails exactly that
+way, with 597 rays on the tread and no number out of them. The flick does not have the problem because it
+takes its look from further back while reversing, so the landing stays in the scan; what it does
+instead, when it fails, is overfly the first tread and measure a surface two steps down.</p>
+
 <h2>Two ways to take the look</h2>
 <p class="sub">A <b>flick</b> is one-sided: gravity acts forward for the whole nod, so it costs
 0.1&ndash;1.1 m of travel towards the drop. A <b>swing</b> leans back for as long as it leans forward,
 so it travels almost nothing &mdash; 650 mm of standoff became 638 mm across six cycles &mdash; and its
 amplitude grows each cycle, because the angle that sees a 170 mm riser is not the one that sees an
 80 mm riser and the robot cannot know which it faces until it has measured it.</p>
-<div class="tw"><table><thead><tr><th>look</th><th>success</th><th>riser error</th>
+<div class="tw"><table><thead><tr><th>look</th><th>success</th><th>read anything</th><th>riser error</th>
 <th>landing left</th><th>worst</th><th>fell or went over</th></tr></thead><tbody>
-<tr><td>one-sided flick</td><td class="m">0.37</td><td class="m">205 &plusmn; 286 mm</td>
-<td class="m">204 mm</td><td class="m">&minus;65 mm</td><td class="m">0.06</td></tr>
-<tr><td>creep in, then swing</td><td class="m">0.23</td><td class="m">314 &plusmn; 339 mm</td>
-<td class="m">237 mm</td><td class="m">&minus;386 mm</td><td class="m">0.17</td></tr>
+<tr><td>one-sided flick</td><td class="m">0.390</td><td class="m">0.93</td>
+<td class="m">202 &plusmn; 297 mm</td><td class="m">207 mm</td><td class="m">&minus;68 mm</td>
+<td class="m">0.105</td></tr>
+<tr><td>creep in, then swing</td><td class="m">0.290</td><td class="m">0.62</td>
+<td class="m">213 &plusmn; 299 mm</td><td class="m">249 mm</td><td class="m">&minus;386 mm</td>
+<td class="m">0.185</td></tr>
 </tbody></table></div>
-<p class="note">Same harness, same 30 held-out staircases. The swing is the <b>safer</b> look by a wide
-margin &mdash; from a fixed standoff it leaves 350&ndash;540 mm of landing and stayed upright on 25 of 25
-randomised robots &mdash; and on a staircase whose riser is known it is much the better one: 6 of 6
-successes at 5 mm of error on a 100 mm riser. It still loses across unknown staircases, because the
-amplitude it can safely reach caps the angle, and a tall riser needs an angle it cannot get to from a
-standoff it can survive. Its failures are blind rather than dangerous, which is the better way to fail.</p>
+<p class="note">Same harness, same 200 held-out staircases, seeds 20000 onwards. The flick wins by
+10 points, and at 2.1&sigma; over 200 episodes that gap is real &mdash; an earlier 30-episode run put it
+at 14 points, which was 1.2&sigma; and would have settled nothing. <b>The swing loses twice over.</b> It
+reads nothing at all in 38% of episodes against the flick's 7%, and it goes over the edge <em>more</em>
+often, 0.155 against 0.080, not less: it creeps to a fixed standoff and never reverses, so a misjudged
+stop keeps going forward, while backing away from the drop is part of what the flick is doing anyway.
+On a staircase whose riser is already known it is much the better look &mdash; 6 of 6 successes at 5 mm
+of error on a 100 mm riser, and it barely translates, 650 mm of standoff becoming 638 mm over six
+cycles. It loses across <em>unknown</em> staircases because the amplitude it can safely reach caps the
+angle, and a tall riser needs an angle it cannot get to from a standoff it can survive.</p>
 <p class="note"><b>And it cannot be done from close in.</b> Creeping to 150 mm is safe &mdash; the robot
 gets there without trouble and the swing is stable &mdash; and useless: 0 to 3 returns on the first
 tread, the riser read 469 mm wrong. Closer is worse, not better. The step nose subtends a larger angle

@@ -304,6 +304,7 @@ class StairsLookEnv(gym.Env):
         self.peak, self.d_peak, self.n_pts = 0.0, float("nan"), 0
         self.best_peak, self.best_dpeak, self.nod_pitch = 0.0, float("nan"), 0.0
         self.n_seen, self.seen_paid = 0, 0.0
+        self.n_surf, self.land_seen = 0, False
         return self._obs(), {}
 
     def _track(self):
@@ -359,7 +360,8 @@ class StairsLookEnv(gym.Env):
                 "d_best_mm": 1000.0 * self.best_dpeak, "peak_best_deg": math.degrees(self.best_peak),
                 "n_pts": self.n_pts, "conf": self.best_n, "nods": self.nods,
                 "fell": float(fell), "off_edge": float(off), "no_nod": float(no_nod), "t_end": self.t,
-                "curric": float(curric), "start_d0": self.d0_true, "n_seen": self.n_seen}
+                "curric": float(curric), "start_d0": self.d0_true, "n_seen": self.n_seen,
+                "n_surf": self.n_surf, "land_seen": float(self.land_seen)}
         return self._obs(), r, True, False, info
 
     def step(self, action):
@@ -395,6 +397,13 @@ class StairsLookEnv(gym.Env):
             r += SEEN_W * min(self.n_seen / SEEN_FULL, 1.0) - self.seen_paid
             self.seen_paid = SEEN_W * min(self.n_seen / SEEN_FULL, 1.0)
             est = estimate(self._pts, self.landing_z) or {}
+            # Why nothing came out, when nothing comes out. A riser is a DIFFERENCE between two
+            # surfaces, so returns on the tread alone do not make a measurement: a nod taken from
+            # close in can bury the tread in points and still read nothing, because every ray cleared
+            # the landing and there is no reference left to subtract from. `land_seen` says which of
+            # the two failures it was, and is the first thing to look at before the pitch angle.
+            self.n_surf = len(est.get("surfaces", []))
+            self.land_seen = est.get("edge") is not None
             if est.get("rise") is not None and est["n_first"] > self.best_n:
                 # Keep the most confident reading, not the luckiest: n_first is how many returns landed on
                 # the surface the riser came off, which the robot can count without knowing the answer.

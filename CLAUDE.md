@@ -107,6 +107,13 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   torque, the body over-rotates to -20 deg in 30 ms and the wheels run away. Hand over `v_ref_ = phi_rate_
   * R` and let the normal `max_accel` ramp take the speed down. Same shape of bug as the stand-up's
   fixed-torque kick tripping the runaway guard.
+- **A riser is a DIFFERENCE between two surfaces, so returns on the tread measure nothing on their
+  own.** `estimate()` finds the landing first and subtracts the first level surface below it; with no
+  returns on the landing it gives `rise=None` however good the view of the tread is. The swing taken
+  from a short standoff fails exactly this way - one episode put 597 rays on the first tread and
+  produced no riser at all, because every ray had cleared the landing. The flick does not have the
+  problem only because it looks from further back while reversing. `n_seen` alone therefore does not
+  mean a measurement: `land_seen` in the info dict says which of the two failures it was.
 - **`build_model.py --stairs` landings are finite.** The landing runs from `edge - 3.0` to `edge`, so a
   script that reverses for a second or two can drive off the BACK of it, and that reads exactly like
   falling over. Two of the nod-cost measurements were wrong that way before the start was moved forward.

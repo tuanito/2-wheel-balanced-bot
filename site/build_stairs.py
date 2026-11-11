@@ -10,6 +10,7 @@ import html, json, pathlib
 
 HERE = pathlib.Path(__file__).parent
 CLIPS = HERE / "files" / "stairs_clips.json"
+AB = HERE / "files" / "stairs_ab.json"
 OUT = HERE / "stairs.html"
 
 NAV = [("index.html", "3D viewer"), ("wiring_boards.html", "Wiring diagram"), ("print.html", "How it prints"),
@@ -58,6 +59,16 @@ h2{font-size:15px;margin:24px 0 2px}p.sub{margin:0 0 8px;color:var(--mut);font-s
 .why{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:10px;margin-top:10px}
 .why .w{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
 .why .w h3{font-size:14px;margin:0}.why .w p{margin:6px 0 0;font-size:13px;color:var(--mut)}
+.wide{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 12px 0}
+@media (max-width:620px){.two{grid-template-columns:1fr}}
+.two .vd{margin:0}
+.two .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:3px}
+.ro6{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--bd);margin-top:10px;border-top:1px solid var(--bd)}
+.ro6 div{background:var(--card);padding:7px 9px;min-width:0}
+.ro6 .k{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro6 .v{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;margin-top:1px;font-variant-numeric:tabular-nums}
+@media (max-width:620px){.ro6{grid-template-columns:repeat(3,1fr)}}
 .tw{overflow-x:auto;margin-top:10px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--bd);white-space:nowrap}
@@ -96,8 +107,37 @@ def cell(k, v):
     return f'<div><div class="k">{k}</div><div class="v">{v}</div></div>'
 
 
+def side(r, which, name):
+    """One recipe's verdict on this staircase, badged from its own telemetry."""
+    d = r[which]
+    cls = badge(d)      # amber for a right number off the wrong surface, same as the clips above
+    return (f'<div><div class="lbl">{name}</div>'
+            f'<div class="vd {cls}">{html.escape(d["line"])}</div></div>')
+
+
+def pair(r):
+    f, w = r["flick"], r["swing"]
+    est = lambda d: "--" if d["rise_est_mm"] is None else f'{d["rise_est_mm"]} mm'
+    return f"""<figure class="clip">
+<video controls preload="none" playsinline poster="files/stairs_{r['slug']}.jpg">
+ <source src="files/{r['file']}" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">Staircase {r['seed']} &mdash; riser {r['rise_mm']} mm, tread {r['tread_mm']} mm,
+ starting {r['start_mm']} mm back</figcaption>
+<div class="two">{side(r, 'flick', 'Flick')}{side(r, 'swing', 'Swing')}</div>
+<div class="ro6">{cell('flick, read', est(f))}{cell('flick, returns', f['n_seen'])}
+{cell('flick, landing', f"{f['margin_mm']} mm")}{cell('swing, read', est(w))}
+{cell('swing, returns', w['n_seen'])}{cell('swing, landing', f"{w['margin_mm']} mm")}</div>
+</figure>"""
+
+
 def main():
     rows = json.loads(CLIPS.read_text())
+    ab = json.loads(AB.read_text()) if AB.exists() else []
+    ab_f = sum(1 for r in ab if r["flick"]["ok"])
+    ab_s = sum(1 for r in ab if r["swing"]["ok"])
+    # the swing's signature failure: plenty of returns ON the tread and still no riser, because the
+    # landing it would be measured against never appeared in the same scan
+    ab_blind = sum(1 for r in ab if r["swing"]["rise_est_mm"] is None and r["swing"]["n_seen"] >= 20)
     good = [r for r in rows if r["ok"] and "LUCKY" not in r["line"]]
     lucky = [r for r in rows if r["ok"] and "LUCKY" in r["line"]]
     clips = []
@@ -126,31 +166,48 @@ def main():
 <header><h1>Balancing robot V1.1 &mdash; measuring a staircase by nodding</h1>
 <p>The robot has to know how tall the first step is before it can think about going down it. It has one
 lidar, 231 mm up, which sees nothing of the floor while it is upright &mdash; so it has to tip forward,
-and a two-wheel balancer cannot tip forward without driving forward. Twelve episodes: what that costs,
-every way it goes wrong, and the two ways of taking the look compared.</p></header>
+and a two-wheel balancer cannot tip forward without driving forward. Twelve episodes of what that costs
+and every way it goes wrong, then ten staircases taken twice over &mdash; once with each way of looking,
+side by side.</p></header>
 <nav class="top" aria-label="Pages">{nav}</nav>
 <main>
 <div class="cards">
- <div class="c ok"><div class="k">Scripted nod, held-out stairs</div><div class="v">0.37</div>
-  <div class="n">30 staircases, risers 80&ndash;170 mm, seeds never trained on</div></div>
+ <div class="c ok"><div class="k">Flick, held-out stairs</div><div class="v">0.390</div>
+  <div class="n">78 of 200 staircases, risers 80&ndash;170 mm, seeds never trained on</div></div>
+ <div class="c"><div class="k">Swing, the same 200</div><div class="v">0.290</div>
+  <div class="n">58 of 200; the gap is 2.1&sigma;, so the flick really is ahead</div></div>
  <div class="c"><div class="k">Ceiling for any fixed recipe</div><div class="v">0.50</div>
   <div class="n">grid search: one nod carries no clue which riser it faces</div></div>
  <div class="c no"><div class="k">Learned policy, same stairs</div><div class="v">0.00</div>
   <div class="n">eleven PPO runs, three reward bugs &mdash; all mine</div></div>
- <div class="c"><div class="k">Best riser accuracy seen</div><div class="v">&plusmn;44 mm</div>
-  <div class="n">by the policy that drove off the edge every time</div></div>
 </div>
 <p class="note"><b>How to read the clips.</b> The yellow fan is the lidar, drawn where its rays actually
 land; the stairwell walls are made see-through for the camera only. Each clip ends with what that
 episode really did, taken from its own telemetry after it ran &mdash; not from what it was meant to show.
 A success means all three at once: the riser measured to within 20 mm, the robot still upright, and at
 least 100 mm of landing left between the wheels and the drop. <b>The clips that work are selected
-episodes</b>: the recipe succeeds on 37% of staircases, so the environment was asked for seeds until the
-outcome matched, and the seed is listed under each clip. The honest rate is the 0.37 above, not 5 of 10.</p>
+episodes</b>: the recipe succeeds on 39% of staircases, so the environment was asked for seeds until the
+outcome matched, and the seed is listed under each clip. The honest rate is the 0.390 above, not 5 of 12.
+The ten pairs further down are <em>not</em> selected, and are a fair sample.</p>
 
 <h2>Twelve episodes</h2>
 <p class="sub">{len(good)} clean successes, {len(lucky)} right for the wrong reason, {len(rows) - len(good) - len(lucky)} failures.</p>
 <div class="grid">{''.join(clips)}</div>
+
+<h2>Flick against swing, on the same staircase</h2>
+<p class="sub">{len(ab)} pairs, left and right of one clip: identical riser, tread, start distance, robot and
+CAN latency, one recipe each. <b>Nothing here is selected</b> &mdash; the seeds are simply the first
+{len(ab)} of the evaluation set (20000 onwards) and the staircase is whatever that seed drew, so the tally
+below is an unbiased, if small, sample of the 0.390 and 0.290 above. On these {len(ab)}: flick {ab_f}/{len(ab)},
+swing {ab_s}/{len(ab)}.</p>
+<div class="wide">{"".join(pair(r) for r in ab)}</div>
+<p class="note"><b>What the pairs show that the averages do not.</b> The swing's distinctive failure
+&mdash; the one the flick almost never has, 38% of episodes against 7% &mdash; is not a bad number, it is
+<b>no number</b>: it stops close, pitches down, and every ray clears the landing and lands on the tread. A riser is the difference between two surfaces, so hundreds of returns on the tread
+measure nothing with no landing left to subtract from. {"One" if ab_blind == 1 else ab_blind} of these ten clips fails exactly that
+way, with 597 rays on the tread and no number out of them. The flick does not have the problem because it
+takes its look from further back while reversing, so the landing stays in the scan; what it does
+instead, when it fails, is overfly the first tread and measure a surface two steps down.</p>
 
 <h2>Two ways to take the look</h2>
 <p class="sub">A <b>flick</b> is one-sided: gravity acts forward for the whole nod, so it costs
@@ -158,19 +215,25 @@ outcome matched, and the seed is listed under each clip. The honest rate is the 
 so it travels almost nothing &mdash; 650 mm of standoff became 638 mm across six cycles &mdash; and its
 amplitude grows each cycle, because the angle that sees a 170 mm riser is not the one that sees an
 80 mm riser and the robot cannot know which it faces until it has measured it.</p>
-<div class="tw"><table><thead><tr><th>look</th><th>success</th><th>riser error</th>
+<div class="tw"><table><thead><tr><th>look</th><th>success</th><th>read anything</th><th>riser error</th>
 <th>landing left</th><th>worst</th><th>fell or went over</th></tr></thead><tbody>
-<tr><td>one-sided flick</td><td class="m">0.37</td><td class="m">205 &plusmn; 286 mm</td>
-<td class="m">204 mm</td><td class="m">&minus;65 mm</td><td class="m">0.06</td></tr>
-<tr><td>creep in, then swing</td><td class="m">0.23</td><td class="m">314 &plusmn; 339 mm</td>
-<td class="m">237 mm</td><td class="m">&minus;386 mm</td><td class="m">0.17</td></tr>
+<tr><td>one-sided flick</td><td class="m">0.390</td><td class="m">0.93</td>
+<td class="m">202 &plusmn; 297 mm</td><td class="m">207 mm</td><td class="m">&minus;68 mm</td>
+<td class="m">0.105</td></tr>
+<tr><td>creep in, then swing</td><td class="m">0.290</td><td class="m">0.62</td>
+<td class="m">213 &plusmn; 299 mm</td><td class="m">249 mm</td><td class="m">&minus;386 mm</td>
+<td class="m">0.185</td></tr>
 </tbody></table></div>
-<p class="note">Same harness, same 30 held-out staircases. The swing is the <b>safer</b> look by a wide
-margin &mdash; from a fixed standoff it leaves 350&ndash;540 mm of landing and stayed upright on 25 of 25
-randomised robots &mdash; and on a staircase whose riser is known it is much the better one: 6 of 6
-successes at 5 mm of error on a 100 mm riser. It still loses across unknown staircases, because the
-amplitude it can safely reach caps the angle, and a tall riser needs an angle it cannot get to from a
-standoff it can survive. Its failures are blind rather than dangerous, which is the better way to fail.</p>
+<p class="note">Same harness, same 200 held-out staircases, seeds 20000 onwards. The flick wins by
+10 points, and at 2.1&sigma; over 200 episodes that gap is real &mdash; an earlier 30-episode run put it
+at 14 points, which was 1.2&sigma; and would have settled nothing. <b>The swing loses twice over.</b> It
+reads nothing at all in 38% of episodes against the flick's 7%, and it goes over the edge <em>more</em>
+often, 0.155 against 0.080, not less: it creeps to a fixed standoff and never reverses, so a misjudged
+stop keeps going forward, while backing away from the drop is part of what the flick is doing anyway.
+On a staircase whose riser is already known it is much the better look &mdash; 6 of 6 successes at 5 mm
+of error on a 100 mm riser, and it barely translates, 650 mm of standoff becoming 638 mm over six
+cycles. It loses across <em>unknown</em> staircases because the amplitude it can safely reach caps the
+angle, and a tall riser needs an angle it cannot get to from a standoff it can survive.</p>
 <p class="note"><b>And it cannot be done from close in.</b> Creeping to 150 mm is safe &mdash; the robot
 gets there without trouble and the swing is stable &mdash; and useless: 0 to 3 returns on the first
 tread, the riser read 469 mm wrong. Closer is worse, not better. The step nose subtends a larger angle
