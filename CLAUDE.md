@@ -107,6 +107,20 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   torque, the body over-rotates to -20 deg in 30 ms and the wheels run away. Hand over `v_ref_ = phi_rate_
   * R` and let the normal `max_accel` ramp take the speed down. Same shape of bug as the stand-up's
   fixed-torque kick tripping the runaway guard.
+- **A one-sided flick from a standstill costs ~1 m of travel towards the drop.** A flick IS a forward
+  acceleration, so with no reverse momentum to cancel it the robot keeps what it gains: 0.75 rad (the
+  ~32 deg that can see a tread) costs **+899 +- 264 mm** from a dead stop. Reversing for 0.9 s first -
+  still from a standstill, still one forward look - reaches -0.47 m/s and the same flick costs
+  **+62 +- 86 mm**, 100% upright. `sim/stairs_windup.py` has the table. Corollary: **retrying deeper is
+  a trap.** 0.90 rad costs +504 mm against 0.75 rad's +62 mm, so a deeper second look spends exactly
+  the margin it is trying to earn. Retry closer at the same depth, never deeper.
+- **Tilting the sonar down makes an edge detector, not a sensor.** Modelled as a real +-15 deg cone
+  taking the nearest echo (`sim/stairs_sonar.py`, which reproduces h/sin(tilt+15) to 4 mm), a 10 deg
+  tilt loses the floor echo at **263 +- 12 mm** from the drop with no odometry involved - the safety
+  signal the margin failures need. But the same reading swings **245 -> 448 mm over +-7 deg of body
+  pitch**, and a balancing robot sways that much holding station, so the forward obstacle stop has to
+  predict the floor range from the IMU and gate it out or it trips constantly. The sonar can never
+  contribute to the reconstruction: one range, no bearing, over a 30 deg cone.
 - **A riser is a DIFFERENCE between two surfaces, so returns on the tread measure nothing on their
   own.** `estimate()` finds the landing first and subtracts the first level surface below it; with no
   returns on the landing it gives `rise=None` however good the view of the tread is. The swing taken

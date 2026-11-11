@@ -87,6 +87,88 @@ class Creep:
         return np.array([0.0, +1.0, a2])
 
 
+# --------------------------------------------------------------------------- stop, wind, look, judge
+# What it costs to take the look from a standstill is measured in sim/stairs_windup.py. The short
+# version: a one-sided flick is a forward acceleration, and from a dead stop at 0.75 rad it carries the
+# robot +899 mm towards the drop. Reversing for 0.9 s first - still starting from a standstill, still
+# one forward look - reaches -0.47 m/s, and the same flick then costs +62 +- 86 mm with every robot
+# still upright. The wind-up is what makes "stop, settle, look once" affordable at an angle that sees.
+# each retry closes in AND looks deeper: a different standoff changes which part of the tread the nose
+# occludes, and a deeper look is what a tall riser needs - the two failures the first look leaves
+# every retry is the SAME cheap look from a different standoff. Going deeper was tried and is a trap:
+# 0.75 rad costs +62 mm of forward travel and 0.90 rad costs +504 mm (sim/stairs_windup.py), so a deep
+# retry spends exactly the margin it is trying to earn.
+PROBE = dict(v_app=0.35, v_creep=0.15, stand=(0.40, 0.34, 0.30), pitch=(0.75, 0.75, 0.78),
+             wind=0.90, v_wind=0.50, settle_pitch=0.035, settle_rate=0.5, settle_max=1.2, conf_ok=0.45)
+
+
+class Probe:
+    """Creep to a standoff, stand still and straight, wind back, look once, then judge the look.
+
+    The judging is the point. `stairs_map.reconstruct` refuses to answer when the surface it found
+    cannot be the first tread - too few returns on it, or it starts behind the edge, or too far past
+    it - so "no answer" is a state the recipe can act on rather than a number it has to trust. On a
+    refusal it moves one standoff closer and looks again: a different viewpoint changes which part of
+    the tread is occluded by the nose, and that is exactly what a second look is for.
+
+    Needs StairsLookEnv(max_nods=3, t_max=..., estimator="map"); with the single-shot estimator it
+    still runs, but it has nothing to judge and simply takes all three looks.
+    """
+
+    def __init__(self, env=None, **p):
+        self.p = dict(PROBE, **p)
+        self.env = env
+        self.reset()
+
+    def reset(self):
+        self.phase, self.look, self.wind_t, self.done = "approach", 0, 0.0, False
+        self.settle_t = 0.0
+
+    def _conf(self):
+        """What the reconstruction made of the looks so far - computed on board, from its own cloud."""
+        return 0.0 if self.env is None else float(getattr(self.env, "best_conf", 0.0))
+
+    def act(self, obs):
+        p = self.p
+        i = min(self.look, len(p["stand"]) - 1)
+        stand, depth = p["stand"][i], p["pitch"][i]
+        a2 = 2.0 * (min(depth, NOD_HI) - NOD_LO) / (NOD_HI - NOD_LO) - 1.0
+        d_est, v, pitch, prate = float(obs[0]) * 1.5, float(obs[1]) * V_MAX, float(obs[2]), float(obs[3]) * 10.0
+        if self.done:
+            return np.array([0.0, -1.0, a2])
+        if self.phase == "approach":
+            speed = p["v_app"] if d_est > stand + 0.30 else p["v_creep"]
+            if d_est > stand + speed * REACT + speed ** 2 / (2 * BRAKE_EFF):
+                return np.array([speed / V_MAX, -1.0, a2])
+            self.phase = "settle"
+        if self.phase == "settle":
+            # straight and still, so the look starts from a state that is the same every time. A real
+            # robot cannot wait for ever either: some robots carry a steady pitch offset they never
+            # settle out of, so the wait is capped and the look is taken anyway.
+            self.settle_t += HOLD * CTRL_DT
+            if (abs(v) > 0.03 or abs(pitch) > p["settle_pitch"] or abs(prate) > p["settle_rate"]) \
+                    and self.settle_t < p["settle_max"]:
+                return np.array([0.0, -1.0, a2])
+            self.phase, self.wind_t, self.settle_t = "wind", 0.0, 0.0
+        if self.phase == "wind":
+            self.wind_t += HOLD * CTRL_DT
+            if self.wind_t < p["wind"]:
+                return np.array([-p["v_wind"] / V_MAX, -1.0, a2])
+            self.phase = "look"
+        if self.phase == "look":
+            self.look += 1
+            self.phase = "judge"
+            return np.array([-p["v_wind"] / V_MAX, +1.0, a2])     # flick, still commanding reverse
+        # judge: a good enough reconstruction ends it, otherwise close in and look again
+        if self._conf() >= p["conf_ok"] or self.look >= len(p["stand"]):
+            self.done = True
+            if self.env is not None:
+                self.env.stop_requested = True      # finished: do not stand still until the clock ends
+            return np.array([0.0, -1.0, a2])
+        self.phase = "approach"
+        return np.array([0.0, -1.0, a2])
+
+
 def run(env, pol, **opts):
     obs, _ = env.reset(options=opts)
     pol.reset()

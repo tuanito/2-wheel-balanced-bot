@@ -79,6 +79,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sim"))
 from botsim import BotSim, LIB, CTRL_DT, quat_pitch       # noqa: E402
 from stairs_probe import estimate, model_xml, RANGE_NOISE  # noqa: E402
+from stairs_map import reconstruct, fuse                    # noqa: E402
 
 BALANCE = 4
 N_RAYS = 120
@@ -218,16 +219,28 @@ class StairsLookEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, seed=None, rise=None, tread=None, d0=None, randomize=True, curriculum=False,
-                 swing=False):
+                 swing=False, max_nods=None, t_max=None, estimator="surface", d_arm=None):
         self.observation_space = gym.spaces.Box(-5.0, 5.0, (8,), np.float32)
         self.action_space = gym.spaces.Box(-1.0, 1.0, (3,), np.float32)
         self.sim = None
         self.fixed = dict(rise=rise, tread=tread, d0=d0)
         self.randomize = randomize
         self.swing = swing
+        # a scripted look-assess-look-again recipe needs more than one nod and more clock than the
+        # single-nod budget; the RL path leaves both at None and sees exactly the task it was trained on
+        self.max_nods = MAX_NODS if max_nods is None else int(max_nods)
+        # "surface": the single-shot estimator, which is what every number before this was measured
+        # with. "map": the same cloud through sim/stairs_map.py, which refuses to answer when the
+        # surface it found cannot be the first tread. Default unchanged so training is untouched.
+        self.estimator = estimator
+        # D_ARM exists because a per-step Gaussian trigger would otherwise nod on step one; a scripted
+        # recipe that winds BACKWARDS before looking is further from the edge at the trigger than at
+        # the stop, so the gate has to be able to move. Training leaves it at D_ARM.
+        self.d_arm = D_ARM if d_arm is None else float(d_arm)
+        self.t_extra = t_max
         # the swing itself takes SWING_RUN against the flick's NOD_RUN, so the budget covers the
         # manoeuvre rather than the comparison being decided by the clock
-        self.t_max = T_MAX + (SWING_RUN - NOD_RUN if swing else 0.0)
+        self.t_max = t_max if t_max else T_MAX + (SWING_RUN - NOD_RUN if swing else 0.0)
         # each worker carries its own curriculum: no plumbing through SubprocVecEnv. Default OFF, so
         # evaluation and the baseline always see the real task unless training asks for it.
         self.curriculum = curriculum
@@ -276,7 +289,7 @@ class StairsLookEnv(gym.Env):
         o = self.sim.out
         d_est = self.d_est()
         return np.array([d_est / 1.5, float(o.v) / V_MAX, float(o.pitch), 0.1 * float(o.pitch_rate),
-                         self.t / self.t_max, self.nods / MAX_NODS,
+                         self.t / self.t_max, self.nods / self.max_nods,
                          min(self.best_n / CONF_FULL, 1.0), self.a_last], dtype=np.float32)
 
     def reset(self, seed=None, options=None):
@@ -301,10 +314,15 @@ class StairsLookEnv(gym.Env):
         self.d0_true = d0
         self.t, self.a_last, self.x_far = 0.0, 0.0, float(self.sim.d.qpos[0])
         self.nods, self.best_n, self.best_rise, self.best_score = 0, 0.0, None, 0.0
+        self.best_conf, self.view_why = 0.0, "no look taken"
+        # a scripted recipe that has decided it is finished says so, instead of standing still until
+        # the clock runs out: the episode ends where the recipe ends
+        self.stop_requested = False
         self.peak, self.d_peak, self.n_pts = 0.0, float("nan"), 0
         self.best_peak, self.best_dpeak, self.nod_pitch = 0.0, float("nan"), 0.0
         self.n_seen, self.seen_paid = 0, 0.0
         self.n_surf, self.land_seen = 0, False
+        self.views = []
         return self._obs(), {}
 
     def _track(self):
@@ -333,6 +351,10 @@ class StairsLookEnv(gym.Env):
     def cloud_add(self, pts):
         self._pts = np.concatenate(pts) if pts else np.zeros((0, 3))
         self.n_pts += len(self._pts)
+        # every look's cloud is kept, in the world frame the robot built it in: a second look from a
+        # different standoff is only worth taking if the first one is still there to merge it with
+        if len(self._pts):
+            self.views.append(np.array(self._pts))
 
     def _end(self, r, fell=False, off=False, no_nod=False):
         margin = EDGE - self.x_far
@@ -361,7 +383,8 @@ class StairsLookEnv(gym.Env):
                 "n_pts": self.n_pts, "conf": self.best_n, "nods": self.nods,
                 "fell": float(fell), "off_edge": float(off), "no_nod": float(no_nod), "t_end": self.t,
                 "curric": float(curric), "start_d0": self.d0_true, "n_seen": self.n_seen,
-                "n_surf": self.n_surf, "land_seen": float(self.land_seen)}
+                "n_surf": self.n_surf, "land_seen": float(self.land_seen),
+                "map_conf": self.best_conf, "why": self.view_why}
         return self._obs(), r, True, False, info
 
     def step(self, action):
@@ -371,7 +394,7 @@ class StairsLookEnv(gym.Env):
             v_cmd = min(v_cmd, 0.0)          # the fence: no driving at the drop from inside D_FENCE
         self.sim.cmd.v = v_cmd
         self.a_last = float(a[0])
-        nod = a[1] > 0.0 and self.nods < MAX_NODS and self.d_est() <= D_ARM
+        nod = a[1] > 0.0 and self.nods < self.max_nods and self.d_est() <= self.d_arm
         r = -TIME_COST
         if nod:
             if self.swing:
@@ -396,7 +419,12 @@ class StairsLookEnv(gym.Env):
                 self.n_seen = max(self.n_seen, int(on.sum()))
             r += SEEN_W * min(self.n_seen / SEEN_FULL, 1.0) - self.seen_paid
             self.seen_paid = SEEN_W * min(self.n_seen / SEEN_FULL, 1.0)
-            est = estimate(self._pts, self.landing_z) or {}
+            if self.estimator == "map":
+                rec = fuse(self.views, self.landing_z)      # NOT `r`: that is the reward accumulator
+                self.best_conf, self.view_why = rec["conf"], rec.get("why", "")
+                est = {} if rec["rise"] is None else dict(rise=rec["rise"], n_first=max(1, rec["n"]))
+            else:
+                est = estimate(self._pts, self.landing_z) or {}
             # Why nothing came out, when nothing comes out. A riser is a DIFFERENCE between two
             # surfaces, so returns on the tread alone do not make a measurement: a nod taken from
             # close in can bury the tread in points and still read nothing, because every ray cleared
@@ -419,7 +447,7 @@ class StairsLookEnv(gym.Env):
             return self._end(r, fell=True)
         if EDGE - self.x_far < EDGE_HARD:
             return self._end(r, off=True)
-        if self.t >= self.t_max or self.nods >= MAX_NODS:
+        if self.stop_requested or self.t >= self.t_max or self.nods >= self.max_nods:
             if not self._run(int(SETTLE / CTRL_DT)):
                 return self._end(r, fell=True)
             return self._end(r, off=EDGE - self.x_far < EDGE_HARD, no_nod=self.nods == 0)
