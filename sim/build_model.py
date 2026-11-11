@@ -92,9 +92,16 @@ def xml(arena=False, stairs=None):
         floor = f'<geom name="floor" type="plane" pos="0 0 {floor_z:.4f}" size="10 10 0.1" material="grid"/>'
     else:
         rise, tread, nstep, edge = stairs["rise"], stairs["tread"], stairs["steps"], stairs["edge"]
+        # How far the landing runs BEHIND the edge. It used to be 3 m, and that was a reward loophole
+        # rather than a detail: an RL policy that had 5.5 s and 0.6 m/s to play with could reverse off
+        # the back of the world, which the controller reports as a fall - and a fall (-5) was cheaper
+        # than never looking at the staircase (-8), so it learned to drive backwards off the landing
+        # and scored 0.00 while looking perfectly safe in the margin statistics. 8 m is more than any
+        # episode can cross.
+        back = stairs.get("back", 8.0)
         HW, TH = 0.60, 0.15                   # half-width of the treads, half-thickness of each slab
-        g = [f'<geom name="landing" type="box" pos="{(edge - 3.0) / 2:.4f} 0 {floor_z - TH:.4f}" '
-             f'size="{(edge + 3.0) / 2:.4f} {HW:.4f} {TH:.4f}" material="grid"/>']
+        g = [f'<geom name="landing" type="box" pos="{(edge - back) / 2:.4f} 0 {floor_z - TH:.4f}" '
+             f'size="{(edge + back) / 2:.4f} {HW:.4f} {TH:.4f}" material="grid"/>']
         for i in range(nstep):
             top = floor_z - (i + 1) * rise
             g.append(f'<geom name="tread{i}" type="box" pos="{edge + (i + 0.5) * tread:.4f} 0 {top - TH:.4f}" '
@@ -160,7 +167,7 @@ if __name__ == "__main__":
     stairs = None
     if "--stairs" in sys.argv:
         stairs = dict(rise=_opt("--rise", 0.10), tread=_opt("--tread", 0.30),
-                      steps=_opt("--steps", 6), edge=_opt("--edge", 1.2))
+                      steps=_opt("--steps", 6), edge=_opt("--edge", 1.2), back=_opt("--back", 8.0))
     default_name = "robot_c_stairs.xml" if stairs else ("robot_c_arena.xml" if arena else "robot_c.xml")
     out = HERE / _opt("--out", default_name)
     out.write_text(xml(arena, stairs))

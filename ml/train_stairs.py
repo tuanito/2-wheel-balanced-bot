@@ -12,8 +12,11 @@ nearly bimodal between 0 and 10), so ml/evaluate_stairs.py scores every candidat
 staircases and that is the gate.
 
 What to watch, in this order (all under env/ in TensorBoard):
+  start_d0        how far out the episode started (training 0.55-1.30, evaluation 0.70-1.30)
   measured_rate   did the cloud contain the first tread at all - the sensing
-  d_peak_mm       where the pitch peaked: the whole game is to land this in 400-480 mm
+  curric_rate     clean readings, which is what the curriculum ratchets on
+  d_peak_mm       standoff when the pitch peaked - only indicative, since the nod SWEEPS the band
+                  while the robot moves, so the measurement often comes from earlier in the nod
   rise_err_mm     the actual measurement error
   margin_mm       how close to the drop it ended up, and off_edge_rate / fell_rate
 A run where measured_rate climbs but margin_mm sinks is learning to measure by falling downstairs.
@@ -30,7 +33,8 @@ from stairs_env import StairsLookEnv  # noqa: E402
 
 OUT = pathlib.Path(__file__).parent / "runs" / "stairs"
 KEYS = ("success", "measured", "rise_err_mm", "margin_mm", "d_peak_mm", "peak_deg",
-        "d_best_mm", "peak_best_deg", "fell", "off_edge", "no_nod", "n_pts", "conf", "nods", "t_end")
+        "d_best_mm", "peak_best_deg", "fell", "off_edge", "no_nod", "n_pts", "conf", "nods", "t_end",
+        "curric", "start_d0", "n_seen")
 
 
 class EnvStats(BaseCallback):
@@ -48,7 +52,8 @@ class EnvStats(BaseCallback):
                     self.q[k].append(float(v))
         for k, d in self.q.items():
             if d:
-                name = k if k.endswith(("_mm", "_deg", "_pts")) or k in ("conf", "nods", "t_end") else k + "_rate"
+                name = (k if k.endswith(("_mm", "_deg", "_pts"))
+                        or k in ("conf", "nods", "t_end", "start_d0", "n_seen") else k + "_rate")
                 self.logger.record(f"env/{name}", sum(d) / len(d))
         return True
 
@@ -61,16 +66,33 @@ def main():
     ap.add_argument("--seed", type=int, default=1)
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    env = make_vec_env(StairsLookEnv, n_envs=a.envs, seed=a.seed,
+    if not a.resume:
+        # Clear the previous run's artefacts. CheckpointCallback names files by step count, so without
+        # this a new run only overwrites the checkpoints it happens to reach and leaves the older run's
+        # later ones behind - and they load fine, because the spaces have not changed, so a candidate
+        # trained in a DIFFERENT environment gets scored as if it were this run's. One ckpt directory
+        # here held three runs at once, two of them with a different nod budget.
+        stale = sorted((OUT / "ckpt").glob("*.zip")) + [OUT / "best.zip", OUT / "latest.zip",
+                                                        OUT / "best_model.zip"]
+        for f in stale:
+            if f.exists():
+                f.unlink()
+        if stale:
+            print(f"cleared {sum(1 for f in stale)} stale checkpoint(s) from a previous run")
+    env = make_vec_env(StairsLookEnv, n_envs=a.envs, seed=a.seed, env_kwargs=dict(curriculum=True),
                        vec_env_cls=SubprocVecEnv if a.envs > 1 else None)
+    # evaluation is always the real task (curriculum off by default), so the curve stays comparable
     eval_env = make_vec_env(StairsLookEnv, n_envs=1, seed=10_000)
     if a.resume:
         model = PPO.load(a.resume, env=env, device="cpu")
     else:
         model = PPO("MlpPolicy", env, device="cpu", seed=a.seed, verbose=1, tensorboard_log=str(OUT / "tb"),
                     n_steps=256, batch_size=512, n_epochs=10, gamma=0.99, gae_lambda=0.95,
-                    learning_rate=3e-4, ent_coef=0.01, clip_range=0.2,
+                    learning_rate=3e-4, ent_coef=0.004, clip_range=0.2,
                     policy_kwargs=dict(net_arch=dict(pi=[64, 64], vf=[64, 64]), log_std_init=0.0))
+        # ent_coef 0.004, not the stand-up's 0.01: that task needed sustained exploration to find a
+        # torque profile at all, this one is a narrow placement choice inside a gated window, and a high
+        # entropy bonus keeps the nod trigger firing early when it should be becoming decisive.
         # gamma 0.99: an episode is ~30-100 steps of approach and the reward is all at the end, so the
         # horizon has to cover the whole approach (0.99^100 = 0.37) without being so long that the
         # per-step time cost disappears. n_steps 256 x envs still gives whole episodes per update.
