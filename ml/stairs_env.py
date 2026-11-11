@@ -100,6 +100,15 @@ MAX_NODS = 1
 # by asking exploration to find it.
 NOD_RUN = 1.0             # s the nod owns: the lidar is sampled over it, then control goes back
 SETTLE = 1.0              # s at the end, still counted against the edge margin
+# Two ways to take the look, so they can be scored against each other in the same harness.
+# FLICK: one one-sided nod. Gravity acts forward for the whole of it, so it costs 0.1-1.1 m of travel.
+# SWING: a symmetric oscillation whose amplitude GROWS over the cycles - it leans back for as long as
+# it leans forward, so the net travel is almost nothing, and each cycle probes a deeper angle, which
+# matters because the angle that sees a 170 mm riser is not the one that sees an 80 mm riser and the
+# robot cannot know which it is facing until it has measured it.
+SWING_HZ, SWING_CYCLES, SWING_LO = 1.5, 3.0, 0.45
+SWING_END_LO, SWING_END_HI = 0.70, 1.10   # rad: what the action maps to as the final amplitude
+SWING_RUN = SWING_CYCLES / SWING_HZ + 0.4  # s the swing owns, against NOD_RUN for the flick
 NOD_LO, NOD_HI = 0.50, 0.85   # rad: flick target (look_time 0), peaks at 19-37 deg. Measured
 # against 0.45-0.75: the same off-edge rate but a reading in 75% of random episodes, not 60%.
 V_MAX = 0.6               # m/s the speed command spans
@@ -208,12 +217,17 @@ def meas_score(err):
 class StairsLookEnv(gym.Env):
     metadata = {"render_modes": []}
 
-    def __init__(self, seed=None, rise=None, tread=None, d0=None, randomize=True, curriculum=False):
+    def __init__(self, seed=None, rise=None, tread=None, d0=None, randomize=True, curriculum=False,
+                 swing=False):
         self.observation_space = gym.spaces.Box(-5.0, 5.0, (8,), np.float32)
         self.action_space = gym.spaces.Box(-1.0, 1.0, (3,), np.float32)
         self.sim = None
         self.fixed = dict(rise=rise, tread=tread, d0=d0)
         self.randomize = randomize
+        self.swing = swing
+        # the swing itself takes SWING_RUN against the flick's NOD_RUN, so the budget covers the
+        # manoeuvre rather than the comparison being decided by the clock
+        self.t_max = T_MAX + (SWING_RUN - NOD_RUN if swing else 0.0)
         # each worker carries its own curriculum: no plumbing through SubprocVecEnv. Default OFF, so
         # evaluation and the baseline always see the real task unless training asks for it.
         self.curriculum = curriculum
@@ -262,7 +276,7 @@ class StairsLookEnv(gym.Env):
         o = self.sim.out
         d_est = self.d_est()
         return np.array([d_est / 1.5, float(o.v) / V_MAX, float(o.pitch), 0.1 * float(o.pitch_rate),
-                         self.t / T_MAX, self.nods / MAX_NODS,
+                         self.t / self.t_max, self.nods / MAX_NODS,
                          min(self.best_n / CONF_FULL, 1.0), self.a_last], dtype=np.float32)
 
     def reset(self, seed=None, options=None):
@@ -358,14 +372,21 @@ class StairsLookEnv(gym.Env):
         nod = a[1] > 0.0 and self.nods < MAX_NODS and self.d_est() <= D_ARM
         r = -TIME_COST
         if nod:
-            tgt = float(NOD_LO + 0.5 * (a[2] + 1.0) * (NOD_HI - NOD_LO))
+            if self.swing:
+                tgt = float(SWING_END_LO + 0.5 * (a[2] + 1.0) * (SWING_END_HI - SWING_END_LO))
+                LIB.bot_look_osc(self.sim.ctl, SWING_LO, SWING_HZ, SWING_CYCLES, tgt)
+                run = SWING_RUN
+            else:
+                tgt = float(NOD_LO + 0.5 * (a[2] + 1.0) * (NOD_HI - NOD_LO))
+                LIB.bot_look_osc(self.sim.ctl, 0.0, SWING_HZ, SWING_CYCLES, 0.0)
+                run = NOD_RUN
             LIB.bot_look(self.sim.ctl, 1, tgt, 0.0)          # flick: no hold, the target slews straight back
             self.nods += 1
             r -= NOD_COST
             self.nod_pitch = tgt
             self.peak, self.d_peak = 0.0, float("nan")       # per nod: see d_peak_mm in the info dict
-            alive = self._run(int(NOD_RUN / CTRL_DT), collect=True)
-            self.t += NOD_RUN
+            alive = self._run(int(run / CTRL_DT), collect=True)
+            self.t += run
             c = self._pts
             if len(c):
                 on = ((np.abs(c[:, 2] - (self.landing_z - self.rise)) < 0.02)
@@ -389,7 +410,7 @@ class StairsLookEnv(gym.Env):
             return self._end(r, fell=True)
         if EDGE - self.x_far < EDGE_HARD:
             return self._end(r, off=True)
-        if self.t >= T_MAX or self.nods >= MAX_NODS:
+        if self.t >= self.t_max or self.nods >= MAX_NODS:
             if not self._run(int(SETTLE / CTRL_DT)):
                 return self._end(r, fell=True)
             return self._end(r, off=EDGE - self.x_far < EDGE_HARD, no_nod=self.nods == 0)

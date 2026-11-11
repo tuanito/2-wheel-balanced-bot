@@ -31,6 +31,10 @@ extern "C" void bot_look_gains(void* p, float rate, float ret, float gain) {
   auto* c = static_cast<bot::Controller*>(p);
   c->look_rate = rate; c->look_return = ret; c->look_gain = gain;
 }
+extern "C" void bot_look_osc(void* p, float amp, float hz, float cycles, float amp_end) {
+  auto* c = static_cast<bot::Controller*>(p);
+  c->look_osc = amp; c->look_hz = hz; c->look_cycles = cycles; c->look_osc_end = amp_end;
+}
 extern "C" void bot_look(void* p, int on, float pitch, float time) {
   auto* c = static_cast<bot::Controller*>(p);
   c->look_mode = (uint8_t)on; c->look_pitch = pitch; c->look_time = time; c->look_t_ = 0;

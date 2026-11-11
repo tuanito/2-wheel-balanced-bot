@@ -18,7 +18,8 @@ import argparse, math, pathlib, sys
 import numpy as np
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from stairs_env import StairsLookEnv, HOLD, CTRL_DT, V_MAX, NOD_LO, NOD_HI   # noqa: E402
+from stairs_env import (StairsLookEnv, HOLD, CTRL_DT, V_MAX, NOD_LO, NOD_HI,   # noqa: E402
+                        SWING_END_LO, SWING_END_HI)
 
 BEST = dict(v_app=0.30, d_dive=0.40, v_rev=0.40, pitch=0.75)
 BRAKE_EFF = 0.9   # m/s^2 actually achieved when braking: max_accel limits the speed REFERENCE,
@@ -51,6 +52,39 @@ class Scripted:
             self.phase = 2
         self.done = True
         return np.array([-p["v_rev"] / V_MAX, +1.0, a2])     # flick, still commanding reverse
+
+
+CREEP = dict(v_app=0.35, v_creep=0.12, creep_from=0.80, standoff=0.48, depth=0.95)
+
+
+class Creep:
+    """Creep in slowly, stop at a standoff, then swing. The second recipe, for StairsLookEnv(swing=True).
+
+    Only three numbers, because the swing removes the one the flick recipe spends most of its tuning on:
+    a flick has to be entered reversing at the right speed or it costs a metre of travel, and a swing
+    does not care - it leans back for as long as it leans forward.
+    """
+
+    def __init__(self, **p):
+        self.p = dict(CREEP, **p)
+        self.reset()
+
+    def reset(self):
+        self.done = False
+
+    def act(self, obs):
+        p = self.p
+        a2 = 2.0 * (p["depth"] - SWING_END_LO) / (SWING_END_HI - SWING_END_LO) - 1.0
+        d_est, v = float(obs[0]) * 1.5, float(obs[1]) * V_MAX
+        # fast until the last stretch, then creep: a slow final approach is what keeps the stop
+        # accurate, and the standoff has to be right to about 50 mm for the swing to see anything
+        speed = p["v_app"] if d_est > p["creep_from"] else p["v_creep"]
+        if self.done or d_est > p["standoff"] + speed * REACT + speed ** 2 / (2 * BRAKE_EFF):
+            return np.array([(0.0 if self.done else speed) / V_MAX, -1.0, a2])
+        if v > 0.04:                                         # stop first: look from standing still
+            return np.array([0.0, -1.0, a2])
+        self.done = True
+        return np.array([0.0, +1.0, a2])
 
 
 def run(env, pol, **opts):

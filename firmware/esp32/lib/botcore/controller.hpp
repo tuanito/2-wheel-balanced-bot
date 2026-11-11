@@ -115,6 +115,18 @@ class Controller {
   float look_time = 0.4f;       // s: the nod holds the target this long, then flies back to upright
   float look_rate = 4.0f;       // rad/s the target ramps in at: sets how deep a given target actually goes
   float look_gain = 0.5f;       // fraction of the LQR pitch gains the nod's PD uses (the dock lean: same)
+  // Oscillating look: instead of one flick, swing the pitch target through look_cycles full cycles of
+  // +-look_osc at look_hz. A flick is one-sided, so gravity acts forward the whole time and the robot
+  // ends up metres down range; a symmetric swing spends as long leaning back as forward, so the net
+  // travel is close to nothing and the scan can be taken from much closer to the drop.
+  float look_osc = 0;           // rad amplitude: 0 = single flick (look_pitch / look_time / look_return)
+  float look_hz = 1.5f;         // Hz of the swing
+  float look_cycles = 2.0f;     // full cycles before it returns to upright
+  float look_osc_end = 0;       // rad: if > 0, the amplitude grows from look_osc to this across the
+                                // cycles, so each swing probes a deeper angle than the last. The robot
+                                // cannot know how tall the step is before it has measured it, and the
+                                // angle that sees a 170 mm riser is not the one that sees an 80 mm one,
+                                // so the sweep IS the search for it.
   float look_return = 2.0f;     // rad/s the target slews back at (0.6 rad -> upright in 0.3 s)
   float look_t_ = 0;            // s spent in the current nod
   // Backflip, KENBOT style (tuned in sim/flip_tune2.py)

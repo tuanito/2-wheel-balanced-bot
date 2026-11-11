@@ -171,13 +171,24 @@ void Controller::balance(float dt, float& t_sum, float& t_diff) {
     // The target is also ramped in rather than stepped, which is not about stability but about reach:
     // the same 0.8 rad target peaks at 28 deg stepped and 35 deg ramped at 4 rad/s, because the body
     // has time to follow instead of the PD saturating against its own error.
-    const float t_down = look_t_ - (look_pitch / look_rate + look_time);
-    const float tgt = t_down <= 0.0f ? std::min(look_pitch, look_t_ * look_rate)
-                                     : std::max(0.0f, look_pitch - t_down * look_return);
+    float tgt;
+    if (look_osc > 0.0f) {
+      // Symmetric swing: sin() starts at 0 going nose-down, so the first quarter cycle is the look.
+      const float t_end = look_cycles / look_hz;
+      const float frac = t_end > 0.0f ? look_t_ / t_end : 1.0f;
+      const float amp = look_osc_end > 0.0f ? look_osc + (look_osc_end - look_osc) * frac : look_osc;
+      tgt = look_t_ < t_end ? amp * std::sin(6.2831853f * look_hz * look_t_) : 0.0f;
+    } else {
+      const float t_down = look_t_ - (look_pitch / look_rate + look_time);
+      tgt = t_down <= 0.0f ? std::min(look_pitch, look_t_ * look_rate)
+                           : std::max(0.0f, look_pitch - t_down * look_return);
+    }
     t_sum = clampf(-look_gain * (Params::K[0] * (pitch_ - tgt) + Params::K[1] * pitch_rate_),
                    -2 * torque_limit, 2 * torque_limit);
     t_diff = Params::KP_YAW * (yaw_ref_ - yaw_) - Params::KD_YAW * yaw_rate_;
-    if (tgt <= 0.0f && std::fabs(pitch_) < 0.12f && std::fabs(pitch_rate_) < 1.5f) {
+    const bool swing_done = look_osc > 0.0f && look_t_ >= look_cycles / look_hz;
+    if ((look_osc > 0.0f ? swing_done : tgt <= 0.0f)
+        && std::fabs(pitch_) < 0.12f && std::fabs(pitch_rate_) < 1.5f) {
       // Upright again: hand back. v_ref_ takes the speed the nod left behind, it does NOT get zeroed.
       // A nod to 34 deg ends at ~0.55 m/s, and handing over with v_ref_ = 0 demanded all of that back
       // in one tick: the speed term saturated t_sum forward, the body over-rotated to -20 deg in 30 ms

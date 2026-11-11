@@ -172,6 +172,7 @@ LIB.bot_tune.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
 LIB.bot_lift_mode.argtypes = [C.c_void_p, C.c_int, C.c_float, C.c_float]
 LIB.bot_look.argtypes = [C.c_void_p, C.c_int, C.c_float, C.c_float]   # look-down nod: on, pitch target, seconds
 LIB.bot_look_gains.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float]   # nod ramp rate, return rate, PD gain
+LIB.bot_look_osc.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]  # swing: amp, Hz, cycles, end amp
 LIB.bot_limits.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
 LIB.bot_recover.argtypes = [C.c_void_p, C.c_float, C.c_float]
 LIB.bot_dock.argtypes = [C.c_void_p, C.c_float, C.c_float, C.c_float, C.c_float]
