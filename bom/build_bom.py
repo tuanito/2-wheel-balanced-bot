@@ -135,7 +135,7 @@ rows = [
   "reaches the first tread is covered at once and the robot measures a step standing still - no nod, no lean. "
   "I\u00b2C (400 kHz\u20131 MHz) on the IMU bus, 3.3 V, ~100 mA while ranging, ~84 kB firmware uploaded at power-on "
   "(~2.8 s at 400 kHz). Needs crosstalk calibration if it sits behind a window.",
-  "13 \u00d7 18 \u00d7 3 (carrier)", "2 \u00d7 M2\u00d76 into M2 inserts on the front panel's 30\u00b0 seat (holes 14 mm apart)",
+  "13 \u00d7 18 \u00d7 3 (carrier)", "2 \u00d7 M2\u00d76 into M2 inserts on the front panel's 30\u00b0 seat (holes 18 mm apart - CHECK against your carrier)",
   "Front panel, centre, Z 134\u2013146 (194 mm above ground, tilted 30\u00b0 down)", CAD, 1, 19, 2, "Optional",
   "Pololu #3417 $19.95; VL53L8CX #3419 $24.95 is the near drop-in upgrade (better in ambient light, SPI option)."),
  ("Real-time control", "Arm button + status LED", "12 mm momentary push-button, 5 mm RGB LED (common cathode), 3 × 330 Ω (one per colour, on the perfboard)",
@@ -414,7 +414,7 @@ wires = [
  ("CAN board", "Motor L ↔ Motor R", "CAN H/L, 1 Mbps, twisted pair", "120 Ω at both ends; different motor IDs"),
  ("ESP32-S3", "IMU (tray)", "I²C (MPU6050) or SPI (ICM)", "On the axle line"),
  ("ESP32-S3 GPIO", "HC-SR04 sonar", "TRIG; ECHO via 1 k/2 k divider", "If the sonar is fitted"),
- ("ESP32-S3", "VL53L5CX (front panel)", "I\u00b2C, shared with the IMU; LPn + INT", "If the depth sensor is fitted instead: 3.3 V, address 0x52"),
+ ("ESP32-S3", "VL53L5CX (front panel), plug J2T", "I\u00b2C on its OWN bus: SDA GPIO42, SCL GPIO41, plus LPn GPIO2 and INT GPIO47", "Fitted instead of the sonar, in its place on the perfboard (6-pin J2T). 3.3 V, address 0x52. Not the IMU's bus: the MPU6050 caps that at 400 kHz and an 8 \u00d7 8 frame is ~51 kB/s at 15 Hz."),
  ("ESP32-S3 GPIO", "Arm button, status LED", "Digital I/O", ""),
  ("Battery+ after switch", "ESP32-S3 ADC1 pin", "100 k / 12 k divider + 100 nF", "25.2 V → 2.70 V"),
  ("ESP32-S3 UART", "Pi UART (GPIO14/15)", "3.3 V UART, 921600 baud", "Common GND"),

@@ -38,6 +38,7 @@ BAT, BMS, KEY, PDB, REG = "Battery 6S 1400", "6S BMS", "Power switch + 30 A fuse
 PB, CAN, PI, JUN = "Perfboard: ESP32-S3 + level shifter", "CAN board (SN65HVD230)", "Raspberry Pi Zero 2 W", "I2S junction board"
 ML, MR = "Motor L (MF6015)", "Motor R (MF6015)"
 IMU, SON, EYR, EYL = "IMU (GY-521)", "Sonar (HC-SR04)", "Eye R (8x8 WS2812)", "Eye L (8x8 WS2812)"
+TOF = "Zone array (VL53L5CX)"      # fitted INSTEAD of the sonar: same aperture, its own 6-pin plug
 MICL, MICR, AMP, SPK = "Mic L (ICS-43434)", "Mic R (ICS-43434)", "Amp (MAX98357A)", "Speaker 3 W"
 CAM, LDA, LD = "Camera Module 3", "LD19 USB adapter", "LD19 lidar"
 DOCK, FD, USBC, IP, BTN = "Dock contacts", "Charge fuse + diode", "USB-C socket (side)", "IP2368 USB-C charger", "Arm button + RGB LED"
@@ -82,13 +83,13 @@ P(CAN, 'terminal H', kind='bus', bus='CAN', term=120); P(CAN, 'terminal L', kind
 
 # ---- perfboard: ESP32-S3-DevKitC-1 + 74AHCT125 + dividers + plugs. Internal nodes start with "PB." ----
 E = lambda n: f"{PB}::ESP.{n}"
-for g in (1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 38, 39, 40):
+for g in (1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 38, 39, 40, 41, 42, 47):
     P(PB, f"ESP.GPIO{g}", kind='io', vmax=3.6, level='3V3')
 P(PB, 'ESP.5V', kind='pin', range=(4.75, 5.25), I=0.30, label='ESP32-S3 DevKitC-1 (5 V in, own 3.3 V LDO)')
 P(PB, 'ESP.GND', kind='gnd')
 P(PB, 'ESP.3V3', kind='src', V=3.3, Imax=0.5, label='DevKitC 3.3 V LDO (budget left for add-ons)')
 # firmware pin roles (include/config.h)
-ROLE = {21: 'out', 4: 'out', 5: 'in', 8: 'io', 9: 'out', 10: 'out', 11: 'in', 12: 'in_pullup', 13: 'in', 14: 'in', 15: 'in', 16: 'in', 17: 'out', 18: 'in', 38: 'out', 39: 'out', 40: 'out', 1: 'adc', 6: 'adc', 7: 'adc'}
+ROLE = {21: 'out', 2: 'out', 41: 'out', 42: 'io', 47: 'in', 4: 'out', 5: 'in', 8: 'io', 9: 'out', 10: 'out', 11: 'in', 12: 'in_pullup', 13: 'in', 14: 'in', 15: 'in', 16: 'in', 17: 'out', 18: 'in', 38: 'out', 39: 'out', 40: 'out', 1: 'adc', 6: 'adc', 7: 'adc'}
 for g, r in ROLE.items():
     PINS[E(f"GPIO{g}")]['role'] = r
 # jumper pins on the DevKit header (named as in the wiring)
@@ -103,11 +104,14 @@ J = {'J1-1 (5 V bus, XT30)': '5V', 'J1-2 (GND, XT30)': 'GND', 'J2-1 (5 V)': '5V'
      'J5-3 (ESP32 GPIO17)': 'GPIO17', 'J5-4 (ESP32 GPIO18)': 'GPIO18', 'J5-5 (74AHCT125 in)': 'BUF_A',
      'J6-1 (GPIO12)': 'GPIO12', 'J6-2 (GPIO38 via 330 ohm)': 'LEDR', 'J6-3 (GPIO39 via 330 ohm)': 'LEDG', 'J6-4 (GPIO40 via 330 ohm)': 'LEDB', 'J6-5 (GND)': 'GND',
      'J7-1 (VBAT sense)': 'S_VBAT', 'J7-2 (dock sense)': 'S_DOCK', 'J7-3 (USB sense)': 'S_USB',
-     'J8-1 (3V3)': '3V3', 'J8-2 (GND)': 'GND', 'J8-3 (GPIO13)': 'GPIO13', 'J8-4 (GPIO14)': 'GPIO14', 'J8-5 (GPIO15)': 'GPIO15', 'J8-6 (GPIO16)': 'GPIO16', 'J9-1 (GPIO21)': 'GPIO21'}
+     'J8-1 (3V3)': '3V3', 'J8-2 (GND)': 'GND', 'J8-3 (GPIO13)': 'GPIO13', 'J8-4 (GPIO14)': 'GPIO14', 'J8-5 (GPIO15)': 'GPIO15', 'J8-6 (GPIO16)': 'GPIO16', 'J9-1 (GPIO21)': 'GPIO21',
+     # the zone array's plug, in the sonar's place on the board: only one of J2 / J2T is populated
+     'J2T-1 (3V3)': '3V3', 'J2T-2': 'GND', 'J2T-3 (ESP32 GPIO42)': 'GPIO42',
+     'J2T-4 (ESP32 GPIO41)': 'GPIO41', 'J2T-5 (ESP32 GPIO2)': 'GPIO2', 'J2T-6 (ESP32 GPIO47)': 'GPIO47'}
 for p in J:
     P(PB, p, kind='pass', plug=p.split('-')[0])
 INT = {'5V': E('5V'), 'GND': E('GND'), '3V3': E('3V3')}
-for g in (8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 21):
+for g in (2, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 21, 41, 42, 47):
     INT[f'GPIO{g}'] = E(f'GPIO{g}')
 for p, n in J.items():
     if n in INT:
@@ -160,6 +164,12 @@ P(IMU, 'VCC', kind='pin', range=(3.0, 5.5), I=0.005, label='GY-521 (own 3.3 V LD
 P(IMU, 'SCL', kind='io', vmax=3.6, pull='3V3'); P(IMU, 'SDA', kind='io', vmax=3.6, pull='3V3')
 P(SON, 'Vcc', kind='pin', range=(4.5, 5.5), I=0.015, label='HC-SR04'); P(SON, 'Gnd', kind='gnd')
 P(SON, 'Trig', kind='in', vmax=5.5, vih=2.0); P(SON, 'Echo', kind='out', level='5V')
+# VL53L5CX carrier (Pololu #3417): 3.3 V part, ~100 mA while ranging, its own I2C bus so the IMU's
+# 400 kHz cap does not apply. Address 0x52; the MPU6050 is 0x68, so even a shared bus would not clash.
+P(TOF, 'VIN', kind='pin', range=(2.8, 5.5), I=0.100, label='VL53L5CX carrier (on-board regulator)')
+P(TOF, 'GND', kind='gnd')
+P(TOF, 'SDA', kind='io', vmax=3.6, pull='3V3'); P(TOF, 'SCL', kind='io', vmax=3.6, pull='3V3')
+P(TOF, 'LPn', kind='in', vmax=3.6, vih=2.0); P(TOF, 'INT', kind='out', level='3V3')
 for EY, out in ((EYR, True), (EYL, False)):
     P(EY, '5V', kind='pin', range=(3.5, 5.3), I=64 * 0.06 * 0.25 + 64 * 0.001, label='64 x WS2812 at the software cap (eyes.py MAX_BRIGHT 0.25)')
     P(EY, 'GND', kind='gnd'); P(EY, 'DIN', kind='in', vmax=5.8, vih_frac=0.7)

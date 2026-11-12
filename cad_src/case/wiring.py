@@ -32,6 +32,13 @@ def amp_pad(i):             # Adafruit 3006 pads: LRC, BCLK, DIN, GAIN, SD, GND,
     return to_robot("MAX98357A amp (Adafruit 3006)", (1.27 + 2.54 * i, 1.3, 1.6))
 def reg_pad(i):             # Pololu D24V50F5 pin row (0.1"): VIN, GND, GND, VOUT used
     return to_robot("Pololu D24V50F5 regulator", (2.54 + 2.54 * i, 1.0, 1.6))
+def tof_pin(i):
+    """VL53L5CX carrier header: six pins along its 18 mm edge, behind the 30 deg seat."""
+    t = math.radians(bc.TOF_TILT)
+    seat = (bc.X_IN_F - bc.TOF_SEAT * math.cos(t), 0.0, bc.TOF_Z + bc.TOF_SEAT * math.sin(t))
+    return (seat[0] - 4.0, -7.5 + 3.0 * i, seat[2] - 5.0)
+
+
 def son_pin(i):             # HC-SR04: Vcc, Trig, Echo, Gnd; end of the Dupont housing (pins point down)
     p = to_robot("HC-SR04 sonar", (-3.81 + 2.54 * i, -15.5, -1)); return (p[0], p[1], 56.0)
 def imu_pin(i):             # GY-521 header along the back edge of the board: VCC, GND, SCL, SDA
@@ -163,6 +170,15 @@ def harnesses():
         C("ECHO (GPIO11 via 1k/2k)", GRY, 26, jp("J2", 2), son_pin(2), "Perfboard J2-3 (divider -> GPIO11)", "HC-SR04 Echo"),
         C("GND", BLK, 26, jp("J2", 3), son_pin(3), "Perfboard J2-4", "HC-SR04 Gnd")],
        "Perfboard J2", "HC-SR04 header (Dupont)", "Over the battery, down the front lane"),
+     H("Perfboard J2T -> zone array", [(-4, -14, 102), (15, -12, 104), (15, -8, 130), (18, -4, 138)],
+       [C("3V3", RED, 26, jp("J2T", 0), tof_pin(0), "Perfboard J2T-1 (3V3)", "VL53L5CX VIN"),
+        C("GND", BLK, 26, jp("J2T", 1), tof_pin(1), "Perfboard J2T-2", "VL53L5CX GND"),
+        C("SDA (GPIO42)", BLU, 26, jp("J2T", 2), tof_pin(2), "Perfboard J2T-3 (ESP32 GPIO42)", "VL53L5CX SDA"),
+        C("SCL (GPIO41)", WHT, 26, jp("J2T", 3), tof_pin(3), "Perfboard J2T-4 (ESP32 GPIO41)", "VL53L5CX SCL"),
+        C("LPn (GPIO2)", GRN, 26, jp("J2T", 4), tof_pin(4), "Perfboard J2T-5 (ESP32 GPIO2)", "VL53L5CX LPn"),
+        C("INT (GPIO47)", YEL, 26, jp("J2T", 5), tof_pin(5), "Perfboard J2T-6 (ESP32 GPIO47)", "VL53L5CX INT")],
+       "Perfboard J2T", "VL53L5CX carrier header (Dupont)",
+       "Over the battery and up the front lane: the array sits high on the panel, not at the mouth"),
      # ---------------- eyes ----------------
      H("Perfboard J4 -> eye R", [(4, -24, 104), (21, -24, 92.5), (21, -38, 92.5), (21, -38, 100)],
        [C("5 V", ORG, 26, jp("J4", 0), (26, -40, 104), "Perfboard J4-1 (5 V, 470 uF)", "Eye R 5V"),
@@ -322,6 +338,23 @@ def length(pts):
 def conductor_path(h, c):
     """Points for one conductor: its own pin, then the bundle path, then its own pin (lengths for the cut list)."""
     return [c["a"]] + h["path"] + [c["b"]]
+
+def harness_record(h):
+    """One harness as it goes into wiring_data.json. ONE definition on purpose.
+
+    Two scripts write that file - dump_wiring.py and export_viewer_real.py - and their field lists
+    had drifted: the viewer one omitted `awg` and `slack` and measured L without the slack. Whichever
+    ran second won, so after a viewer export elec/can_ground_check.py died on KeyError 'awg' (and
+    check.sh scored it a pass, because the command was piped into tail). Both now call this.
+    """
+    return dict(name=h["name"], desc=h["desc"], a_conn=h["a_conn"], b_conn=h["b_conn"], dia=h["dia"],
+                slack=h.get("slack", 0),
+                path=[[round(v, 2) for v in p] for p in h["path"]],
+                conds=[dict(sig=c["sig"], col=c["col"], d=c["d"], awg=c["awg"],
+                            a=[round(v, 2) for v in c["a"]], b=[round(v, 2) for v in c["b"]],
+                            a_lbl=c["a_lbl"], b_lbl=c["b_lbl"],
+                            L=round((length(conductor_path(h, c)) + h.get("slack", 0)) / 10, 1))
+                       for c in h["conds"]])
 
 def connectors():
     """Mated plug housings / boards at the harness ends: (label, shape, colour)."""

@@ -210,7 +210,9 @@ def perfboard(x, y):
         for e in ('a', 'b'):
             if w_[e][0] == m and w_[e][1].startswith('J'): names[w_[e][1]] = 1
     lab = {'J1': ['5V', 'GND'], 'J2': ['5V', 'IO10', 'ECHO', 'GND'], 'J3': ['3V3', 'GND', 'IO9', 'IO8'], 'J4': ['5V', 'DIN', 'GND'],
-           'J5': ['5V', 'GND', 'TX', 'RX', 'EYE'], 'J6': ['IO12', 'R', 'G', 'B', 'GND'], 'J7': ['VBAT', 'DOCK', 'USB'], 'J8': ['3V3', 'GND', 'IR13', 'IR14', 'IR15', 'IR16'], 'J9': ['OFF']}
+           'J5': ['5V', 'GND', 'TX', 'RX', 'EYE'], 'J6': ['IO12', 'R', 'G', 'B', 'GND'], 'J7': ['VBAT', 'DOCK', 'USB'], 'J8': ['3V3', 'GND', 'IR13', 'IR14', 'IR15', 'IR16'], 'J9': ['OFF'],
+           # J2T takes J2's place when the zone array is fitted instead of the sonar
+           'J2T': ['3V3', 'GND', 'SDA', 'SCL', 'LPn', 'INT']}
     for J, (k, j, n, pstep, hh, kind) in PL.PLUGS.items():
         y0, z0 = PL.hole(k, j); y1, _ = PL.hole(k + (n - 1) * pstep, j)
         xt = kind.startswith('XT30')
@@ -312,6 +314,20 @@ def imu(x, y):
     for i, (n, l) in enumerate([('VCC', 'VCC'), ('GND', 'GND'), ('SCL', 'SCL'), ('SDA', 'SDA'), ('XDA', 'XDA'), ('XCL', 'XCL'), ('AD0', 'AD0'), ('INT', 'INT')]):
         b += pin(m, n, x + 10, y + 12 + i * 12.5, 'l', None, used=(i < 4)) + text(x + 19, y + 15.5 + i * 12.5, l, 8, '#cfd8ff')
     b += title(x, y - 8, "IMU GY-521 (MPU-6050)")
+    g(m, b)
+
+
+def zone_array(x, y):
+    """VL53L5CX carrier: fitted INSTEAD of the sonar, high on the panel and looking 30 deg down."""
+    m = "Zone array (VL53L5CX)"
+    b = rect(x, y, 150, 92, '#8d1b4a', 4)
+    b += rect(x + 46, y + 20, 58, 34, '#20252b', 3, '#555')          # the module itself
+    for r in range(4):                                                # a hint of the 8 x 8 grid
+        for c in range(4):
+            b += rect(x + 52 + c * 13, y + 25 + r * 7, 9, 5, '#c2185b', 1)
+    for i, n in enumerate(['VIN', 'GND', 'SDA', 'SCL', 'LPn', 'INT']):
+        b += pin(m, n, x + 24 + i * 20, y + 84, 'd', n)
+    b += title(x, y - 8, "VL53L5CX 8 x 8 zone array (alternative to the sonar)")
     g(m, b)
 
 
@@ -438,7 +454,7 @@ motor(150, 940, 'R'); motor(390, 940, 'L')
 perfboard(590, 40); canboard(1110, 60)
 pizero(600, 470); camera(1010, 740); junction(970, 480)
 ld19adapter(770, 740); ld19(820, 1010)
-armbutton(1330, 40); imu(1330, 170); sonar(1490, 160); eye(1340, 320, 'R', True); eye(1590, 320, 'L', False)
+armbutton(1330, 40); imu(1330, 170); sonar(1490, 160); zone_array(1490, 40); eye(1340, 320, 'R', True); eye(1590, 320, 'L', False)
 mic(1360, 540, 'L'); mic(1360, 680, 'R'); amp(1520, 560); speaker(1700, 640)
 headlight_driver(1360, 900); headlight(1620, 870, 'L'); headlight(1620, 1040, 'R')
 irrx(1180, 1150)

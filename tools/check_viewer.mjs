@@ -48,6 +48,22 @@ global.getComputedStyle = () => ({getPropertyValue: () => ''});
 
 const file = '/private/tmp/claude-502/-Users-tuan-data-projects-2-wheel-balanced-bot/b4c1c743-8a14-49ee-8c13-d1a132f33e0f/scratchpad/_viewer_run.mjs';
 fs.writeFileSync(file, src);
+// Running without throwing is not the same as showing the right robot: the page sat at the
+// previous build for days with the HC-SR04 in the nose and the zone array nowhere, and nothing
+// here would have said so. So assert the content too, on the text of the published page.
+const want = [
+  [/"name": ?"c_tof"/, 'the VL53L5CX zone array is in PARTS'],
+  [/\["VL53L5CX[^\]]*"c_tof"/, 'the zone array has an Inside-view label'],
+  [/let front='tof'/, "the front sensor shown by default is the array, not the sonar"],
+  [/Front: zone array/, 'the front-sensor toggle exists'],
+];
+const missing = want.filter(([re]) => !re.test(page)).map(([, w]) => w);
+if (missing.length) {
+  process.exitCode = 1;
+  console.log('CONTENT MISSING: ' + missing.join('; '));
+}
+console.log(`  front sensor shown = ${/let front='tof'/.test(page) ? 'VL53L5CX zone array' : 'HC-SR04 sonar'}`);
+
 try {
   await import('file://' + file);
   console.log('VIEWER MODULE RAN TO COMPLETION - no exception');

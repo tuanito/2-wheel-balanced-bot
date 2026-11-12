@@ -38,6 +38,9 @@ restore_artifacts() {                       # report drift, then put the origina
   done
 }
 
+# `bash -c` starts a fresh shell, which does NOT inherit the pipefail above: with `cmd | tail -3`
+# the status is tail's, so a crashing checker scored a pass. can_ground_check.py threw a KeyError
+# for a whole session that way. Every bash -c below is `bash -o pipefail -c` for that reason.
 run() {                                     # run <name> <command...>
   local name="$1"; shift
   printf '\n\033[1m== %s\033[0m\n' "$name"
@@ -55,12 +58,12 @@ if want firmware; then
 fi
 
 if want elec; then
-  run "elec: electrical rules check" bash -c "cd '$ROOT/elec' && '$PY' erc.py | tail -3"
+  run "elec: electrical rules check" bash -o pipefail -c "cd '$ROOT/elec' && '$PY' erc.py | tail -3"
   # test_erc.py calls erc.main(), which overwrites erc_report.json with the last
   # mutation case: re-run erc.py afterwards so the report matches the real wiring.
-  run "elec: 8 wiring mutation tests" bash -c "cd '$ROOT/elec' && '$PY' test_erc.py && '$PY' erc.py >/dev/null"
+  run "elec: 8 wiring mutation tests" bash -o pipefail -c "cd '$ROOT/elec' && '$PY' test_erc.py && '$PY' erc.py >/dev/null"
   if [ -f cad_src/case/wiring_data.json ] || [ -f elec/wiring_data.json ]; then
-    run "elec: CAN load and ground offset" bash -c "cd '$ROOT/elec' && '$PY' can_ground_check.py | tail -3"
+    run "elec: CAN load and ground offset" bash -o pipefail -c "cd '$ROOT/elec' && '$PY' can_ground_check.py | tail -3"
   else
     SKIP+=("elec: CAN load and ground offset (needs wiring_data.json: cad_src/rebuild.sh)")
   fi
@@ -68,7 +71,7 @@ fi
 
 if want pi; then
   if "$PY" -c "import pytest, aiohttp" 2>/dev/null; then
-    run "pi: software test suite" bash -c "cd '$ROOT/pi' && '$PY' -m pytest -q tests"
+    run "pi: software test suite" bash -o pipefail -c "cd '$ROOT/pi' && '$PY' -m pytest -q tests"
   else
     SKIP+=("pi: software test suite (pip install 'pytest>=8' pytest-aiohttp)")
   fi
@@ -79,7 +82,7 @@ if want site; then
   # way that produces a blank canvas and no visible error. tools/artifact_page.py builds the
   # self-contained copy, tools/check_viewer.mjs executes it against a DOM stub.
   if command -v node >/dev/null 2>&1; then
-    run "site: 3D viewer builds and runs" bash -c "cd '$ROOT' && '$PY' tools/artifact_page.py '$SNAP/viewer.html' >/dev/null && node tools/check_viewer.mjs '$SNAP/viewer.html' | grep -q 'RAN TO COMPLETION'"
+    run "site: 3D viewer builds and runs" bash -o pipefail -c "cd '$ROOT' && '$PY' tools/artifact_page.py '$SNAP/viewer.html' >/dev/null && node tools/check_viewer.mjs '$SNAP/viewer.html' | grep -q 'RAN TO COMPLETION'"
   else
     SKIP+=("site: 3D viewer (no node)")
   fi
@@ -88,8 +91,8 @@ fi
 if want sim; then
   run "sim: build the controller library" core/build_lib.sh
   if "$PY" -c "import mujoco" 2>/dev/null; then
-    run "sim: regenerate the MuJoCo models" bash -c "cd '$ROOT/sim' && '$PY' build_model.py && '$PY' build_model.py --arena"
-    run "sim: 30 randomised robots" bash -c "cd '$ROOT/sim' && '$PY' run_tests.py >/dev/null && '$PY' -c \"
+    run "sim: regenerate the MuJoCo models" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' build_model.py && '$PY' build_model.py --arena"
+    run "sim: 30 randomised robots" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' run_tests.py >/dev/null && '$PY' -c \"
 import json; r = json.load(open('results/report.json'))
 for k in ('stand-up from face-down', 'stand-up from back-down'): print(f'  {k}: {r[k][\\\"success\\\"]}')
 print('  balance push recovery:', r['balance 10 s (randomised)']['push_recovered'])\""

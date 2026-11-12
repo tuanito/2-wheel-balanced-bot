@@ -33,7 +33,13 @@ def head(title, h1, sub, page, extra=""):
 
 # ---------- 1. software zip (with INSTALL.md + updated README) ----------
 shutil.rmtree("/tmp/swz", ignore_errors=True); os.makedirs("/tmp/swz")
-shutil.copytree(RP.REPO, SRC, symlinks=True)
+# What must NOT be copied, and why. This used to be a plain copytree of the whole working tree,
+# which quietly swept in .venv (~2.4 GB, so the build took minutes and the zip was nonsense) and
+# models/bought - the vendor STEP models, which are not ours to redistribute (the MF6015 one comes
+# from the LKMTECH product page). The zip is published, so this list is a licence matter, not tidiness.
+SKIP = {".git", ".venv", "venv", "env", "node_modules", "__pycache__", ".pytest_cache",
+        ".mypy_cache", ".ruff_cache", ".DS_Store", "bought"}
+shutil.copytree(RP.REPO, SRC, symlinks=True, ignore=lambda d, names: {n for n in names if n in SKIP})
 for d in ["firmware/esp32/.pio", "cad", "sim/results/dock_frames", "sim/results/undock_frames", "sim/results/frames"]:   # CAD files: in V1.1_print_files.zip
     shutil.rmtree(os.path.join(SRC, d), ignore_errors=True)
 for root, dirs, files in os.walk(SRC):

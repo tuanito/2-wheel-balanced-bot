@@ -107,6 +107,18 @@ def real_parts():
     so = load("hc_sr04_freecadlib.step")
     P["HC-SR04 sonar"] = (place(so, ("z", "x", "y"), (0, 0, bc.SONAR_PCB_TOP), (bc.X_IN_F - bc.SONAR_POST, 0, bc.SONAR_Z), name="HC-SR04 sonar"),
                           "STEP FreeCAD-library (community, 'original size')", 9)
+    # VL53L5CX zone array: the alternative to the sonar, on the 30 deg seat high on the front panel.
+    # No vendor STEP exists for the carrier, so this is its outline from the Pololu #3417 drawing
+    # (13 x 18 x 3, sensor centred), built flat and then tipped onto the seat. Height is the whole
+    # reason it sits up here: a ray only reaches the first tread while D < h * tread / rise.
+    t = math.radians(bc.TOF_TILT)
+    tof = (box(-6.5, 6.5, -9.0, 9.0, 0.0, 3.0)        # 13 x 18 x 3, not the seat pad's size
+           .rotate(cq.Vector(0, 0, 0), cq.Vector(0, 1, 0), -bc.TOF_TILT))
+    seat = (bc.X_IN_F - bc.TOF_SEAT * math.cos(t), 0.0, bc.TOF_Z + bc.TOF_SEAT * math.sin(t))
+    bb = tof.BoundingBox()
+    P["VL53L5CX zone array"] = (tof.translate((seat[0] - bb.xmax, seat[1] - (bb.ymin + bb.ymax) / 2,
+                                               seat[2] - (bb.zmin + bb.zmax) / 2)),
+                                "Pololu #3417 carrier outline (13 x 18 x 3), tilted 30 deg down", 2)
     # microphones: port (under the mic package) on the panel hole; board bottom in the pocket floor
     mic = load("adafruit_6049_ics43434.step")
     for s, nm in ((1, "L"), (-1, "R")):

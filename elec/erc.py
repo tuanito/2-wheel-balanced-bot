@@ -220,17 +220,11 @@ def check_firmware_map(uf, nets):
               'PIN_LED_R': node(N.BTN, 'RGB LED R'), 'PIN_LED_G': node(N.BTN, 'RGB LED G'), 'PIN_LED_B': node(N.BTN, 'RGB LED B'),
               'PIN_PWR_OFF': node(N.KEY, 'OFF'), 'PIN_IR_FL': node(N.IRR, 'front-left OUT'), 'PIN_IR_FR': node(N.IRR, 'front-right OUT'),
               'PIN_IR_BL': node(N.IRR, 'back-left OUT'), 'PIN_IR_BR': node(N.IRR, 'back-right OUT'),
+              'PIN_TOF_SDA': node(N.TOF, 'SDA'), 'PIN_TOF_SCL': node(N.TOF, 'SCL'),
+              'PIN_TOF_LPN': node(N.TOF, 'LPn'), 'PIN_TOF_INT': node(N.TOF, 'INT'),
               'PIN_VBAT': 'battery +', 'PIN_DOCK_SENSE': 'dock pad + (before the diode)', 'PIN_USB_SENSE': 'IP2368 VBUS'}
-    # The robot carries ONE front sensor: the HC-SR04, or the VL53L5CX zone array in its place. The
-    # netlist describes the fitted one, so config.h's pins for the other build have nothing to reach
-    # and demanding a wire for them would be a false error. They still go through the strapping, USB
-    # and PSRAM checks below - which is exactly what caught an attempt to put the array on GPIO35-37.
-    ALT_FRONT = {'PIN_TOF_SDA', 'PIN_TOF_SCL', 'PIN_TOF_LPN', 'PIN_TOF_INT'}
     rows = []
     for k, g in sorted(pins.items(), key=lambda x: x[1]):
-        if k in ALT_FRONT:
-            rows.append(dict(pin=k, gpio=g, expect='alternative front sensor (not fitted)', ok=True))
-            continue
         n = node(N.PB, f"ESP.GPIO{g}")
         ends = device_ends(uf, nets, n)
         # follow the divider for the echo input
@@ -246,10 +240,8 @@ def check_firmware_map(uf, nets):
         elif not ok:
             F('ERROR', 'firmware pin map', f"GPIO{g} ({k}) should reach {want}; it reaches {sorted(ends)}.")
         rows.append(dict(pin=k, gpio=g, expect=want, ok=ok))
-    alt = sorted(f"GPIO{g}" for k, g in pins.items() if k in ALT_FRONT)
-    if alt:
-        F('INFO', 'firmware pin map', f"VL53L5CX pins declared for the FRONT_TOF build ({', '.join(alt)}): "
-          f"not wired on a robot carrying the HC-SR04.")
+    # Both front sensors are now modelled - the robot carries one or the other, and the netlist
+    # carries both harnesses - so every pin is checked like any other rather than skipped.
     strap = {0, 3, 45, 46}; usb = {19, 20}; psram = {35, 36, 37}
     for k, g in pins.items():
         if g in strap: F('WARN', 'firmware pin map', f"{k} uses strapping pin GPIO{g}.")

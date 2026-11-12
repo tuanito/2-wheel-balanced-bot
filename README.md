@@ -161,6 +161,7 @@ Every conductor is modelled end to end, with its plug at each end. Lengths are a
 | CAN bus -> motor L (branch) | 2: CAN-H, CAN-L | Motor R plug | Motor L main plug | 6 cm |
 | Perfboard J3 -> IMU | 4: 3V3, GND, SCL (GPIO9), SDA (GPIO8) | Perfboard J3 | GY-521 header (Dupont) | 17 cm |
 | Perfboard J2 -> sonar | 4: 5 V, TRIG (GPIO10), ECHO (GPIO11 via 1k/2k), GND | Perfboard J2 | HC-SR04 header (Dupont) | 7 cm |
+| Perfboard J2T -> zone array (instead of the sonar) | 6: 3V3, GND, SDA (GPIO42), SCL (GPIO41), LPn (GPIO2), INT (GPIO47) | Perfboard J2T | VL53L5CX carrier header (Dupont) | 9 cm |
 | Perfboard J4 -> eye R | 3: 5 V, DIN (via 330 ohm), GND | Perfboard J4 | Eye R panel pads (through the retainer's wire pass) | 8 cm |
 | Eye R -> eye L (chain) | 3: 5 V, DOUT -> DIN, GND | Eye R output pads | Eye L input pads | 7 cm |
 | Pi I2S -> I2S junction | 7: BCLK (GPIO18), WS/LRCLK (GPIO19), Mic DOUT -> Pi DIN (GPIO20), Amp DIN (GPIO21), 3V3, 5 V (amp), GND | Pi GPIO header (Dupont) | I2S junction board (on the battery) | 6 cm |
@@ -332,6 +333,13 @@ Each run varies the parameters you can't know exactly before building: mass ±8 
 - **Scan matching corrects heading only.**
   - Wheel odometry was good for distance. Letting the matcher also shift position made the map worse in tests.
 - **The sonar sees what the lidar can't.** An 18 cm post below the 21 cm scan plane is still avoided.
+- **The front aperture takes one sensor, and it is a choice.** `FRONT_SENSOR` in `firmware/esp32/include/config.h`
+  selects the HC-SR04 (`FRONT_SONAR`) or a VL53L5CX 8 x 8 zone array (`FRONT_TOF`), 194 mm up on a 30 deg seat in
+  the same mouth. The sonar gives one range over a 30 deg cone, so it can say *the floor ended* but never *where*;
+  each of the array's 64 zones has a known elevation, so it also gives `drop_m` - how far ahead the floor stops -
+  and a riser height to about 13 mm standing still. That is what the step-down manoeuvre needs. The array runs on
+  its OWN I2C bus at 1 MHz (the IMU's is capped at 400 kHz and a full 8 x 8 frame is ~51 kB/s at 15 Hz) and is read
+  on core 0 at 15 Hz, so the 500 Hz balance loop on core 1 never waits on it.
 - **Gyro bias is learned whenever the robot is still** (at boot, lying down, or charging).
 
 ## Before the first power-up (bench checklist)

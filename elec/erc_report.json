@@ -2,12 +2,6 @@
  "findings": [
   {
    "sev": "INFO",
-   "check": "firmware pin map",
-   "msg": "VL53L5CX pins declared for the FRONT_TOF build (GPIO2, GPIO41, GPIO42, GPIO47): not wired on a robot carrying the HC-SR04.",
-   "fix": ""
-  },
-  {
-   "sev": "INFO",
    "check": "VL53L5CX build",
    "msg": "FRONT_TOF build: SDA GPIO42, SCL GPIO41, LPn GPIO2, INT GPIO47, 3.3 V (NOT the HC-SR04's 5 V feed), ~100 mA while ranging on the DevKit LDO, I2C address 0x52 (the MPU6050 is 0x68: no clash).",
    "fix": ""
@@ -66,9 +60,9 @@
   {
    "src": "Perfboard: ESP32-S3 + level shifter::ESP.3V3",
    "label": "DevKitC 3.3 V LDO (budget left for add-ons)",
-   "A": 0.02,
+   "A": 0.12,
    "max": 0.5,
-   "pct": 3
+   "pct": 23
   },
   {
    "src": "5 V regulator (D24V50F5)::VOUT",
@@ -568,6 +562,72 @@
   },
   {
    "i": 40,
+   "harness": "Perfboard J2T -> zone array",
+   "sig": "3V3",
+   "awg": 26,
+   "A": 0.1,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 41,
+   "harness": "Perfboard J2T -> zone array",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.1,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 42,
+   "harness": "Perfboard J2T -> zone array",
+   "sig": "SDA (GPIO42)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 43,
+   "harness": "Perfboard J2T -> zone array",
+   "sig": "SCL (GPIO41)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 44,
+   "harness": "Perfboard J2T -> zone array",
+   "sig": "LPn (GPIO2)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 45,
+   "harness": "Perfboard J2T -> zone array",
+   "sig": "INT (GPIO47)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "2.54 mm header + plug (3.0 A)"
+   ]
+  },
+  {
+   "i": 46,
    "harness": "Perfboard J4 -> eye R",
    "sig": "5 V",
    "awg": 26,
@@ -579,7 +639,7 @@
    ]
   },
   {
-   "i": 41,
+   "i": 47,
    "harness": "Perfboard J4 -> eye R",
    "sig": "DIN (via 330 ohm)",
    "awg": 26,
@@ -591,7 +651,7 @@
    ]
   },
   {
-   "i": 42,
+   "i": 48,
    "harness": "Perfboard J4 -> eye R",
    "sig": "GND",
    "awg": 26,
@@ -603,7 +663,7 @@
    ]
   },
   {
-   "i": 43,
+   "i": 49,
    "harness": "Eye R -> eye L (chain)",
    "sig": "5 V",
    "awg": 26,
@@ -615,7 +675,7 @@
    ]
   },
   {
-   "i": 44,
+   "i": 50,
    "harness": "Eye R -> eye L (chain)",
    "sig": "DOUT -> DIN",
    "awg": 26,
@@ -627,7 +687,7 @@
    ]
   },
   {
-   "i": 45,
+   "i": 51,
    "harness": "Eye R -> eye L (chain)",
    "sig": "GND",
    "awg": 26,
@@ -639,7 +699,7 @@
    ]
   },
   {
-   "i": 46,
+   "i": 52,
    "harness": "Pi I2S -> I2S junction",
    "sig": "BCLK (GPIO18)",
    "awg": 26,
@@ -651,7 +711,7 @@
    ]
   },
   {
-   "i": 47,
+   "i": 53,
    "harness": "Pi I2S -> I2S junction",
    "sig": "WS/LRCLK (GPIO19)",
    "awg": 26,
@@ -663,7 +723,7 @@
    ]
   },
   {
-   "i": 48,
+   "i": 54,
    "harness": "Pi I2S -> I2S junction",
    "sig": "Mic DOUT -> Pi DIN (GPIO20)",
    "awg": 26,
@@ -675,7 +735,7 @@
    ]
   },
   {
-   "i": 49,
+   "i": 55,
    "harness": "Pi I2S -> I2S junction",
    "sig": "Amp DIN (GPIO21)",
    "awg": 26,
@@ -687,7 +747,7 @@
    ]
   },
   {
-   "i": 50,
+   "i": 56,
    "harness": "Pi I2S -> I2S junction",
    "sig": "3V3",
    "awg": 26,
@@ -699,7 +759,7 @@
    ]
   },
   {
-   "i": 51,
+   "i": 57,
    "harness": "Pi I2S -> I2S junction",
    "sig": "5 V (amp)",
    "awg": 24,
@@ -711,7 +771,7 @@
    ]
   },
   {
-   "i": 52,
+   "i": 58,
    "harness": "Pi I2S -> I2S junction",
    "sig": "GND",
    "awg": 24,
@@ -723,80 +783,8 @@
    ]
   },
   {
-   "i": 53,
-   "harness": "I2S junction -> mic L",
-   "sig": "3V",
-   "awg": 26,
-   "A": 0.0,
-   "awg_A": 3.0,
-   "conn": [
-    "solder (99 A)",
-    "solder (99 A)"
-   ]
-  },
-  {
-   "i": 54,
-   "harness": "I2S junction -> mic L",
-   "sig": "GND",
-   "awg": 26,
-   "A": 0.0,
-   "awg_A": 3.0,
-   "conn": [
-    "solder (99 A)",
-    "solder (99 A)"
-   ]
-  },
-  {
-   "i": 55,
-   "harness": "I2S junction -> mic L",
-   "sig": "BCLK",
-   "awg": 26,
-   "A": 0.0,
-   "awg_A": 3.0,
-   "conn": [
-    "solder (99 A)",
-    "solder (99 A)"
-   ]
-  },
-  {
-   "i": 56,
-   "harness": "I2S junction -> mic L",
-   "sig": "DOUT",
-   "awg": 26,
-   "A": 0.0,
-   "awg_A": 3.0,
-   "conn": [
-    "solder (99 A)",
-    "solder (99 A)"
-   ]
-  },
-  {
-   "i": 57,
-   "harness": "I2S junction -> mic L",
-   "sig": "WS",
-   "awg": 26,
-   "A": 0.0,
-   "awg_A": 3.0,
-   "conn": [
-    "solder (99 A)",
-    "solder (99 A)"
-   ]
-  },
-  {
-   "i": 58,
-   "harness": "I2S junction -> mic L",
-   "sig": "SEL -> GND (left)",
-   "awg": 26,
-   "A": 0.0,
-   "awg_A": 3.0,
-   "conn": [
-    "solder (99 A)",
-    "solder (99 A)"
-   ]
-  },
-  {
    "i": 59,
-   "harness": "I2S junction -> mic R",
+   "harness": "I2S junction -> mic L",
    "sig": "3V",
    "awg": 26,
    "A": 0.0,
@@ -808,7 +796,7 @@
   },
   {
    "i": 60,
-   "harness": "I2S junction -> mic R",
+   "harness": "I2S junction -> mic L",
    "sig": "GND",
    "awg": 26,
    "A": 0.0,
@@ -820,7 +808,7 @@
   },
   {
    "i": 61,
-   "harness": "I2S junction -> mic R",
+   "harness": "I2S junction -> mic L",
    "sig": "BCLK",
    "awg": 26,
    "A": 0.0,
@@ -832,7 +820,7 @@
   },
   {
    "i": 62,
-   "harness": "I2S junction -> mic R",
+   "harness": "I2S junction -> mic L",
    "sig": "DOUT",
    "awg": 26,
    "A": 0.0,
@@ -844,7 +832,7 @@
   },
   {
    "i": 63,
-   "harness": "I2S junction -> mic R",
+   "harness": "I2S junction -> mic L",
    "sig": "WS",
    "awg": 26,
    "A": 0.0,
@@ -856,6 +844,78 @@
   },
   {
    "i": 64,
+   "harness": "I2S junction -> mic L",
+   "sig": "SEL -> GND (left)",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 65,
+   "harness": "I2S junction -> mic R",
+   "sig": "3V",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 66,
+   "harness": "I2S junction -> mic R",
+   "sig": "GND",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 67,
+   "harness": "I2S junction -> mic R",
+   "sig": "BCLK",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 68,
+   "harness": "I2S junction -> mic R",
+   "sig": "DOUT",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 69,
+   "harness": "I2S junction -> mic R",
+   "sig": "WS",
+   "awg": 26,
+   "A": 0.0,
+   "awg_A": 3.0,
+   "conn": [
+    "solder (99 A)",
+    "solder (99 A)"
+   ]
+  },
+  {
+   "i": 70,
    "harness": "I2S junction -> mic R",
    "sig": "SEL -> 3V3 (right)",
    "awg": 26,
@@ -867,7 +927,7 @@
    ]
   },
   {
-   "i": 65,
+   "i": 71,
    "harness": "I2S junction -> amp",
    "sig": "LRC (WS)",
    "awg": 26,
@@ -879,7 +939,7 @@
    ]
   },
   {
-   "i": 66,
+   "i": 72,
    "harness": "I2S junction -> amp",
    "sig": "BCLK",
    "awg": 26,
@@ -891,7 +951,7 @@
    ]
   },
   {
-   "i": 67,
+   "i": 73,
    "harness": "I2S junction -> amp",
    "sig": "DIN",
    "awg": 26,
@@ -903,7 +963,7 @@
    ]
   },
   {
-   "i": 68,
+   "i": 74,
    "harness": "I2S junction -> amp",
    "sig": "GND",
    "awg": 24,
@@ -915,7 +975,7 @@
    ]
   },
   {
-   "i": 69,
+   "i": 75,
    "harness": "I2S junction -> amp",
    "sig": "5 V",
    "awg": 24,
@@ -927,7 +987,7 @@
    ]
   },
   {
-   "i": 70,
+   "i": 76,
    "harness": "Amp -> speaker",
    "sig": "SPK+",
    "awg": 24,
@@ -938,7 +998,7 @@
    ]
   },
   {
-   "i": 71,
+   "i": 77,
    "harness": "Amp -> speaker",
    "sig": "SPK-",
    "awg": 24,
@@ -949,7 +1009,7 @@
    ]
   },
   {
-   "i": 72,
+   "i": 78,
    "harness": "Camera FPC (22 -> 15 pin)",
    "sig": "FPC (15/22 conductors)",
    "awg": 22,
@@ -958,7 +1018,7 @@
    "conn": []
   },
   {
-   "i": 73,
+   "i": 79,
    "harness": "Pi OTG -> LD19 USB adapter",
    "sig": "USB (90\u00b0 OTG cable)",
    "awg": 16,
@@ -967,7 +1027,7 @@
    "conn": []
   },
   {
-   "i": 74,
+   "i": 80,
    "harness": "LD19 -> USB adapter",
    "sig": "P5V",
    "awg": 28,
@@ -976,7 +1036,7 @@
    "conn": []
   },
   {
-   "i": 75,
+   "i": 81,
    "harness": "LD19 -> USB adapter",
    "sig": "GND",
    "awg": 28,
@@ -985,7 +1045,7 @@
    "conn": []
   },
   {
-   "i": 76,
+   "i": 82,
    "harness": "LD19 -> USB adapter",
    "sig": "Tx",
    "awg": 28,
@@ -994,7 +1054,7 @@
    "conn": []
   },
   {
-   "i": 77,
+   "i": 83,
    "harness": "LD19 -> USB adapter",
    "sig": "PWM",
    "awg": 28,
@@ -1003,7 +1063,7 @@
    "conn": []
   },
   {
-   "i": 78,
+   "i": 84,
    "harness": "Dock pads -> diode + fuse",
    "sig": "Pad + (charge in)",
    "awg": 22,
@@ -1012,7 +1072,7 @@
    "conn": []
   },
   {
-   "i": 79,
+   "i": 85,
    "harness": "Dock pads -> diode + fuse",
    "sig": "Pad -",
    "awg": 22,
@@ -1021,7 +1081,7 @@
    "conn": []
   },
   {
-   "i": 80,
+   "i": 86,
    "harness": "Diode -> BMS P",
    "sig": "SB560 cathode -> P+",
    "awg": 22,
@@ -1032,7 +1092,7 @@
    ]
   },
   {
-   "i": 81,
+   "i": 87,
    "harness": "Diode -> BMS P",
    "sig": "P-",
    "awg": 22,
@@ -1043,7 +1103,7 @@
    ]
   },
   {
-   "i": 82,
+   "i": 88,
    "harness": "IP2368 <-> side USB-C",
    "sig": "USB-C cable (CAB-15455)",
    "awg": 16,
@@ -1052,7 +1112,7 @@
    "conn": []
   },
   {
-   "i": 83,
+   "i": 89,
    "harness": "IP2368 -> BMS P",
    "sig": "BAT+",
    "awg": 20,
@@ -1063,7 +1123,7 @@
    ]
   },
   {
-   "i": 84,
+   "i": 90,
    "harness": "IP2368 -> BMS P",
    "sig": "BAT-",
    "awg": 20,
@@ -1074,7 +1134,7 @@
    ]
   },
   {
-   "i": 85,
+   "i": 91,
    "harness": "Arm button + LED -> perfboard J6",
    "sig": "Button (GPIO12)",
    "awg": 26,
@@ -1085,7 +1145,7 @@
    ]
   },
   {
-   "i": 86,
+   "i": 92,
    "harness": "Arm button + LED -> perfboard J6",
    "sig": "LED R (GPIO38)",
    "awg": 26,
@@ -1096,7 +1156,7 @@
    ]
   },
   {
-   "i": 87,
+   "i": 93,
    "harness": "Arm button + LED -> perfboard J6",
    "sig": "LED G (GPIO39)",
    "awg": 26,
@@ -1107,7 +1167,7 @@
    ]
   },
   {
-   "i": 88,
+   "i": 94,
    "harness": "Arm button + LED -> perfboard J6",
    "sig": "LED B (GPIO40)",
    "awg": 26,
@@ -1118,7 +1178,7 @@
    ]
   },
   {
-   "i": 89,
+   "i": 95,
    "harness": "Arm button + LED -> perfboard J6",
    "sig": "GND",
    "awg": 26,
@@ -1129,7 +1189,7 @@
    ]
   },
   {
-   "i": 90,
+   "i": 96,
    "harness": "IR receivers -> perfboard J8",
    "sig": "3V3 (VS, chained to all 4)",
    "awg": 28,
@@ -1140,7 +1200,7 @@
    ]
   },
   {
-   "i": 91,
+   "i": 97,
    "harness": "IR receivers -> perfboard J8",
    "sig": "GND (chained to all 4)",
    "awg": 28,
@@ -1151,7 +1211,7 @@
    ]
   },
   {
-   "i": 92,
+   "i": 98,
    "harness": "IR receivers -> perfboard J8",
    "sig": "IR front-left (GPIO13)",
    "awg": 28,
@@ -1162,7 +1222,7 @@
    ]
   },
   {
-   "i": 93,
+   "i": 99,
    "harness": "IR receivers -> perfboard J8",
    "sig": "IR front-right (GPIO14)",
    "awg": 28,
@@ -1173,7 +1233,7 @@
    ]
   },
   {
-   "i": 94,
+   "i": 100,
    "harness": "IR receivers -> perfboard J8",
    "sig": "IR back-left (GPIO15)",
    "awg": 28,
@@ -1184,7 +1244,7 @@
    ]
   },
   {
-   "i": 95,
+   "i": 101,
    "harness": "IR receivers -> perfboard J8",
    "sig": "IR back-right (GPIO16)",
    "awg": 28,
@@ -1195,7 +1255,7 @@
    ]
   },
   {
-   "i": 96,
+   "i": 102,
    "harness": "VBAT sense -> perfboard J7",
    "sig": "VBAT sense (switched BAT+)",
    "awg": 26,
@@ -1206,7 +1266,7 @@
    ]
   },
   {
-   "i": 97,
+   "i": 103,
    "harness": "Dock sense -> perfboard J7",
    "sig": "Dock sense (pad +, before the diode)",
    "awg": 26,
@@ -1217,7 +1277,7 @@
    ]
   },
   {
-   "i": 98,
+   "i": 104,
    "harness": "USB sense -> perfboard J7",
    "sig": "USB VBUS sense",
    "awg": 26,
@@ -1228,7 +1288,7 @@
    ]
   },
   {
-   "i": 99,
+   "i": 105,
    "harness": "PDB -> headlight driver",
    "sig": "VIN (1 A inline fuse)",
    "awg": 22,
@@ -1240,7 +1300,7 @@
    ]
   },
   {
-   "i": 100,
+   "i": 106,
    "harness": "PDB -> headlight driver",
    "sig": "GND",
    "awg": 22,
@@ -1252,7 +1312,7 @@
    ]
   },
   {
-   "i": 101,
+   "i": 107,
    "harness": "Pi -> headlight driver (PWM)",
    "sig": "PWM (GPIO12)",
    "awg": 26,
@@ -1264,7 +1324,7 @@
    ]
   },
   {
-   "i": 102,
+   "i": 108,
    "harness": "Pi -> headlight driver (PWM)",
    "sig": "GND",
    "awg": 26,
@@ -1276,7 +1336,7 @@
    ]
   },
   {
-   "i": 103,
+   "i": 109,
    "harness": "Headlight driver -> headlight R",
    "sig": "+12 V",
    "awg": 24,
@@ -1288,7 +1348,7 @@
    ]
   },
   {
-   "i": 104,
+   "i": 110,
    "harness": "Headlight driver -> headlight R",
    "sig": "switched -",
    "awg": 24,
@@ -1300,7 +1360,7 @@
    ]
   },
   {
-   "i": 105,
+   "i": 111,
    "harness": "Headlight driver -> headlight L",
    "sig": "+12 V",
    "awg": 24,
@@ -1312,7 +1372,7 @@
    ]
   },
   {
-   "i": 106,
+   "i": 112,
    "harness": "Headlight driver -> headlight L",
    "sig": "switched -",
    "awg": 24,
@@ -1425,6 +1485,15 @@
    "gnd": true
   },
   {
+   "pin": "Zone array (VL53L5CX)::VIN",
+   "V": 3.3,
+   "range": [
+    2.8,
+    5.5
+   ],
+   "gnd": true
+  },
+  {
    "pin": "Eye R (8x8 WS2812)::5V",
    "V": 5.0,
    "range": [
@@ -1516,7 +1585,7 @@
   {
    "pin": "PIN_TOF_LPN",
    "gpio": 2,
-   "expect": "alternative front sensor (not fitted)",
+   "expect": "Zone array (VL53L5CX)::LPn",
    "ok": true
   },
   {
@@ -1636,19 +1705,19 @@
   {
    "pin": "PIN_TOF_SCL",
    "gpio": 41,
-   "expect": "alternative front sensor (not fitted)",
+   "expect": "Zone array (VL53L5CX)::SCL",
    "ok": true
   },
   {
    "pin": "PIN_TOF_SDA",
    "gpio": 42,
-   "expect": "alternative front sensor (not fitted)",
+   "expect": "Zone array (VL53L5CX)::SDA",
    "ok": true
   },
   {
    "pin": "PIN_TOF_INT",
    "gpio": 47,
-   "expect": "alternative front sensor (not fitted)",
+   "expect": "Zone array (VL53L5CX)::INT",
    "ok": true
   }
  ],
@@ -1761,8 +1830,8 @@
   }
  ],
  "echo_at_gpio11": 3.3333333333333335,
- "nets": 45,
- "wires_n": 107,
- "pins_n": 215,
+ "nets": 49,
+ "wires_n": 113,
+ "pins_n": 231,
  "key_fix_applied": false
 }

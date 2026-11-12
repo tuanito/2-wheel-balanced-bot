@@ -26,6 +26,10 @@ def hole(k, j):
 # CAN board standing on spacers over k 0-11 (y -64..-31, z 81-91).
 PLUGS = {
     "J2": (12, 0, 4, 1, 8.5, "2.54 header + Dupont"),
+    # The zone array is fitted INSTEAD of the sonar, so it takes the sonar's place on the board with
+    # a 6-pin housing: k 12..17 is exactly six holes before J1 at k 18. Only one of J2 / J2T is
+    # populated on a given robot.
+    "J2T": (12, 0, 6, 1, 8.5, "2.54 header + Dupont"),
     "J1": (18, 0, 2, 2, 8.0, "XT30PW right-angle PCB plug (15 A)"),
     "J7": (12, 3, 3, 1, 8.5, "2.54 header + Dupont"),
     "J5": (17, 3, 5, 1, 8.5, "2.54 header + Dupont"),

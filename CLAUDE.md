@@ -224,6 +224,17 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 - **`build_model.py --stairs` landings are finite.** The landing runs from `edge - 3.0` to `edge`, so a
   script that reverses for a second or two can drive off the BACK of it, and that reads exactly like
   falling over. Two of the nod-cost measurements were wrong that way before the start was moved forward.
+- **Two scripts wrote `wiring_data.json` with different fields.** `dump_wiring.py` included `awg`
+  and `slack`; `export_viewer_real.py` did not, and measured `L` without the slack. Whichever ran
+  second won, so after a viewer export `elec/can_ground_check.py` died on `KeyError: 'awg'` - and
+  **`check.sh` scored it a pass**, because the command was `python can_ground_check.py | tail -3`
+  and `bash -c` does not inherit the script's `pipefail`, so the status was tail's. Both now call
+  `wiring.harness_record()`, and every `bash -c` in `check.sh` is `bash -o pipefail -c`. Any new
+  piped check has to be too, or a crash reads as a pass.
+- **`site/build_docs.py` copies the working tree to build the published software zip**, so anything
+  sitting in the repo goes out with it. It swept in `.venv` (~2.4 GB, minutes of build time) and
+  `models/bought/` - the vendor STEP models, which are **not ours to redistribute**. It now has an
+  explicit skip list; keep licence-encumbered files out of it.
 - `mujoco` is pinned to `==4.0.0` in `ml/requirements.txt` because the committed `sim/results/report.json`
   is version-dependent. 4.0 split the distribution (mujoco-core + mujoco-studio) and an in-place upgrade
   from 3.x can delete files that moved: uninstall first. Verified: 4.0.0 reproduces the committed counts.
