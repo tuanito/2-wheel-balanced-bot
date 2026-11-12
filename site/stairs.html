@@ -349,6 +349,119 @@ the nearer you are, so the pitch needed to see past it rises: 41&ndash;50&deg; a
 is the lidar sitting 231 mm up, not the controller. A cheap time-of-flight sensor at ~80 mm would see
 the first tread from 600 mm with a 20&deg; nod and make the whole manoeuvre easy.</p>
 
+<h2>A sensor that does not need the nod</h2>
+<p class="sub">Every number above is limited by one thing. A ray reaches the first tread only if it
+clears the step nose and lands before the next one, which needs <b>D &lt; h &times; tread / rise</b>,
+and the landing hides everything below it short of the edge &mdash; so the vertical riser face is
+never visible from behind the edge, at any angle. The limit is the sensor's <b>height</b>. At the
+lidar's 231 mm a 170 mm riser is out of reach beyond 408 mm; at the sonar's 134 mm, beyond 237 mm.
+Mounting a depth sensor low would be the worst place for it.</p>
+<p class="note">A <b>VL53L5CX</b> does not reach further &mdash; it obeys the same geometry &mdash; it
+reaches <em>simultaneously</em>. The lidar has one scan plane and has to pitch the whole robot to put
+that plane inside the band, which costs travel towards the drop and is why the nod recipes answer a
+third of the time. 45&deg; of vertical field of view spans every angle in the band at once, so the
+robot stands still at 260 mm and the answer arrives at 15 Hz. Same 80 held-out staircases:</p>
+<div class="tw"><table><thead><tr><th>recipe</th><th>success</th><th>answers</th><th>riser error</th>
+<th>worst margin</th><th>fell or went over</th></tr></thead><tbody>
+<tr><td>flick, single-shot estimator</td><td class="m">0.362</td><td class="m">77/80</td>
+<td class="m">220 &plusmn; 304 mm</td><td class="m">&minus;65 mm</td><td class="m">15/80</td></tr>
+<tr><td>creep, wind, look, judge + sonar</td><td class="m">0.300</td><td class="m">27/80</td>
+<td class="m">8 &plusmn; 7 mm</td><td class="m">+75 mm</td><td class="m">0/80</td></tr>
+<tr><td><b>stand still + VL53L5CX</b></td><td class="m"><b>0.938</b></td><td class="m">80/80</td>
+<td class="m">13 &plusmn; 5 mm</td><td class="m">+185 mm</td><td class="m">0/80</td></tr>
+</tbody></table></div>
+<p class="note">That 0.938 is <em>after</em> modelling a zone as the cone it really is &mdash; five
+sub-rays per zone, nearest taken, as the part reports. One ray per zone centre deletes every mixed
+pixel from a problem that is entirely about a depth discontinuity, and flattered it to 1.000 at
+3.8 mm. The flattering number was the model, not the sensor.</p>
+
+<h2>Going down: 10 attempts at a single step</h2>
+<p class="sub">3 landed it. Mapping first, because it decides the shape of any descent: the
+occlusion condition for the <em>k</em>-th tread reduces to the same D &lt; h &times; tread / rise with
+no k in it, so a staircase is self-similar and anything that sees the first tread can geometrically
+see them all. What limits the map is resolution &mdash; 8 rows resolve about <b>2 to 2.5 treads</b>,
+the second to 25&ndash;30 mm. A one-step lookahead, not a flight.</p>
+<p class="note"><b>And it cannot take the step.</b> Judged on staying under 46&deg;, one step at a
+time: 25% at a 40 mm lip, 8% at 80 mm, <b>0% from 100 mm up</b>. The enemy is not the drop, it is the
+robot's own velocity loop: one axle means both wheels leave the ground together, and for ~150 ms the
+balance law servos against nothing &mdash; unloaded wheels run from 0.56 to 5.78 m/s in 50 ms and the
+reaction throws the body to 90&ndash;110&deg;. The accelerometer sees the whole event (|a| falls to
+~2 m/s&sup2; in free fall, spikes to ~176 on touchdown), so the controller now holds the balance law
+off while airborne and damps the wheels only. Compare the two 40 mm clips: with the catch the body
+peaks at 7&deg;, without it at 94&deg;. It is a real fix for a real bug, and it is still not a step
+primitive. That needs to be trained, the way the stand-up was.</p>
+<div class="grid"><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_step-040-ok.jpg">
+ <source src="files/descend_step-040-ok.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">40 mm lip at 0.15 m/s: about the biggest step it can actually take</figcaption>
+<div class="vd ok">SUCCESS - landed and balancing, peak pitch 7 deg, 58 ms airborne, settled 100 mm past the edge</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">40 mm</div></div><div><div class="k">approach</div><div class="v">0.15 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">7&deg;</div></div><div><div class="k">airborne</div><div class="v">58 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_step-060-ok.jpg">
+ <source src="files/descend_step-060-ok.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">60 mm step at 0.15 m/s</figcaption>
+<div class="vd ok">SUCCESS - landed and balancing, peak pitch 7 deg, 106 ms airborne, settled 54 mm past the edge</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">60 mm</div></div><div><div class="k">approach</div><div class="v">0.15 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">7&deg;</div></div><div><div class="k">airborne</div><div class="v">106 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_step-080-ok.jpg">
+ <source src="files/descend_step-080-ok.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">80 mm step at 0.15 m/s</figcaption>
+<div class="vd ok">SUCCESS - landed and balancing, peak pitch 7 deg, 124 ms airborne, settled 54 mm past the edge</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">80 mm</div></div><div><div class="k">approach</div><div class="v">0.15 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">7&deg;</div></div><div><div class="k">airborne</div><div class="v">124 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_step-100-fail.jpg">
+ <source src="files/descend_step-100-fail.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">100 mm step at 0.25 m/s: nothing in the set survives this height</figcaption>
+<div class="vd no">FAILED - peak pitch 125 deg, ended at +84 deg doing +0.13 m/s (386 ms airborne)</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">100 mm</div></div><div><div class="k">approach</div><div class="v">0.25 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">125&deg;</div></div><div><div class="k">airborne</div><div class="v">386 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_step-130-fail.jpg">
+ <source src="files/descend_step-130-fail.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">130 mm step at 0.25 m/s</figcaption>
+<div class="vd no">FAILED - peak pitch 161 deg, ended at +125 deg doing -0.13 m/s (186 ms airborne)</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">130 mm</div></div><div><div class="k">approach</div><div class="v">0.25 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">161&deg;</div></div><div><div class="k">airborne</div><div class="v">186 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_step-170-fail.jpg">
+ <source src="files/descend_step-170-fail.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">170 mm step at 0.25 m/s, the tallest riser in the set</figcaption>
+<div class="vd no">FAILED - peak pitch 168 deg, ended at +117 deg doing +0.00 m/s (790 ms airborne)</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">170 mm</div></div><div><div class="k">approach</div><div class="v">0.25 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">168&deg;</div></div><div><div class="k">airborne</div><div class="v">790 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_step-100-fast.jpg">
+ <source src="files/descend_step-100-fast.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">100 mm step at 0.45 m/s: too fast to land on</figcaption>
+<div class="vd no">FAILED - peak pitch 138 deg, ended at -18 deg doing -1.53 m/s (1178 ms airborne)</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">100 mm</div></div><div><div class="k">approach</div><div class="v">0.45 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">138&deg;</div></div><div><div class="k">airborne</div><div class="v">1178 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_nocatch-040.jpg">
+ <source src="files/descend_nocatch-040.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">40 mm lip, free-fall catch OFF: even a kerb loses it</figcaption>
+<div class="vd no">FAILED - peak pitch 94 deg, ended at -66 deg doing +0.01 m/s (0 ms airborne)</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">40 mm</div></div><div><div class="k">approach</div><div class="v">0.15 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">94&deg;</div></div><div><div class="k">airborne</div><div class="v">0 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_nocatch-100.jpg">
+ <source src="files/descend_nocatch-100.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">100 mm step, catch OFF: the wheels run away in mid-air</figcaption>
+<div class="vd no">FAILED - peak pitch 106 deg, ended at +38 deg doing -5.37 m/s (0 ms airborne)</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">100 mm</div></div><div><div class="k">approach</div><div class="v">0.25 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">106&deg;</div></div><div><div class="k">airborne</div><div class="v">0 ms</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_catch-100.jpg">
+ <source src="files/descend_catch-100.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">100 mm step, catch ON: the wheels stay put, the landing still beats it</figcaption>
+<div class="vd no">FAILED - peak pitch 105 deg, ended at +2 deg doing -0.00 m/s (1606 ms airborne)</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">100 mm</div></div><div><div class="k">approach</div><div class="v">0.15 m/s</div></div>
+<div><div class="k">peak pitch</div><div class="v">105&deg;</div></div><div><div class="k">airborne</div><div class="v">1606 ms</div></div></div>
+</figure></div>
+
 <h2>Why it is this hard</h2>
 <p class="sub">Where the first tread is visible from, measured kinematically: body pitch in degrees that
 puts returns on it, against how far back the robot stands. Beyond about 550 mm there is no angle that

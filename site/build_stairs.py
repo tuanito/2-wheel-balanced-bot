@@ -11,6 +11,7 @@ import html, json, pathlib
 HERE = pathlib.Path(__file__).parent
 CLIPS = HERE / "files" / "stairs_clips.json"
 AB = HERE / "files" / "stairs_ab.json"
+DOWN = HERE / "files" / "descend_clips.json"
 OUT = HERE / "stairs.html"
 
 NAV = [("index.html", "3D viewer"), ("wiring_boards.html", "Wiring diagram"), ("print.html", "How it prints"),
@@ -115,6 +116,18 @@ def side(r, which, name):
             f'<div class="vd {cls}">{html.escape(d["line"])}</div></div>')
 
 
+def down_clip(r):
+    cls = "ok" if r["ok"] else "no"
+    return f"""<figure class="clip">
+<video controls preload="none" playsinline poster="files/descend_{r['slug']}.jpg">
+ <source src="files/{r['file']}" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">{html.escape(r['caption'])}</figcaption>
+<div class="vd {cls}">{html.escape(r['line'])}</div>
+<div class="ro">{cell('riser', f"{r['rise_mm']:.0f} mm")}{cell('approach', f"{r['v_app']:.2f} m/s")}
+{cell('peak pitch', f"{r['peak_deg']:.0f}&deg;")}{cell('airborne', f"{r['air_ms']:.0f} ms")}</div>
+</figure>"""
+
+
 def pair(r):
     f, w = r["flick"], r["swing"]
     est = lambda d: "--" if d["rise_est_mm"] is None else f'{d["rise_est_mm"]} mm'
@@ -138,6 +151,8 @@ def main():
     # the swing's signature failure: plenty of returns ON the tread and still no riser, because the
     # landing it would be measured against never appeared in the same scan
     ab_blind = sum(1 for r in ab if r["swing"]["rise_est_mm"] is None and r["swing"]["n_seen"] >= 20)
+    down = json.loads(DOWN.read_text()) if DOWN.exists() else []
+    down_ok = sum(1 for r in down if r["ok"])
     good = [r for r in rows if r["ok"] and "LUCKY" not in r["line"]]
     lucky = [r for r in rows if r["ok"] and "LUCKY" in r["line"]]
     clips = []
@@ -241,6 +256,49 @@ the nearer you are, so the pitch needed to see past it rises: 41&ndash;50&deg; a
 60&ndash;70&deg; at 150 mm, while above about 0.8 rad of amplitude the swing loses the robot. The limit
 is the lidar sitting 231 mm up, not the controller. A cheap time-of-flight sensor at ~80 mm would see
 the first tread from 600 mm with a 20&deg; nod and make the whole manoeuvre easy.</p>
+
+<h2>A sensor that does not need the nod</h2>
+<p class="sub">Every number above is limited by one thing. A ray reaches the first tread only if it
+clears the step nose and lands before the next one, which needs <b>D &lt; h &times; tread / rise</b>,
+and the landing hides everything below it short of the edge &mdash; so the vertical riser face is
+never visible from behind the edge, at any angle. The limit is the sensor's <b>height</b>. At the
+lidar's 231 mm a 170 mm riser is out of reach beyond 408 mm; at the sonar's 134 mm, beyond 237 mm.
+Mounting a depth sensor low would be the worst place for it.</p>
+<p class="note">A <b>VL53L5CX</b> does not reach further &mdash; it obeys the same geometry &mdash; it
+reaches <em>simultaneously</em>. The lidar has one scan plane and has to pitch the whole robot to put
+that plane inside the band, which costs travel towards the drop and is why the nod recipes answer a
+third of the time. 45&deg; of vertical field of view spans every angle in the band at once, so the
+robot stands still at 260 mm and the answer arrives at 15 Hz. Same 80 held-out staircases:</p>
+<div class="tw"><table><thead><tr><th>recipe</th><th>success</th><th>answers</th><th>riser error</th>
+<th>worst margin</th><th>fell or went over</th></tr></thead><tbody>
+<tr><td>flick, single-shot estimator</td><td class="m">0.362</td><td class="m">77/80</td>
+<td class="m">220 &plusmn; 304 mm</td><td class="m">&minus;65 mm</td><td class="m">15/80</td></tr>
+<tr><td>creep, wind, look, judge + sonar</td><td class="m">0.300</td><td class="m">27/80</td>
+<td class="m">8 &plusmn; 7 mm</td><td class="m">+75 mm</td><td class="m">0/80</td></tr>
+<tr><td><b>stand still + VL53L5CX</b></td><td class="m"><b>0.938</b></td><td class="m">80/80</td>
+<td class="m">13 &plusmn; 5 mm</td><td class="m">+185 mm</td><td class="m">0/80</td></tr>
+</tbody></table></div>
+<p class="note">That 0.938 is <em>after</em> modelling a zone as the cone it really is &mdash; five
+sub-rays per zone, nearest taken, as the part reports. One ray per zone centre deletes every mixed
+pixel from a problem that is entirely about a depth discontinuity, and flattered it to 1.000 at
+3.8 mm. The flattering number was the model, not the sensor.</p>
+
+<h2>Going down: {len(down)} attempts at a single step</h2>
+<p class="sub">{down_ok} landed it. Mapping first, because it decides the shape of any descent: the
+occlusion condition for the <em>k</em>-th tread reduces to the same D &lt; h &times; tread / rise with
+no k in it, so a staircase is self-similar and anything that sees the first tread can geometrically
+see them all. What limits the map is resolution &mdash; 8 rows resolve about <b>2 to 2.5 treads</b>,
+the second to 25&ndash;30 mm. A one-step lookahead, not a flight.</p>
+<p class="note"><b>And it cannot take the step.</b> Judged on staying under 46&deg;, one step at a
+time: 25% at a 40 mm lip, 8% at 80 mm, <b>0% from 100 mm up</b>. The enemy is not the drop, it is the
+robot's own velocity loop: one axle means both wheels leave the ground together, and for ~150 ms the
+balance law servos against nothing &mdash; unloaded wheels run from 0.56 to 5.78 m/s in 50 ms and the
+reaction throws the body to 90&ndash;110&deg;. The accelerometer sees the whole event (|a| falls to
+~2 m/s&sup2; in free fall, spikes to ~176 on touchdown), so the controller now holds the balance law
+off while airborne and damps the wheels only. Compare the two 40 mm clips: with the catch the body
+peaks at 7&deg;, without it at 94&deg;. It is a real fix for a real bug, and it is still not a step
+primitive. That needs to be trained, the way the stand-up was.</p>
+<div class="grid">{"".join(down_clip(r) for r in down)}</div>
 
 <h2>Why it is this hard</h2>
 <p class="sub">Where the first tread is visible from, measured kinematically: body pitch in degrees that
