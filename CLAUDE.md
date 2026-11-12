@@ -114,6 +114,20 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   **+62 +- 86 mm**, 100% upright. `sim/stairs_windup.py` has the table. Corollary: **retrying deeper is
   a trap.** 0.90 rad costs +504 mm against 0.75 rad's +62 mm, so a deeper second look spends exactly
   the margin it is trying to earn. Retry closer at the same depth, never deeper.
+- **Going down a step, the robot's enemy is its own velocity loop, not the drop.** One axle means
+  both wheels leave the ground together, and for ~150 ms the balance law servos against nothing:
+  unloaded wheels run 0.56 -> 5.78 m/s in 50 ms and the reaction throws the body to +-90..110 deg,
+  on steps as small as 40 mm. The accelerometer sees it (|a| ~ 2 m/s^2 in free fall, a ~176 m/s^2
+  spike on touchdown), so `fall_catch` holds the balance law off and damps the wheels only. Two
+  traps inside that: a 25 ms dwell latches AFTER the runaway (use ~6 ms), and leaving on the landing
+  SPIKE is wrong - a wheel clipping the edge reads 18 m/s^2 for one tick, and exiting on that drove
+  the wheels to -3.8 m/s in mid-air. Leave on sustained support instead.
+- **With `auto_standup` on, a tumble ends "balancing".** Any descent or push measure that only looks
+  at the end state counts a robot that fell over and picked itself up as a success. Score peak pitch
+  as well: adding `peak < 46 deg` turned a 25% "survival" at 100 mm into 0%.
+- **The 3D viewer cannot be regenerated without `models/bought/mf6015.step`** (not redistributable;
+  `assemble.py` imports it unconditionally). Any CAD change therefore lands in the repo without the
+  viewer being rebuilt until that file is present.
 - **Sensor HEIGHT is what decides whether a step can be measured at all.** A ray reaches the first
   tread only if it clears the nose and lands before the next one, which needs
   `D < h * tread / rise`; and the landing occludes everything below it short of the edge, so the

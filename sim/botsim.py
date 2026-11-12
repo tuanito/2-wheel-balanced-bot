@@ -22,13 +22,13 @@ class Command(C.Structure):
     # likewise bot::Command, in declaration order
     _fields_ = [("mode", C.c_uint8), ("v", C.c_float), ("yaw_rate", C.c_float), ("angle", C.c_float), ("seq", C.c_uint16),
                 ("arm", C.c_uint8), ("auto_standup", C.c_uint8), ("obstacle_stop", C.c_uint8),
-                ("drop_stop", C.c_uint8), ("drop_margin", C.c_float)]
+                ("fall_catch", C.c_uint8), ("drop_stop", C.c_uint8), ("drop_margin", C.c_float)]
 
 
 class Outputs(C.Structure):
     _fields_ = [("tl", C.c_float), ("tr", C.c_float), ("state", C.c_uint8), ("side", C.c_int8)] + \
                [(n, C.c_float) for n in ("pitch", "pitch_rate", "roll", "yaw", "x", "y", "v", "v_ref", "yaw_ref")] + \
-               [("obstacle", C.c_uint8), ("standup_tries", C.c_uint8), ("standup_energy_adj", C.c_float), ("dbg", C.c_float * 6), ("motors_on", C.c_uint8)]
+               [("airborne", C.c_uint8), ("obstacle", C.c_uint8), ("standup_tries", C.c_uint8), ("standup_energy_adj", C.c_float), ("dbg", C.c_float * 6), ("motors_on", C.c_uint8)]
 
 
 LIB.bot_new.restype = C.c_void_p
@@ -81,7 +81,9 @@ class BotSim:
             a = math.radians(rng.uniform(-1.5, 1.5))           # IMU not perfectly flat on the tray
             self.mount = np.array([[math.cos(a), 0, math.sin(a)], [0, 1, 0], [-math.sin(a), 0, math.cos(a)]])
         self.ctl = LIB.bot_new()
-        self.cmd = Command(mode=0, v=0, yaw_rate=0, angle=0, seq=0, arm=1, auto_standup=1, obstacle_stop=1)
+        # ctypes zero-initialises, so every C++ default has to be repeated here or it is silently 0
+        self.cmd = Command(mode=0, v=0, yaw_rate=0, angle=0, seq=0, arm=1, auto_standup=1,
+                           obstacle_stop=1, fall_catch=1, drop_stop=1, drop_margin=0.25)
         self.out = Outputs()
         self.queue = [(0.0, 0.0)] * 3
         self.t = 0.0

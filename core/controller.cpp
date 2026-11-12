@@ -85,6 +85,20 @@ void Controller::estimate(const Inputs& in_raw) {
   y_ += v_ * std::sin(yaw_) * dt;
 }
 
+// free-fall detection: in free fall the accelerometer reads ~0, and on touchdown it spikes
+static constexpr float FALL_A = 6.0f;        // m/s^2: below this the wheels are carrying little
+static constexpr float LAND_A = 7.0f;        // m/s^2: weight back on the wheels. NOT the touchdown
+                                             // spike: a wheel clipping the edge mid-fall reads 18
+                                             // for a tick, and exiting on that released the catch
+                                             // in mid-air, after which the balance law drove the
+                                             // wheels to -3.8 m/s and put the body on its nose.
+static constexpr float LAND_HOLD = 0.008f;   // s it must stay there: sustained support, not a spike
+static constexpr float FALL_DWELL = 0.006f;  // s. Three ticks, not twelve: unloaded wheels go from
+                                             // 0.56 to 5.78 m/s in 50 ms, so a 25 ms dwell latches
+                                             // after the runaway it exists to prevent.
+static constexpr float AIR_MAX = 0.60f;      // s: a drop this long is not a step, so give up and balance
+static constexpr float AIR_KD = 0.060f;      // Nm per rad/s: enough to actually arrest the spin
+
 float Controller::sonar_speed_limit(const Inputs& in) {
   obstacle_ = 0;
   float vmax = max_speed;
@@ -377,6 +391,37 @@ Outputs Controller::step(const Inputs& in) {
         dock_seq_ = cmd_.seq; last_seq_ = cmd_.seq;
         if (!recovering_ && std::fabs(v_) < 0.15f) { { still_t_ = 0; contact_seen_ = false; lean_tgt_ = std::min(pitch_, 0.0f); go(ST_DOCK_LAND); } break; }
       }
+      // --- free fall ---------------------------------------------------------------------
+      // Taking a step DOWN, the wheels leave the ground together (one axle), and for ~150 ms there
+      // is nothing to push against. The balance law does not know that: it still sees a pitch error
+      // and still commands torque, the unloaded wheels spin up to 2 m/s in 200 ms, and the reaction
+      // throws the body to -67 deg and onto its back. Measured, repeatedly, on steps as small as
+      // 40 mm - the robot was not losing a fight with the drop, it was losing one with its own
+      // velocity loop. So while airborne: damp the wheels and leave the attitude alone. Gravity
+      // cannot change the body's angular momentum, so an attitude that was upright at the edge is
+      // still upright at touchdown.
+      {
+        const float a_mag = std::sqrt(in.ax * in.ax + in.ay * in.ay + in.az * in.az);
+        if (cmd_.fall_catch && a_mag < FALL_A) air_t_ += dt; else air_t_ = 0;
+        if (!airborne_ && air_t_ > FALL_DWELL) { airborne_ = true; ground_t_ = 0; land_t_ = 0; }
+        if (airborne_) {
+          ground_t_ += dt;
+          // Leave on the touchdown SPIKE, not on the accelerometer merely recovering: a wheel
+          // clipping the edge on the way past reads like ground for a tick and would drop the catch
+          // in the middle of the fall.
+          if (a_mag > LAND_A) land_t_ += dt; else land_t_ = 0;
+          if (land_t_ > LAND_HOLD || ground_t_ > AIR_MAX) {
+            airborne_ = false;
+            // the same handover the nod uses: never hand back a zero speed reference while moving
+            phi_ref_ = phi_; pos_int_ = 0; v_ref_ = phi_rate_ * Params::WHEEL_R;
+          }
+        }
+      }
+      if (airborne_) {
+        t_sum = clampf(-AIR_KD * phi_rate_, -torque_limit, torque_limit);   // damp only: no servo
+        t_diff = 0;
+        break;
+      }
       references(dt);
       balance(dt, t_sum, t_diff);
       side_ = 0;
@@ -425,6 +470,7 @@ Outputs Controller::step(const Inputs& in) {
   o.x = x_; o.y = y_; o.v = v_;
   o.v_ref = v_ref_; o.yaw_ref = yaw_ref_;
   o.obstacle = obstacle_; o.standup_tries = tries_; o.standup_energy_adj = et_adapt_;
+  o.airborne = airborne_ ? 1 : 0;
   for (int i = 0; i < 6; ++i) o.dbg[i] = dbg_[i];
   o.motors_on = on;
   return o;
