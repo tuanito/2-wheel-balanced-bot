@@ -161,6 +161,7 @@ Every conductor is modelled end to end, with its plug at each end. Lengths are a
 | CAN bus -> motor L (branch) | 2: CAN-H, CAN-L | Motor R plug | Motor L main plug | 6 cm |
 | Perfboard J3 -> IMU | 4: 3V3, GND, SCL (GPIO9), SDA (GPIO8) | Perfboard J3 | GY-521 header (Dupont) | 17 cm |
 | Perfboard J2 -> sonar | 4: 5 V, TRIG (GPIO10), ECHO (GPIO11 via 1k/2k), GND | Perfboard J2 | HC-SR04 header (Dupont) | 7 cm |
+| Perfboard J2T -> zone array (instead of the sonar) | 6: 3V3, GND, SDA (GPIO42), SCL (GPIO41), LPn (GPIO2), INT (GPIO47) | Perfboard J2T | VL53L5CX carrier header (Dupont) | 9 cm |
 | Perfboard J4 -> eye R | 3: 5 V, DIN (via 330 ohm), GND | Perfboard J4 | Eye R panel pads (through the retainer's wire pass) | 8 cm |
 | Eye R -> eye L (chain) | 3: 5 V, DOUT -> DIN, GND | Eye R output pads | Eye L input pads | 7 cm |
 | Pi I2S -> I2S junction | 7: BCLK (GPIO18), WS/LRCLK (GPIO19), Mic DOUT -> Pi DIN (GPIO20), Amp DIN (GPIO21), 3V3, 5 V (amp), GND | Pi GPIO header (Dupont) | I2S junction board (on the battery) | 6 cm |
@@ -332,6 +333,13 @@ Each run varies the parameters you can't know exactly before building: mass ±8 
 - **Scan matching corrects heading only.**
   - Wheel odometry was good for distance. Letting the matcher also shift position made the map worse in tests.
 - **The sonar sees what the lidar can't.** An 18 cm post below the 21 cm scan plane is still avoided.
+- **The front aperture takes one sensor, and it is a choice.** `FRONT_SENSOR` in `firmware/esp32/include/config.h`
+  selects the HC-SR04 (`FRONT_SONAR`) or a VL53L5CX 8 x 8 zone array (`FRONT_TOF`), 194 mm up on a 30 deg seat in
+  the same mouth. The sonar gives one range over a 30 deg cone, so it can say *the floor ended* but never *where*;
+  each of the array's 64 zones has a known elevation, so it also gives `drop_m` - how far ahead the floor stops -
+  and a riser height to about 13 mm standing still. That is what the step-down manoeuvre needs. The array runs on
+  its OWN I2C bus at 1 MHz (the IMU's is capped at 400 kHz and a full 8 x 8 frame is ~51 kB/s at 15 Hz) and is read
+  on core 0 at 15 Hz, so the 500 Hz balance loop on core 1 never waits on it.
 - **Gyro bias is learned whenever the robot is still** (at boot, lying down, or charging).
 
 ## Before the first power-up (bench checklist)
@@ -498,12 +506,34 @@ What the wiring check and the CAN unit tests could not see: real voltages, curre
   - Maps go to `data/map.png` and `data/map.npz`. Every lidar scan is stored with its pose in `data/scans/*.npz`.
 - **Simulation:**
   ```
+  sim/rebuild.sh                                     # models + LQR gains + library + the 30-robot suite
+  cd sim && python3 make_video.py && python3 nav_sim.py 150 --video
+  ```
+  `sim/rebuild.sh` is the sequence below, in order; run the steps by hand if you only want one of them.
+  ```
   cd sim && python3 build_model.py && python3 build_model.py --arena && python3 design_lqr.py 0.06 0.6 10
-  cd ../core && g++ -O2 -std=c++17 -shared -fPIC controller.cpp sim_api.cpp -o ../sim/libbot.so
-  cd ../sim && python3 run_tests.py 40 && python3 make_video.py && python3 nav_sim.py 150 --video
+  core/build_lib.sh                                  # libbot.so, or libbot.dylib on macOS
+  cd sim && python3 run_tests.py
   ```
-- **Tests:**
+- **CAD and electrical scripts** (`cad_src/`, `elec/`). The electrical ones are plain Python; the CAD ones need
+  [CadQuery](https://cadquery.readthedocs.io) and the bought-part models (`models/fetch_models.sh`, plus the MF6015
+  STEP from the dealer's page, saved as `models/bought/mf6015.step`).
   ```
+  cad_src/rebuild.sh                                  # the whole chain, in dependency order
+  cad_src/rebuild.sh --fast                           # ... without the two slow viewer exports
+  ```
+  These scripts were written on a machine that kept the sources in `/home/claude/case`, `/home/claude/wheel_adapter`
+  and `/home/claude/robot`. They no longer assume that: `cad_src/case/robot_paths.py` works out where everything is
+  from its own location, so the same code runs from a checkout at any path and from the original layout. Override any
+  root with `ROBOT_CASE`, `ROBOT_WHEEL_ADAPTER`, `ROBOT_ROOT`, `ROBOT_OUT`, `ROBOT_MODELS` or `ROBOT_MF6015_STEP`.
+  Generated artifacts go next to the case sources by default (git-ignored); set `ROBOT_OUT` to collect them elsewhere.
+- **Tests:** `./check.sh` runs everything that works on a development machine — the firmware host
+  unit tests, the electrical rules check and its 8 mutation tests, the Pi test suite, and the
+  simulation suite — and reports whether any regenerated output disagrees with what is committed.
+  It restores those files afterwards, so a check never leaves the working tree dirty.
+  ```
+  ./check.sh                 # all of it, ~1.5 minutes
+  ./check.sh elec pi         # only these sections (firmware | elec | pi | sim)
   cd pi && python3 -m pytest -q tests
   ```
   The tests compile the real firmware protocol header with g++ and check that it matches the Python parser byte for byte.

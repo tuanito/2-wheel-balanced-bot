@@ -390,10 +390,9 @@ Claude's tool calls and the reply, which the robot speaks. Saying <strong>"Stop!
 <li>Joystick, turns, then <strong>Explore</strong> to build the lidar map. Tap the map to send it somewhere.</li>
 </ol>
 <h2>9. Run the tests and the simulation (optional)</h2>
-<pre><code>cd pi &amp;&amp; python3 -m pytest -q tests          # 20 tests, includes the voice pipeline with synthetic audio
-cd sim &amp;&amp; python3 build_model.py &amp;&amp; python3 build_model.py --arena &amp;&amp; python3 design_lqr.py 0.06 0.6 10
-cd ../core &amp;&amp; g++ -O2 -std=c++17 -shared -fPIC controller.cpp sim_api.cpp -o ../sim/libbot.so
-cd ../sim &amp;&amp; python3 run_tests.py 40
+<pre><code>./check.sh                                   # firmware host tests + electrical checks + Pi tests + simulation
+./check.sh pi                                # just the Pi suite (includes the voice pipeline, synthetic audio)
+sim/rebuild.sh                               # regenerate the models, the LQR gains and the library, then re-run
 </code></pre>
 <p>If you change the robot (heavier battery, other wheels), update <code>sim/cad_mass.json</code> or re-run
 <code>cad_scripts/assemble.py</code>, redesign the gains, then <code>./sync_core.sh</code> and reflash.</p>
@@ -765,6 +764,13 @@ listed size. Result: no clashes (only parts seated on their posts/pockets, and t
 <td>Perfboard J2</td>
 <td>HC-SR04 header (Dupont)</td>
 <td>7 cm</td>
+</tr>
+<tr>
+<td>Perfboard J2T -&gt; zone array (instead of the sonar)</td>
+<td>6: 3V3, GND, SDA (GPIO42), SCL (GPIO41), LPn (GPIO2), INT (GPIO47)</td>
+<td>Perfboard J2T</td>
+<td>VL53L5CX carrier header (Dupont)</td>
+<td>9 cm</td>
 </tr>
 <tr>
 <td>Perfboard J4 -&gt; eye R</td>
@@ -1185,6 +1191,13 @@ pushes 20/20, 10 s balance drift ≤ 3.7 mm; no interferences in the assembly ch
 <li><strong>Scan matching corrects heading only.</strong></li>
 <li>Wheel odometry was good for distance. Letting the matcher also shift position made the map worse in tests.</li>
 <li><strong>The sonar sees what the lidar can't.</strong> An 18 cm post below the 21 cm scan plane is still avoided.</li>
+<li><strong>The front aperture takes one sensor, and it is a choice.</strong> <code>FRONT_SENSOR</code> in <code>firmware/esp32/include/config.h</code>
+  selects the HC-SR04 (<code>FRONT_SONAR</code>) or a VL53L5CX 8 x 8 zone array (<code>FRONT_TOF</code>), 194 mm up on a 30 deg seat in
+  the same mouth. The sonar gives one range over a 30 deg cone, so it can say <em>the floor ended</em> but never <em>where</em>;
+  each of the array's 64 zones has a known elevation, so it also gives <code>drop_m</code> - how far ahead the floor stops -
+  and a riser height to about 13 mm standing still. That is what the step-down manoeuvre needs. The array runs on
+  its OWN I2C bus at 1 MHz (the IMU's is capped at 400 kHz and a full 8 x 8 frame is ~51 kB/s at 15 Hz) and is read
+  on core 0 at 15 Hz, so the 500 Hz balance loop on core 1 never waits on it.</li>
 <li><strong>Gyro bias is learned whenever the robot is still</strong> (at boot, lying down, or charging).</li>
 </ul>
 <h2>Before the first power-up (bench checklist)</h2>
@@ -1327,11 +1340,29 @@ and tilt, lidar noise; 0.15 N rod friction; <code>sim/dock_sim.py</code>):
 <li>The web app has live video, a joystick, arm/disarm, turn 90°/180°, explore, auto stand-up and avoidance toggles, the headlight, and the live map. Tap the map to send the robot there.</li>
 <li>Maps go to <code>data/map.png</code> and <code>data/map.npz</code>. Every lidar scan is stored with its pose in <code>data/scans/*.npz</code>.</li>
 <li><strong>Simulation:</strong>
+  <code>sim/rebuild.sh                                     # models + LQR gains + library + the 30-robot suite
+  cd sim &amp;&amp; python3 make_video.py &amp;&amp; python3 nav_sim.py 150 --video</code>
+  <code>sim/rebuild.sh</code> is the sequence below, in order; run the steps by hand if you only want one of them.
   <code>cd sim &amp;&amp; python3 build_model.py &amp;&amp; python3 build_model.py --arena &amp;&amp; python3 design_lqr.py 0.06 0.6 10
-  cd ../core &amp;&amp; g++ -O2 -std=c++17 -shared -fPIC controller.cpp sim_api.cpp -o ../sim/libbot.so
-  cd ../sim &amp;&amp; python3 run_tests.py 40 &amp;&amp; python3 make_video.py &amp;&amp; python3 nav_sim.py 150 --video</code></li>
-<li><strong>Tests:</strong>
-  <code>cd pi &amp;&amp; python3 -m pytest -q tests</code>
+  core/build_lib.sh                                  # libbot.so, or libbot.dylib on macOS
+  cd sim &amp;&amp; python3 run_tests.py</code></li>
+<li><strong>CAD and electrical scripts</strong> (<code>cad_src/</code>, <code>elec/</code>). The electrical ones are plain Python; the CAD ones need
+  <a href="https://cadquery.readthedocs.io">CadQuery</a> and the bought-part models (<code>models/fetch_models.sh</code>, plus the MF6015
+  STEP from the dealer's page, saved as <code>models/bought/mf6015.step</code>).
+  <code>cad_src/rebuild.sh                                  # the whole chain, in dependency order
+  cad_src/rebuild.sh --fast                           # ... without the two slow viewer exports</code>
+  These scripts were written on a machine that kept the sources in <code>/home/claude/case</code>, <code>/home/claude/wheel_adapter</code>
+  and <code>/home/claude/robot</code>. They no longer assume that: <code>cad_src/case/robot_paths.py</code> works out where everything is
+  from its own location, so the same code runs from a checkout at any path and from the original layout. Override any
+  root with <code>ROBOT_CASE</code>, <code>ROBOT_WHEEL_ADAPTER</code>, <code>ROBOT_ROOT</code>, <code>ROBOT_OUT</code>, <code>ROBOT_MODELS</code> or <code>ROBOT_MF6015_STEP</code>.
+  Generated artifacts go next to the case sources by default (git-ignored); set <code>ROBOT_OUT</code> to collect them elsewhere.</li>
+<li><strong>Tests:</strong> <code>./check.sh</code> runs everything that works on a development machine — the firmware host
+  unit tests, the electrical rules check and its 8 mutation tests, the Pi test suite, and the
+  simulation suite — and reports whether any regenerated output disagrees with what is committed.
+  It restores those files afterwards, so a check never leaves the working tree dirty.
+  <code>./check.sh                 # all of it, ~1.5 minutes
+  ./check.sh elec pi         # only these sections (firmware | elec | pi | sim)
+  cd pi &amp;&amp; python3 -m pytest -q tests</code>
   The tests compile the real firmware protocol header with g++ and check that it matches the Python parser byte for byte.</li>
 </ul>
 <h2>Not tested yet (needs the hardware)</h2>

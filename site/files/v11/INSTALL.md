@@ -266,10 +266,9 @@ Claude's tool calls and the reply, which the robot speaks. Saying **"Stop!"** wo
 ## 9. Run the tests and the simulation (optional)
 
 ```
-cd pi && python3 -m pytest -q tests          # 20 tests, includes the voice pipeline with synthetic audio
-cd sim && python3 build_model.py && python3 build_model.py --arena && python3 design_lqr.py 0.06 0.6 10
-cd ../core && g++ -O2 -std=c++17 -shared -fPIC controller.cpp sim_api.cpp -o ../sim/libbot.so
-cd ../sim && python3 run_tests.py 40
+./check.sh                                   # firmware host tests + electrical checks + Pi tests + simulation
+./check.sh pi                                # just the Pi suite (includes the voice pipeline, synthetic audio)
+sim/rebuild.sh                               # regenerate the models, the LQR gains and the library, then re-run
 ```
 
 If you change the robot (heavier battery, other wheels), update `sim/cad_mass.json` or re-run

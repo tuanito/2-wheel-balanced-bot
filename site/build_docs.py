@@ -39,7 +39,20 @@ shutil.rmtree("/tmp/swz", ignore_errors=True); os.makedirs("/tmp/swz")
 # from the LKMTECH product page). The zip is published, so this list is a licence matter, not tidiness.
 SKIP = {".git", ".venv", "venv", "env", "node_modules", "__pycache__", ".pytest_cache",
         ".mypy_cache", ".ruff_cache", ".DS_Store", "bought"}
-shutil.copytree(RP.REPO, SRC, symlinks=True, ignore=lambda d, names: {n for n in names if n in SKIP})
+SKIP_PATH = {"site/files", "site/vendor", "ml/runs"}   # the downloads themselves, vendored three.js, RL checkpoints
+BIG = 1_000_000   # every file this size in this repo is a GENERATED blob - the viewer's base64 part
+                  # data, the built pages, the exported meshes - and all of them are rebuildable from
+                  # what is in the zip. Left in, they took it from 3 MB to 25 MB, and the base64 copy
+                  # the site serves to 32 MB, past the 16 MB a published file may be.
+def _skip(d, names):
+    rel = os.path.relpath(d, RP.REPO)
+    out = {n for n in names if n in SKIP}
+    for n in names:
+        full, r = os.path.join(d, n), (n if rel == "." else os.path.normpath(os.path.join(rel, n)))
+        if r in SKIP_PATH or (os.path.isfile(full) and os.path.getsize(full) >= BIG):
+            out.add(n)
+    return out
+shutil.copytree(RP.REPO, SRC, symlinks=True, ignore=_skip)
 for d in ["firmware/esp32/.pio", "cad", "sim/results/dock_frames", "sim/results/undock_frames", "sim/results/frames"]:   # CAD files: in V1.1_print_files.zip
     shutil.rmtree(os.path.join(SRC, d), ignore_errors=True)
 for root, dirs, files in os.walk(SRC):
@@ -72,6 +85,11 @@ for root, _, fs in os.walk(SRC):
         ext = os.path.splitext(f)[1]
         if ext not in TEXT_EXT or "/results/" in "/" + rel or "/meshes/" in rel: continue
         if rel.startswith("cad/"): continue
+        # The site's built pages are OUTPUT, not source, and pygments inflates each one about 5x:
+        # wiring_boards.html alone cost 1.6 MB of the bundle. The sources are the builders and the
+        # *_tpl.html templates, which stay. (source.json is published, and a published file is
+        # capped at 16 MB - with the pages in, it was 17.)
+        if rel.startswith("site/") and ext == ".html" and not rel.endswith("_tpl.html"): continue
         files.append(rel)
 def key(r):
     for i, o in enumerate(ORDER):
