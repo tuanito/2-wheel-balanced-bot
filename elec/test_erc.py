@@ -36,10 +36,36 @@ def eye_from_pi_direct(W):
 def no_sense(W):
     W.remove(find(W, 'VBAT sense (switched BAT+)'))
 
+# The VL53L5CX build has no harness in the netlist (the robot carries one front sensor, and the
+# netlist describes the fitted one), so its rules are checked against config.h directly. Same
+# discipline as the wiring mutations: break each rule and the check has to notice.
+CFG_CASES = [
+    ('ToF on the IMU bus', lambda c: c.replace('PIN_TOF_SDA    = 42', 'PIN_TOF_SDA    = 8')),
+    ('ToF on a PSRAM pin', lambda c: c.replace('PIN_TOF_SDA    = 42', 'PIN_TOF_SDA    = 35')),
+    ('ToF on a flash pin', lambda c: c.replace('PIN_TOF_SCL    = 41', 'PIN_TOF_SCL    = 30')),
+    ('two ToF signals on one pin', lambda c: c.replace('PIN_TOF_INT    = 47', 'PIN_TOF_INT    = 42')),
+    ('ToF clashes with the CAN pin', lambda c: c.replace('PIN_TOF_LPN    = 2', 'PIN_TOF_LPN    = 4')),
+]
+
 CASES = [('UART TX/RX swapped', swap_uart), ('power switch: P- on VOUT', old_key), ('sonar echo without divider', no_divider),
          ('IMU ground missing', lose_ground), ('CAN H/L swapped at motor L', can_swap), ('mic on 5 V', mic_5v),
          ('eye data from a 3.3 V I2C pin', eye_from_pi_direct), ('VBAT sense wire missing', no_sense)]
 ok = True
+import pathlib as _pl
+_cfg = open(E.RP.FIRMWARE_CONFIG).read()
+print("\nVL53L5CX build rules (config.h mutations):")
+for name, m in CFG_CASES:
+    E.FINDINGS.clear() if hasattr(E, 'FINDINGS') else None
+    before = len(E.OUT) if hasattr(E, 'OUT') else None
+    rows = E.check_tof_build(m(_cfg))
+    bad = [r for r in rows if not r['ok']]
+    print(f"  {'caught ' if bad else 'MISSED '} {name}: " + (bad[0]['item'] if bad else 'no rule fired'))
+    ok = ok and bool(bad)
+rows0 = E.check_tof_build(_cfg)
+print(f"  {'ok     ' if all(r['ok'] for r in rows0) else 'MISSED '} unmutated config passes all "
+      f"{len(rows0)} rules")
+ok = ok and all(r['ok'] for r in rows0)
+
 base = run(lambda W: None)
 print(f"baseline: {len(base)} errors")
 for name, m in CASES:

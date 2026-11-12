@@ -9,6 +9,7 @@
 #include "lk_motor.h"
 #include "imu.h"
 #include "sonar.h"
+#include "tof.h"
 #include "ir_beacon.h"
 #include "power_off.h"
 #include "power_off.h"
@@ -19,7 +20,11 @@ static_assert(CONTROL_PERIOD_US == (uint32_t)(bot::Params::DT * 1e6f + 0.5f), "c
 
 static LkMotors motors;
 static Imu imu;
+#if FRONT_SENSOR == FRONT_TOF
+static Tof tof;                  // the zone array, instead of the sonar: same aperture, same job
+#else
 static Sonar sonar;
+#endif
 static IrBeacon irb;
 static bot::Controller ctl;
 static Preferences prefs;
@@ -33,7 +38,8 @@ static HardwareSerial& PI_UART = Serial1;
 static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 static bot::Command g_cmd;              // written by comms, read by control
 static bot::Outputs g_out;              // written by control
-static volatile float g_sonar = -1, g_vbat = 22.2f;
+static volatile float g_sonar = -1, g_drop = -1, g_vbat = 22.2f;
+static volatile float g_pitch = 0;   // last body pitch, for the zone array on core 0
 static volatile bool g_charging = false, g_motor_fault = false, g_batt_low = false, g_ov_event = false;
 static volatile bool g_armed = false;
 static TaskHandle_t control_task = nullptr;
@@ -73,8 +79,9 @@ static void control_loop(void*) {
     in.gx = s.gx; in.gy = s.gy; in.gz = s.gz; in.ax = s.ax; in.ay = s.ay; in.az = s.az;
     in.ql = motors.left.angle; in.qr = motors.right.angle;
     in.wl = motors.left.speed; in.wr = motors.right.speed;
-    in.sonar_m = g_sonar; in.vbat = g_vbat; in.charging = g_charging;
+    in.sonar_m = g_sonar; in.drop_m = g_drop; in.vbat = g_vbat; in.charging = g_charging;
     const bot::Outputs o = ctl.step(in);
+    g_pitch = o.pitch;
 
     const bool want_on = o.motors_on;                // balance, stand-up, flip, dock landing, wheel hold on the dock
     if (want_on && !motors_on) { motors.run(); motors_on = true; }
@@ -165,8 +172,15 @@ static void comms_loop(void*) {
     const uint32_t now = millis();
     poll_uart();
 #ifndef SIM_HIL
+#if FRONT_SENSOR == FRONT_TOF
+    tof.update(g_pitch);              // the array is bolted to the body: zone elevations move with it
+    g_sonar = tof.obstacle_m();
+    g_drop = tof.drop_m();
+#else
     sonar.update(now);
-    g_sonar = sonar.distance();
+    g_sonar = sonar.distance();       // an HC-SR04 cannot say where the floor ended, only that it did
+    g_drop = -1;
+#endif
     irb.update(now);
 #endif
 
@@ -274,7 +288,11 @@ void setup() {
   if (!imu.begin()) event("IMU not found: check I2C wiring (SDA 8, SCL 9)");
   if (!motors.begin()) event("CAN (TWAI) start failed");
 #ifndef SIM_HIL
+#if FRONT_SENSOR == FRONT_TOF
+  if (!tof.begin()) event("VL53L5CX not found: check its I2C bus (SDA 35, SCL 36) and LPn");
+#else
   sonar.begin();
+#endif
   irb.begin();
 #endif
   const ImuSample s = imu.read();

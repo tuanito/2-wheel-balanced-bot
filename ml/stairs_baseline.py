@@ -198,6 +198,46 @@ class Probe:
         return np.array([0.0, -1.0, a2])
 
 
+# --------------------------------------------------------------------------- the array: just stand
+STAND = dict(v_app=0.35, v_creep=0.15, standoff=0.26, settle=0.6, conf_ok=0.35, patience=2.0)
+
+
+class Stand:
+    """With a VL53L5CX there is no manoeuvre: drive up, stop, read.
+
+    The lidar has one scan plane, so it has to pitch the robot to put that plane inside the narrow
+    band of angles that reach the first tread - which costs travel towards the drop, needs a wind-up
+    to pay for it, and still answers only a third of the time. A 45 degree vertical field of view
+    spans the whole band at once, so the robot stands still at a standoff and the answer arrives at
+    15 Hz. No nod, no lean, no travel: the margin to the drop is simply the standoff.
+
+    Needs StairsLookEnv(tof_tilt=30, estimator="tof", max_nods=0).
+    """
+
+    def __init__(self, env=None, **p):
+        self.p = dict(STAND, **p)
+        self.env = env
+        self.reset()
+
+    def reset(self):
+        self.phase, self.wait = "approach", 0.0
+
+    def act(self, obs):
+        p = self.p
+        d_est, v = float(obs[0]) * 1.5, float(obs[1]) * V_MAX
+        if self.phase == "approach":
+            speed = p["v_app"] if d_est > p["standoff"] + 0.30 else p["v_creep"]
+            if d_est > p["standoff"] + speed * REACT + speed ** 2 / (2 * BRAKE_EFF):
+                return np.array([speed / V_MAX, -1.0, 0.0])
+            self.phase = "read"
+        # stand still and let the array free-run: each frame is another chance at a clean surface
+        self.wait += HOLD * CTRL_DT
+        conf = 0.0 if self.env is None else float(getattr(self.env, "best_conf", 0.0))
+        if self.env is not None and (conf >= p["conf_ok"] or self.wait > p["patience"]) and abs(v) < 0.05:
+            self.env.stop_requested = True
+        return np.array([0.0, -1.0, 0.0])
+
+
 def run(env, pol, **opts):
     obs, _ = env.reset(options=opts)
     pol.reset()

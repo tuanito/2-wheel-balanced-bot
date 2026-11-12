@@ -86,6 +86,20 @@ CAM_WIN     = (15.0, 15.0)     # AI Camera: lens 3 mm behind the face, view cone
 CAM_PC_WIN  = (19.0, 19.0, 1.5)   # pocket on the outer face for a 1 mm polycarbonate window (sits 0.5 mm below the face)
 STANDOFF_F  = 8.5           # Raspberry Pi AI Camera (same PCB + holes as CM3, 11.9 deep): lens front ~8.5 above the PCB -> ~3 mm behind the front face
 SONAR_Z     = 80.0
+# VL53L5CX zone array: the alternative to the sonar, high on the panel and looking down.
+# The height is the whole point. A ray reaches the first tread only when it clears the step nose and
+# lands before the next one, which needs D < h * tread / rise - so at the sonar's 134 mm a 170 mm
+# riser is unreachable beyond 237 mm, and at 194 mm it is reachable to 342 mm. Measured sweep in
+# sim/tof_sensor.py: 30 deg down answers best at a 250 mm standoff and still sees floor 1.47 m ahead.
+TOF_Z       = 140.0          # panel z -> 194 mm above the ground with the 54.3 mm wheels
+TOF_TILT    = 30.0           # degrees below horizontal
+TOF_HOLES   = 18.0           # M2 mounting holes, y spacing: CHECK against your carrier (Pololu #3417)
+TOF_SEAT    = 3.0            # mm the seat stands behind the inner face, along the tilted normal. Kept
+                             # short on purpose: the window has to flare at 30 deg per side for the
+                             # receiver, so every mm of standoff widens the bore and eats the bosses.
+TOF_WIN     = (8.0, 17.0)    # window cone: diameter at the seat -> at the outer face. The Rx needs
+                             # 61 deg vertical clear, so the bore has to flare, not run straight.
+TOF_PAD     = (22.0, 16.0)   # seat pad y, z: the carrier is 13 x 18 mm
 SONAR_HOLES = (41.0, 17.0)   # HC-SR04 holes per the FreeCAD-library model (41 x 17): verify on your board
 SONAR_PCB_TOP = 2.0          # model: PCB top face (transducers 11.2 above it)
 SONAR_POST  = 9.0            # PCB sits 9 mm behind the panel -> transducers flush with the front face
@@ -599,6 +613,21 @@ def build_front():
     for (y, z) in [(-hw, SONAR_Z - hh), (hw, SONAR_Z - hh), (hw, SONAR_Z + hh), (-hw, SONAR_Z + hh)]:
         panel = panel.union(cyl_x(X_IN_F - SONAR_POST, SONAR_POST + 0.5, y, z, 5.4))   # Ø5.4: Ø6.4 clipped the real transducers by 0.2 mm
         panel = panel.cut(cyl_x(X_IN_F - SONAR_POST - 1, INS_M2[1] + 1, y, z, INS_M2[0]))
+    # VL53L5CX seat: a 30 deg pad with two M2 insert bosses, and a window that flares along the same
+    # axis. Fitted INSTEAD of the sonar; the sonar mouth stays in the print so one panel serves both.
+    # The bore cannot run straight: the receiver needs 61 deg of vertical clearance, so it is a cone.
+    t = math.radians(TOF_TILT)
+    d = cq.Vector(math.cos(t), 0, -math.sin(t))          # optical axis: forward and down
+    seat = cq.Vector(X_IN_F, 0, TOF_Z) - d * TOF_SEAT    # the board's back face rests here
+    for y in (-TOF_HOLES / 2, TOF_HOLES / 2):
+        b = seat + cq.Vector(0, y, 0)
+        panel = panel.union(cq.Workplane(obj=cq.Solid.makeCylinder(INS_M2[2] / 2, TOF_SEAT + 4.0, b, d)))
+        panel = panel.cut(cq.Workplane(obj=cq.Solid.makeCylinder(
+            INS_M2[0] / 2, INS_M2[1] + 2, b - d * 1.0, d)))        # M2 insert, pressed in from the seat
+    panel = panel.cut(cq.Workplane(obj=cq.Solid.makeCone(
+        TOF_WIN[0] / 2, TOF_WIN[1] / 2, TOF_SEAT + WALL + 4.0, seat - d * 1.0, d)))
+    # nothing may stand proud of the face: the body's front bumpers land on it
+    panel = panel.cut(box(X_FRONT, X_FRONT + 40, -200, 200, -200, 200))
     # (USB-C charging socket moved to the left side wall: see build_body)
     # eye retainers: 2 M2 insert bosses per eye (diagonal), 5 mm tall
     for sy in (1, -1):                               # microphone ports, board pockets, clamp bosses

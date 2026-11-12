@@ -87,11 +87,23 @@ void Controller::estimate(const Inputs& in_raw) {
 
 float Controller::sonar_speed_limit(const Inputs& in) {
   obstacle_ = 0;
-  if (!cmd_.obstacle_stop || in.sonar_m <= 0.02f) return max_speed;
-  const float room = in.sonar_m - stop_dist;
-  if (room <= 0) { obstacle_ = 1; return 0; }
-  const float vmax = std::sqrt(2 * brake_decel * room);
-  if (vmax < max_speed) obstacle_ = 1;
+  float vmax = max_speed;
+  if (cmd_.obstacle_stop && in.sonar_m > 0.02f) {
+    const float room = in.sonar_m - stop_dist;
+    if (room <= 0) { obstacle_ = 1; return 0; }
+    vmax = std::sqrt(2 * brake_decel * room);
+    if (vmax < max_speed) obstacle_ = 1;
+  }
+  // The drop fence. Same shape as the obstacle limit and for the same reason - the speed it allows is
+  // the one it can still stop from - but measured to the edge of the floor rather than to a wall.
+  // It is what a zone array buys that a sonar cannot: the sonar knows its beam lost the floor, not
+  // how far ahead that happened, so with an HC-SR04 fitted drop_m stays negative and nothing changes.
+  if (cmd_.drop_stop && in.drop_m >= 0.0f) {
+    const float room = in.drop_m - cmd_.drop_margin;
+    if (room <= 0) { obstacle_ = 1; return 0; }
+    const float vdrop = std::sqrt(2 * brake_decel * room);
+    if (vdrop < vmax) { vmax = vdrop; obstacle_ = 1; }
+  }
   return vmax;
 }
 

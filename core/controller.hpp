@@ -44,7 +44,13 @@ struct Inputs {
   float ax, ay, az;         // accelerometer, m/s^2, robot frame (reads +9.81 on Z when upright & still)
   float ql, qr;             // wheel angles rad, relative to body, multi-turn
   float wl, wr;             // wheel speeds rad/s, relative to body
-  float sonar_m;            // forward sonar distance, m (<= 0: no echo / invalid)
+  float sonar_m;            // nearest obstacle ahead, m (<= 0: no echo / invalid). Either front
+                            // sensor fills this: the HC-SR04's echo, or the zone array's nearest
+                            // return above the floor plane.
+  float drop_m = -1;        // distance to where the floor AHEAD ends, m (< 0: unknown). Only a
+                            // bearing-resolved sensor can fill this honestly - the sonar cone says
+                            // "something is gone" without saying where - so it stays -1 with an
+                            // HC-SR04 fitted and the fence below simply never arms.
   float vbat;               // battery voltage, V
   uint8_t charging;         // 1 = charger connected
 };
@@ -58,6 +64,8 @@ struct Command {
   uint8_t arm = 0;          // 1 = armed (motors allowed)
   uint8_t auto_standup = 1; // stand up by itself when lying
   uint8_t obstacle_stop = 1;// refuse to drive forward into a sonar obstacle
+  uint8_t drop_stop = 1;    // refuse to drive forward over an edge the front sensor can see
+  float drop_margin = 0.25f;// m of floor that must remain ahead before forward driving is refused
 };
 
 struct Outputs {

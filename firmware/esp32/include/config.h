@@ -9,8 +9,32 @@ constexpr int PIN_I2C_SDA    = 8;    // IMU
 constexpr int PIN_I2C_SCL    = 9;
 constexpr int PIN_PI_TX      = 17;   // -> Pi GPIO15 (RXD)
 constexpr int PIN_PI_RX      = 18;   // <- Pi GPIO14 (TXD)
-constexpr int PIN_SONAR_TRIG = 10;
+constexpr int PIN_SONAR_TRIG = 10;   // only with FRONT_SENSOR == FRONT_SONAR
 constexpr int PIN_SONAR_ECHO = 11;   // through the 1k/2k divider (HC-SR04 echo is 5 V)
+
+// ---------------- front sensor: one or the other, never both (they share the aperture) ----------
+#define FRONT_SONAR 0
+#define FRONT_TOF   1
+#ifndef FRONT_SENSOR
+#define FRONT_SENSOR FRONT_SONAR     // -D FRONT_SENSOR=FRONT_TOF to build for the VL53L5CX
+#endif
+
+// VL53L5CX (8 x 8 zones, 45 x 45 deg), on the front panel above the camera, looking down.
+// Its OWN I2C bus, not the IMU's: the MPU6050 caps that bus at 400 kHz, and a full 8 x 8 frame is
+// ~3.4 kB, which is ~51 kB/s at 15 Hz and does not fit in 400 kHz. On a second controller at 1 MHz,
+// with the unused outputs compiled out (~450 B/frame), it costs ~7 kB/s. The S3 has two I2C
+// peripherals and 8 MB of flash against the ULD driver's ~90 kB, so no board change is needed.
+// NOT GPIO 33-37: on the N8R8 module those are the octal PSRAM bus and are not brought out for use.
+// Not 0/3/45/46 (strapping), not 19/20 (USB), not 26-32 (flash), not 48 (on-board RGB LED).
+constexpr int PIN_TOF_SDA    = 42;
+constexpr int PIN_TOF_SCL    = 41;
+constexpr int PIN_TOF_LPN    = 2;    // low = held in reset; released once at boot
+constexpr int PIN_TOF_INT    = 47;   // data-ready, active low, self-clearing
+constexpr float TOF_TILT_DEG = 30.0f;  // below horizontal. sim/tof_sensor.py --measure picked this:
+                                       // best answer rate at a 250 mm standoff while still seeing
+                                       // floor 1.47 m ahead, so it also does the obstacle job.
+constexpr float TOF_HEIGHT_M = 0.194f; // transducer height above the ground (panel z 140 + wheel r)
+constexpr float TOF_FOV_DEG  = 45.0f;
 constexpr int PIN_ARM_BTN    = 12;   // to GND, internal pull-up
 constexpr int PIN_LED_R      = 38;
 constexpr int PIN_LED_G      = 39;

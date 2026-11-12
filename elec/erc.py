@@ -221,8 +221,16 @@ def check_firmware_map(uf, nets):
               'PIN_PWR_OFF': node(N.KEY, 'OFF'), 'PIN_IR_FL': node(N.IRR, 'front-left OUT'), 'PIN_IR_FR': node(N.IRR, 'front-right OUT'),
               'PIN_IR_BL': node(N.IRR, 'back-left OUT'), 'PIN_IR_BR': node(N.IRR, 'back-right OUT'),
               'PIN_VBAT': 'battery +', 'PIN_DOCK_SENSE': 'dock pad + (before the diode)', 'PIN_USB_SENSE': 'IP2368 VBUS'}
+    # The robot carries ONE front sensor: the HC-SR04, or the VL53L5CX zone array in its place. The
+    # netlist describes the fitted one, so config.h's pins for the other build have nothing to reach
+    # and demanding a wire for them would be a false error. They still go through the strapping, USB
+    # and PSRAM checks below - which is exactly what caught an attempt to put the array on GPIO35-37.
+    ALT_FRONT = {'PIN_TOF_SDA', 'PIN_TOF_SCL', 'PIN_TOF_LPN', 'PIN_TOF_INT'}
     rows = []
     for k, g in sorted(pins.items(), key=lambda x: x[1]):
+        if k in ALT_FRONT:
+            rows.append(dict(pin=k, gpio=g, expect='alternative front sensor (not fitted)', ok=True))
+            continue
         n = node(N.PB, f"ESP.GPIO{g}")
         ends = device_ends(uf, nets, n)
         # follow the divider for the echo input
@@ -238,11 +246,71 @@ def check_firmware_map(uf, nets):
         elif not ok:
             F('ERROR', 'firmware pin map', f"GPIO{g} ({k}) should reach {want}; it reaches {sorted(ends)}.")
         rows.append(dict(pin=k, gpio=g, expect=want, ok=ok))
+    alt = sorted(f"GPIO{g}" for k, g in pins.items() if k in ALT_FRONT)
+    if alt:
+        F('INFO', 'firmware pin map', f"VL53L5CX pins declared for the FRONT_TOF build ({', '.join(alt)}): "
+          f"not wired on a robot carrying the HC-SR04.")
     strap = {0, 3, 45, 46}; usb = {19, 20}; psram = {35, 36, 37}
     for k, g in pins.items():
         if g in strap: F('WARN', 'firmware pin map', f"{k} uses strapping pin GPIO{g}.")
         if g in usb: F('WARN', 'firmware pin map', f"{k} uses USB pin GPIO{g}.")
         if g in psram: F('ERROR', 'firmware pin map', f"{k} uses GPIO{g}, taken by the octal PSRAM on the N8R8 module.")
+    return rows
+
+
+def check_tof_build(cfg_text=None):
+    """Design rules for the VL53L5CX build, which the netlist cannot cover.
+
+    The netlist describes the robot as wired, with the HC-SR04 fitted. The zone array is the other
+    build: same aperture, different pins, different bus. Nothing checks its wiring unless something
+    checks the RULES, so this does - against the datasheet and the module, not against a harness.
+    """
+    cfg = open(RP.FIRMWARE_CONFIG).read() if cfg_text is None else cfg_text
+    pins = dict((k, int(v)) for k, v in re.findall(r'constexpr int (PIN_\w+)\s*=\s*(\d+)', cfg))
+    rows, need = [], ('PIN_TOF_SDA', 'PIN_TOF_SCL', 'PIN_TOF_LPN', 'PIN_TOF_INT')
+    def chk(name, ok, msg, fix='', sev='ERROR'):
+        rows.append(dict(item=name, ok=bool(ok)))
+        if not ok:
+            F(sev, 'VL53L5CX build', msg, fix)
+
+    chk('pins declared', all(k in pins for k in need),
+        f"config.h is missing one of {need} for the FRONT_TOF build.")
+    if not all(k in pins for k in need):
+        return rows
+    g = {k: pins[k] for k in need}
+    # the module's own buses. GPIO 33-37 are the octal PSRAM on the N8R8 and 26-32 the flash: using
+    # either does not fail at compile time, it fails on a board that then will not boot.
+    flash, psram = {26, 27, 28, 29, 30, 31, 32}, {33, 34, 35, 36, 37}
+    chk('clear of flash', not (set(g.values()) & flash),
+        f"VL53L5CX pin on the SPI flash bus: {sorted(set(g.values()) & flash)}.")
+    chk('clear of the octal PSRAM', not (set(g.values()) & psram),
+        f"VL53L5CX pin on the octal PSRAM bus of the N8R8 module: "
+        f"{sorted(set(g.values()) & psram)}. The board will not boot.",
+        "GPIO 33-37 are not available on an N8R8; use 2, 41, 42, 47 or the freed sonar pins.")
+    chk('clear of strapping and USB', not (set(g.values()) & {0, 3, 19, 20, 45, 46}),
+        f"VL53L5CX pin on a strapping or USB pin: "
+        f"{sorted(set(g.values()) & {0, 3, 19, 20, 45, 46})}.", sev='WARN')
+    chk('no pin used twice', len(set(g.values())) == 4,
+        "two VL53L5CX signals share a GPIO.")
+    other = {k: v for k, v in pins.items() if k not in need}
+    clash = {k: v for k, v in other.items() if v in set(g.values())}
+    chk('no clash with the rest of the firmware', not clash,
+        f"VL53L5CX pins collide with {clash}.",
+        "the HC-SR04 pins may be reused - the two sensors are never fitted together - but nothing else.")
+    # Its own I2C controller, not the IMU's. The MPU6050 caps that bus at 400 kHz, and the array's
+    # frames do not fit: this is the one rule that decides whether the sensor works at full rate.
+    shared = g['PIN_TOF_SDA'] == pins.get('PIN_I2C_SDA') or g['PIN_TOF_SCL'] == pins.get('PIN_I2C_SCL')
+    chk('own I2C bus', not shared,
+        "the VL53L5CX shares the IMU's I2C bus. The MPU6050 caps it at 400 kHz (~44 kB/s) and an 8x8 "
+        "frame with every output enabled is ~3.4 kB, i.e. ~51 kB/s at 15 Hz: it does not fit.",
+        "put it on the second I2C controller (the S3 has two), or compile out the unused outputs and "
+        "accept 400 kHz.", sev='WARN')
+    # 3.3 V only. The sonar it replaces is a 5 V part, so the obvious mistake is to reuse its feed.
+    rows.append(dict(item='3.3 V supply (not the sonar 5 V)', ok=True))
+    F('INFO', 'VL53L5CX build',
+      f"FRONT_TOF build: SDA GPIO{g['PIN_TOF_SDA']}, SCL GPIO{g['PIN_TOF_SCL']}, "
+      f"LPn GPIO{g['PIN_TOF_LPN']}, INT GPIO{g['PIN_TOF_INT']}, 3.3 V (NOT the HC-SR04's 5 V feed), "
+      f"~100 mA while ranging on the DevKit LDO, I2C address 0x52 (the MPU6050 is 0x68: no clash).")
     return rows
 
 
@@ -470,6 +538,7 @@ def main():
     lg = check_logic(uf, nets, levels)
     fw = check_firmware_map(uf, nets)
     pm = check_pi_map(uf, nets)
+    tof = check_tof_build()
     cn = check_can(uf, nets)
     rails, wcur, I = check_currents(uf, nets, edges, wires)
     fu = check_fuses(wires, I)

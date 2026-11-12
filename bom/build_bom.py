@@ -130,6 +130,14 @@ rows = [
  ("Real-time control", "Sonar", "HC-SR04 from your kit",
   "Emergency stop on the ESP32. Echo is 5 V: 1 kΩ/2 kΩ divider to 3.3 V.",
   "45 × 20 × 15.5 (transducers Ø16)", "4 × M2×6 into M2 inserts on 9 mm posts on the front panel (42 × 17 mm pattern)", "Front panel, centre, Z 70–90 ('mouth')", CAD, 1, 0, 9, "Yes", "Already owned."),
+ ("Real-time control", "Depth sensor (alternative to the sonar)", "ST VL53L5CX 8 \u00d7 8 zone time-of-flight on a carrier (Pololu #3417)",
+  "Fits INSTEAD of the HC-SR04, in the same front aperture. 64 zones over 45 \u00d7 45\u00b0, so every angle that "
+  "reaches the first tread is covered at once and the robot measures a step standing still - no nod, no lean. "
+  "I\u00b2C (400 kHz\u20131 MHz) on the IMU bus, 3.3 V, ~100 mA while ranging, ~84 kB firmware uploaded at power-on "
+  "(~2.8 s at 400 kHz). Needs crosstalk calibration if it sits behind a window.",
+  "13 \u00d7 18 \u00d7 3 (carrier)", "2 \u00d7 M2\u00d76 into M2 inserts on the front panel's 30\u00b0 seat (holes 14 mm apart)",
+  "Front panel, centre, Z 134\u2013146 (194 mm above ground, tilted 30\u00b0 down)", CAD, 1, 19, 2, "Optional",
+  "Pololu #3417 $19.95; VL53L8CX #3419 $24.95 is the near drop-in upgrade (better in ambient light, SPI option)."),
  ("Real-time control", "Arm button + status LED", "12 mm momentary push-button, 5 mm RGB LED (common cathode), 3 × 330 Ω (one per colour, on the perfboard)",
   "Firmware only arms on an explicit user action.", "Button Ø12 × 15; LED Ø5", "Button: own nut through a Ø12.2 hole; LED: press-fit in Ø5.2 hole", "Top, front-left (button X 10, Y 40; LED X −6, Y 40)", CAD, 1, 2, 3, "Yes", "est."),
  ("Companion computer & sensors", None),
@@ -405,7 +413,8 @@ wires = [
  ("ESP32-S3 (TWAI TX/RX)", "SN65HVD230 CAN board", "3.3 V logic", ""),
  ("CAN board", "Motor L ↔ Motor R", "CAN H/L, 1 Mbps, twisted pair", "120 Ω at both ends; different motor IDs"),
  ("ESP32-S3", "IMU (tray)", "I²C (MPU6050) or SPI (ICM)", "On the axle line"),
- ("ESP32-S3 GPIO", "HC-SR04 sonar", "TRIG; ECHO via 1 k/2 k divider", ""),
+ ("ESP32-S3 GPIO", "HC-SR04 sonar", "TRIG; ECHO via 1 k/2 k divider", "If the sonar is fitted"),
+ ("ESP32-S3", "VL53L5CX (front panel)", "I\u00b2C, shared with the IMU; LPn + INT", "If the depth sensor is fitted instead: 3.3 V, address 0x52"),
  ("ESP32-S3 GPIO", "Arm button, status LED", "Digital I/O", ""),
  ("Battery+ after switch", "ESP32-S3 ADC1 pin", "100 k / 12 k divider + 100 nF", "25.2 V → 2.70 V"),
  ("ESP32-S3 UART", "Pi UART (GPIO14/15)", "3.3 V UART, 921600 baud", "Common GND"),

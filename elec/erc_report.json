@@ -1,6 +1,18 @@
 {
  "findings": [
   {
+   "sev": "INFO",
+   "check": "firmware pin map",
+   "msg": "VL53L5CX pins declared for the FRONT_TOF build (GPIO2, GPIO41, GPIO42, GPIO47): not wired on a robot carrying the HC-SR04.",
+   "fix": ""
+  },
+  {
+   "sev": "INFO",
+   "check": "VL53L5CX build",
+   "msg": "FRONT_TOF build: SDA GPIO42, SCL GPIO41, LPn GPIO2, INT GPIO47, 3.3 V (NOT the HC-SR04's 5 V feed), ~100 mA while ranging on the DevKit LDO, I2C address 0x52 (the MPU6050 is 0x68: no clash).",
+   "fix": ""
+  },
+  {
    "sev": "CHECK",
    "check": "CAN",
    "msg": "Termination: 120 ohm on the CAN board (1 known); the LK motors' built-in termination is not documented. The bus needs 120 ohm at each end (60 ohm between H and L).",
@@ -1502,6 +1514,12 @@
    "ok": true
   },
   {
+   "pin": "PIN_TOF_LPN",
+   "gpio": 2,
+   "expect": "alternative front sensor (not fitted)",
+   "ok": true
+  },
+  {
    "pin": "PIN_CAN_TX",
    "gpio": 4,
    "expect": "CAN board (SN65HVD230)::CTX",
@@ -1613,6 +1631,24 @@
    "pin": "PIN_LED_B",
    "gpio": 40,
    "expect": "Arm button + RGB LED::RGB LED B",
+   "ok": true
+  },
+  {
+   "pin": "PIN_TOF_SCL",
+   "gpio": 41,
+   "expect": "alternative front sensor (not fitted)",
+   "ok": true
+  },
+  {
+   "pin": "PIN_TOF_SDA",
+   "gpio": 42,
+   "expect": "alternative front sensor (not fitted)",
+   "ok": true
+  },
+  {
+   "pin": "PIN_TOF_INT",
+   "gpio": 47,
+   "expect": "alternative front sensor (not fitted)",
    "ok": true
   }
  ],

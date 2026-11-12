@@ -13,12 +13,16 @@ GYRO_MAX = math.radians(float(os.environ.get("GYRO_DPS", "2000"))); ACC_MAX = 9.
 
 
 class Inputs(C.Structure):
-    _fields_ = [(n, C.c_float) for n in ("dt", "gx", "gy", "gz", "ax", "ay", "az", "ql", "qr", "wl", "wr", "sonar_m", "vbat")] + [("charging", C.c_uint8)]
+    # MUST match bot::Inputs field for field: these are the same bytes, and a mismatch is silent.
+    _fields_ = [(n, C.c_float) for n in ("dt", "gx", "gy", "gz", "ax", "ay", "az", "ql", "qr", "wl", "wr",
+                                         "sonar_m", "drop_m", "vbat")] + [("charging", C.c_uint8)]
 
 
 class Command(C.Structure):
+    # likewise bot::Command, in declaration order
     _fields_ = [("mode", C.c_uint8), ("v", C.c_float), ("yaw_rate", C.c_float), ("angle", C.c_float), ("seq", C.c_uint16),
-                ("arm", C.c_uint8), ("auto_standup", C.c_uint8), ("obstacle_stop", C.c_uint8)]
+                ("arm", C.c_uint8), ("auto_standup", C.c_uint8), ("obstacle_stop", C.c_uint8),
+                ("drop_stop", C.c_uint8), ("drop_margin", C.c_float)]
 
 
 class Outputs(C.Structure):

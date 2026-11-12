@@ -81,6 +81,7 @@ from botsim import BotSim, LIB, CTRL_DT, quat_pitch       # noqa: E402
 from stairs_probe import estimate, model_xml, RANGE_NOISE  # noqa: E402
 from stairs_map import reconstruct, fuse                    # noqa: E402
 from stairs_sonar import xml_with_cone, r_floor, FloorWatch  # noqa: E402
+from tof_sensor import xml_with_tof, Tof, TOF_Z, TOF_MAP, TOF_TILT  # noqa: E402
 
 BALANCE = 4
 N_RAYS = 120
@@ -225,7 +226,8 @@ class StairsLookEnv(gym.Env):
 
     def __init__(self, seed=None, rise=None, tread=None, d0=None, randomize=True, curriculum=False,
                  swing=False, max_nods=None, t_max=None, estimator="surface", d_arm=None,
-                 sonar_tilt=None, sonar_zero=False, sonar_h=None):
+                 sonar_tilt=None, sonar_zero=False, sonar_h=None,
+                 tof_tilt=None, tof_h=None):
         self.observation_space = gym.spaces.Box(-5.0, 5.0, (8,), np.float32)
         self.action_space = gym.spaces.Box(-1.0, 1.0, (3,), np.float32)
         self.sim = None
@@ -249,6 +251,13 @@ class StairsLookEnv(gym.Env):
         self.sonar_tilt = None if sonar_tilt is None else math.radians(float(sonar_tilt))
         self.sonar_zero = sonar_zero
         self.sonar_h = sonar_h
+        # The two front sensors are alternatives: both occupy the same aperture in the model, and the
+        # robot carries one or the other. `tof_tilt` fits the VL53L5CX zone array instead of the
+        # HC-SR04 cone. Fitting neither is the original robot.
+        self.tof_tilt = None if tof_tilt is None else math.radians(float(tof_tilt))
+        self.tof_h = TOF_Z if tof_h is None else float(tof_h)
+        assert not (self.sonar_tilt is not None and self.tof_tilt is not None), \
+            "one front sensor or the other: they share the aperture"
         self.t_extra = t_max
         # the swing itself takes SWING_RUN against the flick's NOD_RUN, so the budget covers the
         # manoeuvre rather than the comparison being decided by the clock
@@ -294,6 +303,32 @@ class StairsLookEnv(gym.Env):
         x = float(d.qpos[0])
         keep = (p[:, 0] > x + 0.05) & (np.abs(p[:, 1]) < 0.25)
         return p[keep]
+
+    # ---------------------------------------------------------------- the zone array
+    def tof_cloud(self):
+        """World points from the VL53L5CX, one per valid zone. Bearing per zone is what makes this a
+        measurement rather than a range: a riser is a height difference between two surfaces."""
+        return self._tof.cloud() if self._tof is not None else np.zeros((0, 3))
+
+    def _tof_update(self):
+        """The array free-runs at 15 Hz, so the riser estimate improves while the robot just stands
+        there - no nod, no lean, no travel towards the drop. Same reconstruction and the same refusal
+        rules as the lidar path, with the counts scaled to 64 zones instead of hundreds of returns."""
+        if self._tof is None or self.estimator != "tof":
+            return
+        pts = self.tof_cloud()
+        if not len(pts):
+            return
+        self.views = [pts]
+        rec = reconstruct(pts, self.landing_z, **TOF_MAP)
+        self.n_surf, self.land_seen = rec.get("n_surf", 0), rec.get("edge") is not None
+        if self.best_rise is None:
+            self.view_why = rec.get("why", "")      # why there is still no answer
+        if rec["rise"] is not None and rec["conf"] >= self.best_conf:
+            self.best_conf, self.best_rise, self.best_n = rec["conf"], rec["rise"], float(rec["n"])
+            self.view_why = rec.get("why", "")      # the frame the answer came from, not the last one
+            s_ = meas_score(abs(self.best_rise - self.rise))
+            self.best_score = max(self.best_score, s_)
 
     # ---------------------------------------------------------------- the sonar
     def sonar_m(self):
@@ -348,7 +383,7 @@ class StairsLookEnv(gym.Env):
         o = self.sim.out
         d_est = self.d_est()
         return np.array([d_est / 1.5, float(o.v) / V_MAX, float(o.pitch), 0.1 * float(o.pitch_rate),
-                         self.t / self.t_max, self.nods / self.max_nods,
+                         self.t / self.t_max, self.nods / max(1, self.max_nods),
                          min(self.best_n / CONF_FULL, 1.0), self.a_last], dtype=np.float32)
 
     def reset(self, seed=None, options=None):
@@ -361,9 +396,13 @@ class StairsLookEnv(gym.Env):
         self.tread = o.get("tread") or self.fixed["tread"] or float(self.rng.uniform(TREAD_LO, TREAD_HI))
         d0 = o.get("d0") or self.fixed["d0"] or float(self.rng.uniform(*self._d_range()))
         sim_seed = int(self.rng.integers(0, 2**31 - 1))
-        xml = (model_xml(self.rise, self.tread, STEPS, EDGE) if self.sonar_tilt is None
-               else xml_with_cone(self.sonar_tilt, self.rise, self.tread, STEPS, EDGE,
-                                  height=self.sonar_h)[0])
+        xml = model_xml(self.rise, self.tread, STEPS, EDGE)
+        if self.sonar_tilt is not None:
+            xml = xml_with_cone(self.sonar_tilt, self.rise, self.tread, STEPS, EDGE,
+                                height=self.sonar_h)[0]
+        elif self.tof_tilt is not None:
+            xml, self._n_tof = xml_with_tof(self.tof_tilt, self.rise, self.tread, STEPS, EDGE,
+                                            height=self.tof_h, base=xml)
         self.sim = BotSim(xml_str=xml,
                           seed=sim_seed, randomize=self.randomize)
         self._prep_sensors()
@@ -384,6 +423,7 @@ class StairsLookEnv(gym.Env):
         self.sonar_seen, self.sonar_at, self.sonar_err = False, float("nan"), float("nan")
         self._watch = (FloorWatch(self.sonar_tilt, h=self.sonar_h or 0.1343)
                        if self.sonar_tilt is not None else None)
+        self._tof = Tof(self.sim, self._n_tof, self.rng) if self.tof_tilt is not None else None
         self.peak, self.d_peak, self.n_pts = 0.0, float("nan"), 0
         self.best_peak, self.best_dpeak, self.nod_pitch = 0.0, float("nan"), 0.0
         self.n_seen, self.seen_paid = 0, 0.0
@@ -461,6 +501,7 @@ class StairsLookEnv(gym.Env):
         a = np.clip(np.asarray(action, dtype=float), -1.0, 1.0)
         v_cmd = float(V_MAX * a[0])
         self._sonar_update()
+        self._tof_update()
         if self.d_est() < D_FENCE:
             v_cmd = min(v_cmd, 0.0)          # the fence: no driving at the drop from inside D_FENCE
         self.sim.cmd.v = v_cmd
@@ -518,7 +559,12 @@ class StairsLookEnv(gym.Env):
             return self._end(r, fell=True)
         if EDGE - self.x_far < EDGE_HARD:
             return self._end(r, off=True)
-        if self.stop_requested or self.t >= self.t_max or self.nods >= self.max_nods:
+        if self.estimator == "tof":
+            self._tof_update()
+        # max_nods == 0 means there is no nod to spend at all (the array needs none), not
+        # that the budget is already exhausted
+        if (self.stop_requested or self.t >= self.t_max
+                or (self.max_nods > 0 and self.nods >= self.max_nods)):
             if not self._run(int(SETTLE / CTRL_DT)):
                 return self._end(r, fell=True)
             return self._end(r, off=EDGE - self.x_far < EDGE_HARD, no_nod=self.nods == 0)

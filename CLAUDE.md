@@ -21,7 +21,7 @@ unless the robot is on them (sense divider, short = latch off). Full list: `bom/
 | `pi/` | Python on the Pi: `robot/brain.py`, `dock.py` (DockPilot), `ld19.py`, `link.py`; tests `python -m pytest -q` in `pi/` (48). |
 | `sim/` | MuJoCo + `botsim.py` (loads `libbot.so`/`.dylib`). `run_tests.py` (stand-up, balance, pushes, missions), `dock_sim.py` (40-start docking sweep), `nav_sim.py`, `build_model.py` (regenerates the XML from the CAD), `design_lqr.py 0.06 0.6 10` (the weights we use), `rebuild.sh` (all of that in order). |
 | `ml/` | RL: the stand-up and the stair-measuring nod, see `ml/README.md`. `setup_mac.sh` (venv, `--cad` also installs CadQuery), `run_training.sh` (the stand-up loop). Stairs: `stairs_env.py` (when to nod), `stairs_baseline.py` (the hand-scripted recipe it has to beat), `train_stairs.py`, `evaluate_stairs.py`. |
-| `elec/` | `netlist.py` + `erc.py` (electrical rules check; `test_erc.py` mutation tests). Current result: CHECK 3, WARN 1, INFO 3 (all known). |
+| `elec/` | `netlist.py` + `erc.py` (electrical rules check; `test_erc.py` mutation tests). Current result: CHECK 3, WARN 1, INFO 5 (all known). |
 | `cad_src/case/` | CadQuery: `body_case.py` (all printed parts, named constants), `wiring.py` (3D harness routes), `real_assembly.py` (fit check), `wire_check.py`, `export_*`, `assemble.py`. `robot_paths.py` says where everything is — import it, never hard-code a path. `cad_src/rebuild.sh` runs the chain in order. |
 | `cad/` | Exported STL/STEP for printing. |
 | `site/` | The project website (same as the Claude artifact). Builders: `build_docs.py`, `build_boards.py`, `build_dock_wiring.py`, `tools/site_rebuild.py`. View: `python3 -m http.server -d site 8000`. |
@@ -114,6 +114,24 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   **+62 +- 86 mm**, 100% upright. `sim/stairs_windup.py` has the table. Corollary: **retrying deeper is
   a trap.** 0.90 rad costs +504 mm against 0.75 rad's +62 mm, so a deeper second look spends exactly
   the margin it is trying to earn. Retry closer at the same depth, never deeper.
+- **Sensor HEIGHT is what decides whether a step can be measured at all.** A ray reaches the first
+  tread only if it clears the nose and lands before the next one, which needs
+  `D < h * tread / rise`; and the landing occludes everything below it short of the edge, so the
+  vertical riser face is never visible from behind the edge at any angle. Hence 170 mm risers are
+  unreachable beyond 408 mm even from the lidar at 231 mm, and a time-of-flight sensor mounted LOW
+  would be the worst possible place for one (at 80 mm the same riser needs to be inside 141 mm).
+  The VL53L5CX therefore goes high on the front panel, 194 mm up, looking 30 deg down.
+- **A zone is a cone, not a ray.** Modelling each VL53L5CX zone as its centre ray alone quietly
+  deletes every mixed pixel from the problem - and this robot looks straight at a depth
+  discontinuity, where mixed pixels live. With 5 sub-rays per zone and the nearest taken, as the
+  part reports, the riser error went from 3.8 mm to 12.8 mm and the success rate from 1.000 to 0.938.
+  The flattering number was the model, not the sensor.
+- **`bot::Inputs` and `bot::Command` are mirrored by hand in `sim/botsim.py` as ctypes structs.**
+  Adding a field to either in C++ without adding it there shifts every field after it and the sim
+  reads garbage, silently. Check `ctypes.sizeof` against `sizeof` in C++ after any such change.
+- **GPIO 33-37 are the octal PSRAM bus on the N8R8 module** and 26-32 the flash: a pin assignment
+  there compiles and then does not boot. `elec/erc.py` checks this, and it is what caught the first
+  VL53L5CX pinout. Free on this build: 2, 41, 42, 47 (and the sonar's 10/11 when it is not fitted).
 - **The sonar's edge event is only a measurement when the body is level and steady.** "The floor echo
   is gone" means two different things: the floor really ended (the edge), or the beam is pointing over
   floor that is still there (the robot leaned back). The second fires during every brake and puts
