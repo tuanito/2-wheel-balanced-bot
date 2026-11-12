@@ -51,20 +51,37 @@ EDGE_SD = 0.013            # m: the zone array knows the edge this well (sim/tof
 RISE_SD = 0.013            # m: and the riser about as well
 
 LAND_OK = 0.80             # rad: peak pitch above this is a tumble, not a step
+SETTLE_HOLD = 0.6                 # s the settled state must hold before it counts as a step
 SETTLE_P, SETTLE_V = 0.20, 0.12   # it has to STOP on the tread, not merely be upright while rolling
                                   # across it: at 0.35 m/s a policy can "land" and coast straight off
                                   # the next edge, and the first version of this reward paid for that
 SUCCESS = 14.0             # paid only on a landing that is actually a landing, and scaled by it
 GENTLE = 0.45              # rad: scale of the "how gently" term
-NO_STEP = -12.0            # never crossing the edge
+NO_STEP = -26.0            # never crossing the edge. WORSE than falling, which inverts the nod's
+                           # ordering on purpose: for the nod, going over the edge was catastrophic
+                           # and declining to look was merely useless, so falling had to cost more.
+                           # Here the robot's whole job is to get down, so a robot that stands at the
+                           # top for ever has failed completely while a scruffy step is progress. At
+                           # -12 it learned exactly that - crossed_rate 0.01 after 800k steps.
+CROSS = 3.0                # paid ONCE, at the moment the edge is crossed, win or lose
 FELL = -20.0
 PROGRESS_W = 2.0           # telescoping shaping towards the edge
+STAB_W = 5.0               # telescoping shaping towards "upright and stopped", AFTER the edge only.
+                           # Without it every exploratory step ends in a tumble or a run-on and the
+                           # two score alike, so there is no gradient towards landing at all: a
+                           # random policy crossed 20 times out of 20 and landed none.
 TIME_COST = 0.02
 
-assert FELL < NO_STEP < 0 and abs(FELL) > SUCCESS - 6.0, (
-    "ordering: falling must cost more than the best landing is worth, and never stepping must cost "
-    "more than an average attempt - otherwise standing at the edge for ever is the optimal policy, "
-    "which is exactly what the nod's first reward taught it to do.")
+# The ordering is not enough on its own: what matters is the EXPECTED value of stepping while the
+# policy is still bad at it. With a crossing bonus paid win or lose, stepping beats refusing once
+# p(success) > (NO_STEP + FELL + CROSS) / (SUCCESS + CROSS - FELL - CROSS), about 15% here - which a
+# curriculum of small risers reaches almost immediately. Without it the first run learned, correctly,
+# never to step at all: crossed_rate sat at 0 for 129k steps.
+# E[step] = p*(SUCCESS + CROSS) + (1-p)*(FELL + CROSS) must beat NO_STEP
+_p_break = (NO_STEP - CROSS - FELL) / (SUCCESS - FELL)
+assert NO_STEP < FELL < 0 and _p_break <= 0.0, (
+    f"stepping has to be worth trying from the very first episode: with these numbers it needs "
+    f"p(success) > {_p_break:.0%}, and exploration will never get there.")
 
 
 class DescendEnv(gym.Env):
@@ -77,10 +94,15 @@ class DescendEnv(gym.Env):
         self.fixed = dict(rise=rise, tread=tread)
         self.randomize = randomize
         self.curriculum = curriculum
-        self.rise_hi = 0.10 if curriculum else RISE_HI      # ratchets up, see train_descend.py
+        self.rise_hi = 0.07 if curriculum else RISE_HI      # ratchets up, see train_descend.py
         self.rng = np.random.default_rng(seed)
 
     # ------------------------------------------------------------------ helpers
+    def set_rise_hi(self, v):
+        """The curriculum: start on lips the robot can already survive, so stepping pays early."""
+        self.rise_hi = float(v)
+        return self.rise_hi
+
     def d_true(self):
         return EDGE - float(self.sim.d.qpos[0])
 
@@ -100,6 +122,7 @@ class DescendEnv(gym.Env):
                 self.peak = max(self.peak, abs(float(o.pitch)))
             if self.d_true() <= 0 and not self.crossed:
                 self.crossed, self.t_cross = True, self.t
+                self.cross_pay = CROSS
             if int(o.state) not in (3, 4):           # COAST or BALANCE; anything else is a loss
                 return False
         return True
@@ -118,7 +141,8 @@ class DescendEnv(gym.Env):
         sim_seed = int(self.rng.integers(0, 2 ** 31 - 1))
         self.sim = BotSim(xml_str=model_xml(self.rise, self.tread, 8, EDGE),
                           seed=sim_seed, randomize=self.randomize)
-        self.sim.place(pitch=0.0, x=EDGE - d0)
+        yaw0 = float(self.rng.normal(0, math.radians(1.5)))   # it never arrives perfectly square
+        self.sim.place(pitch=0.0, x=EDGE - d0, yaw=yaw0)
         self.sim.hold(0.6)
         self.sim.cmd.mode = 0
         self.sim.cmd.obstacle_stop = 0
@@ -131,6 +155,9 @@ class DescendEnv(gym.Env):
         self.rise_est = self.rise + float(self.rng.normal(0, RISE_SD))
         self.t, self.a_last = 0.0, 0.0
         self.committed, self.crossed, self.t_cross = False, False, None
+        self.cross_pay = 0.0
+        self.best_stab = 0.0
+        self.settle_t = 0.0
         self.peak, self.d_best = 0.0, d0
         return self._obs(), {}
 
@@ -151,7 +178,16 @@ class DescendEnv(gym.Env):
             r += PROGRESS_W * (self.d_best - d) / 0.5
             self.d_best = d
         alive = self._run(HOLD)
+        r += self.cross_pay            # paid once; the episode cannot farm it
+        self.cross_pay = 0.0
         self.t += HOLD * CTRL_DT
+        if self.crossed:
+            o2 = self.sim.out
+            stab = (math.exp(-(abs(float(o2.pitch)) / 0.30) ** 2)
+                    * math.exp(-(abs(float(o2.v)) / 0.40) ** 2))
+            if stab > self.best_stab:           # telescoping: paid the improvement, once
+                r += STAB_W * (stab - self.best_stab)
+                self.best_stab = stab
         if not alive:
             return self._end(r, fell=True)
         o = self.sim.out
@@ -159,10 +195,15 @@ class DescendEnv(gym.Env):
         past = self.d_true()                      # negative once over the edge
         if -past > self.tread - 0.04:
             return self._end(r, ran_on=True)
+        # Settled has to HOLD. Ending the episode the instant the robot is briefly upright and slow
+        # scores a robot that settles and then topples as a clean step, and it put the scripted
+        # baseline at 100% in here against 65-90% in sim/stairs_descend.py - the environment was
+        # easier than the task, which is the one thing a training environment must never be.
         settled = (self.crossed and self.t - (self.t_cross or 0) > 0.9
                    and abs(float(o.pitch)) < SETTLE_P and abs(float(o.v)) < SETTLE_V
                    and int(o.state) == 4)
-        if settled:
+        self.settle_t = self.settle_t + HOLD * CTRL_DT if settled else 0.0
+        if self.settle_t >= SETTLE_HOLD:
             return self._end(r, landed=True)
         if self.t >= T_MAX:
             return self._end(r)

@@ -3,7 +3,7 @@
 #
 #   ./check.sh                 # all of it (~1.5 minutes)
 #   ./check.sh elec pi         # only these sections
-#   sections: firmware | elec | pi | sim
+#   sections: firmware | elec | pi | sim | site
 #
 # Several of these regenerate committed reports. This script snapshots those files
 # first, tells you if the fresh run disagrees with what is committed, and puts the
@@ -13,7 +13,7 @@ cd "$(dirname "$0")"
 ROOT="$PWD"
 PY="$ROOT/.venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
 
-SECTIONS=("$@"); [ ${#SECTIONS[@]} -eq 0 ] && SECTIONS=(firmware elec pi sim)
+SECTIONS=("$@"); [ ${#SECTIONS[@]} -eq 0 ] && SECTIONS=(firmware elec pi sim site)
 want() { for s in "${SECTIONS[@]}"; do [ "$s" = "$1" ] && return 0; done; return 1; }
 
 PASS=(); FAIL=(); SKIP=(); DRIFT=()
@@ -71,6 +71,17 @@ if want pi; then
     run "pi: software test suite" bash -c "cd '$ROOT/pi' && '$PY' -m pytest -q tests"
   else
     SKIP+=("pi: software test suite (pip install 'pytest>=8' pytest-aiohttp)")
+  fi
+fi
+
+if want site; then
+  # The 3D viewer was dark for a long time because nothing ran it: module resolution can fail in a
+  # way that produces a blank canvas and no visible error. tools/artifact_page.py builds the
+  # self-contained copy, tools/check_viewer.mjs executes it against a DOM stub.
+  if command -v node >/dev/null 2>&1; then
+    run "site: 3D viewer builds and runs" bash -c "cd '$ROOT' && '$PY' tools/artifact_page.py '$SNAP/viewer.html' >/dev/null && node tools/check_viewer.mjs '$SNAP/viewer.html' | grep -q 'RAN TO COMPLETION'"
+  else
+    SKIP+=("site: 3D viewer (no node)")
   fi
 fi
 

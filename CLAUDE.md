@@ -132,6 +132,25 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   the minimum-distance null quadratically flat, so neither a line fit nor a left-right difference
   resolves it (both were tried; the line fit saturated at 40 deg with the sign inverted). Squareness
   is HELD by the yaw controller, not sensed: across four landings the drift stays under 0.3 deg.
+- **The 3D viewer fails SILENTLY - a blank canvas and nothing in the page to say why.** It was dark
+  for a long time because nothing ran it. Three separate faults, each invisible: three.js loaded
+  from a CDN; then an importmap value of `./vendor/three.module.js`, which resolves against the
+  page's base URL and cannot be known for an artifact; then, once the two libraries were
+  concatenated to remove imports entirely, `Identifier '_ray' has already been declared` - both
+  three.js and OrbitControls declare it at module scope, so OrbitControls has to go in a closure.
+  `tools/artifact_page.py` builds the self-contained copy (no skeleton, no imports) and
+  `tools/check_viewer.mjs` EXECUTES it against a DOM stub; `./check.sh site` runs both. Never
+  publish the viewer without that check passing.
+- **For the descent reward, refusing has to cost MORE than falling.** This inverts the nod's
+  ordering on purpose: there, going over the edge was catastrophic and declining to look was merely
+  useless, so `FELL < NO_NOD`. Here the robot's whole job is to get down, so standing at the top for
+  ever is total failure while a scruffy step is progress. At `NO_STEP = -12` against `FELL = -20` it
+  learned exactly the wrong lesson - `crossed_rate` 0.01 after 800k steps.
+- **PPO cannot find the step-down recipe from noise, and a warm start is not optional.** Three
+  decisions have to coincide (roll speed, commit within ~2 cm of the edge, release the speed
+  command); a random policy crosses the edge 20 times out of 20 and lands none, so every early
+  trajectory ends identically and there is no gradient. `ml/warmstart_descend.py` clones the
+  scripted recipe (jittered, successes only) and PPO improves from there.
 - **The 3D viewer's full part set comes from `export_viewer_real.py`, not `export_viewer_data.py`.**
   The latter alone gives 63 parts and silently drops the `conn` group and every bought component
   (c_ESP32, k_LD19 ...); the real one gives 111. Both need `models/bought/mf6015.step`.
