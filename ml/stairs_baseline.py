@@ -98,8 +98,9 @@ class Creep:
 # every retry is the SAME cheap look from a different standoff. Going deeper was tried and is a trap:
 # 0.75 rad costs +62 mm of forward travel and 0.90 rad costs +504 mm (sim/stairs_windup.py), so a deep
 # retry spends exactly the margin it is trying to earn.
-PROBE = dict(v_app=0.35, v_creep=0.15, stand=(0.40, 0.34, 0.30), pitch=(0.75, 0.75, 0.78),
-             wind=0.90, v_wind=0.50, settle_pitch=0.035, settle_rate=0.5, settle_max=1.2, conf_ok=0.45)
+PROBE = dict(v_app=0.35, v_creep=0.15, stand=(0.40, 0.33, 0.38), pitch=(0.75, 0.75, 0.78),
+             wind=0.90, v_wind=0.50, settle_pitch=0.035, settle_rate=0.5, settle_max=1.2, conf_ok=0.45,
+             seek_floor=0.28)
 
 
 class Probe:
@@ -115,13 +116,18 @@ class Probe:
     still runs, but it has nothing to judge and simply takes all three looks.
     """
 
-    def __init__(self, env=None, **p):
+    def __init__(self, env=None, sonar=False, **p):
         self.p = dict(PROBE, **p)
         self.env = env
+        # with `sonar`, the first approach deliberately runs on until the beam loses the floor, which
+        # fixes the distance to the drop from the world instead of from odometry; the robot then backs
+        # off to the standoff it wants. Without it the standoff is only as good as the reconnaissance.
+        self.sonar = sonar
         self.reset()
 
     def reset(self):
-        self.phase, self.look, self.wind_t, self.done = "approach", 0, 0.0, False
+        self.phase = "seek" if self.sonar else "approach"
+        self.look, self.wind_t, self.done = 0, 0.0, False
         self.settle_t = 0.0
 
     def _conf(self):
@@ -132,10 +138,33 @@ class Probe:
         p = self.p
         i = min(self.look, len(p["stand"]) - 1)
         stand, depth = p["stand"][i], p["pitch"][i]
-        a2 = 2.0 * (min(depth, NOD_HI) - NOD_LO) / (NOD_HI - NOD_LO) - 1.0
+        # the env maps the depth action onto a different range for a swing than for a flick
+        lo, hi = (SWING_END_LO, SWING_END_HI) if getattr(self.env, "swing", False) else (NOD_LO, NOD_HI)
+        a2 = 2.0 * (min(max(depth, lo), hi) - lo) / (hi - lo) - 1.0
         d_est, v, pitch, prate = float(obs[0]) * 1.5, float(obs[1]) * V_MAX, float(obs[2]), float(obs[3]) * 10.0
         if self.done:
             return np.array([0.0, -1.0, a2])
+        if self.phase == "seek":
+            # creep on until the floor echo dies. The backstop is the fence's own distance: if the
+            # beam never reports the edge, this is an ordinary odometry approach and nothing is lost.
+            seen = self.env is not None and getattr(self.env, "sonar_seen", False)
+            if not seen and d_est > p["seek_floor"]:
+                return np.array([p["v_creep"] / V_MAX, -1.0, a2])
+            self.phase = "place"
+        if self.phase == "place":
+            # The sonar event IS the standoff: the robot stops where the beam lost the floor, which it
+            # has measured rather than dead-reckoned, and the wind-up does the backing off. Reversing
+            # to a nominal standoff first was tried and is wrong - the robot still carries reverse
+            # speed when the settle begins, drifts further, and the wind-up then triggers the flick a
+            # metre out, where the peak pitch sees nothing at all (1007 mm against the 600 that works).
+            # Reposition to the standoff FROM EITHER SIDE. The look is entered reversing, so the
+            # robot ends each one about 180 mm further back than it started; a phase that can only
+            # reverse walks away from the edge one look at a time and the third flick peaks at 1200 mm,
+            # where nothing is visible. It has to be able to come forward again.
+            if self.look and abs(d_est - stand) > 0.02:
+                v = -p["v_creep"] if d_est < stand else p["v_creep"]
+                return np.array([v / V_MAX, -1.0, a2])
+            self.phase = "settle"
         if self.phase == "approach":
             speed = p["v_app"] if d_est > stand + 0.30 else p["v_creep"]
             if d_est > stand + speed * REACT + speed ** 2 / (2 * BRAKE_EFF):
@@ -165,7 +194,7 @@ class Probe:
             if self.env is not None:
                 self.env.stop_requested = True      # finished: do not stand still until the clock ends
             return np.array([0.0, -1.0, a2])
-        self.phase = "approach"
+        self.phase = "place" if self.sonar else "approach"
         return np.array([0.0, -1.0, a2])
 
 

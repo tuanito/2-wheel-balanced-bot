@@ -16,6 +16,13 @@ the hardware change:
      just holding station, and the sonar is bolted to the body. A tilt that reads the floor at 320 mm
      at 0 deg reads something else entirely at -6 deg, and that is the whole question.
 
+Known residual: k is calibrated on a constant 0.15 m/s creep, while the Probe recipe approaches at
+0.35 and slows late. That difference leaves a **+16 +- 14 mm** bias in the recipe - the robot believes
+it is 16 mm further from the drop than it is, which is the unsafe direction, though the spread is still
+tighter than the +3 +- 20 mm odometry it replaces. Calibrating against the recipe's own approach
+profile would remove it; the lesson from the last two bugs is that the calibration has to match the
+conditions it runs in, not just the detection rule.
+
   python sim/stairs_sonar.py                 # both tables, tilts 0 to 20 deg
   python sim/stairs_sonar.py --tilt 10       # one tilt, verbose trace
 """
@@ -30,6 +37,7 @@ from botsim import BotSim, CTRL_DT                       # noqa: E402
 from stairs_probe import model_xml                       # noqa: E402
 
 SONAR_Z = 0.080         # body frame, on the axle: 134 mm above ground with the 54.3 mm wheels
+SONAR_Z_GND = 0.1343    # the same height measured from the ground, which is what the geometry needs
 SONAR_X = 0.032
 HALF = math.radians(15.0)       # HC-SR04 beam half-angle, the usual -6 dB figure
 RINGS = (0.0, 0.5, 1.0)         # fractions of the half-angle to place rays at
@@ -52,11 +60,91 @@ def cone_dirs(tilt):
     return out
 
 
-def xml_with_cone(tilt, rise, tread, steps=6, edge=EDGE):
-    """The stairs model with the single sonar ray replaced by a cone of them."""
+# Measured by `--calibrate` with FloorWatch itself, 12 approaches per tilt over risers 80-170 mm at
+# the real ping cadence and with the real noise. The event fires at k * r_floor(pitch), and k's SPREAD
+# is the accuracy the robot gets:
+#   tilt   k              event      residual
+#    0d    0.974 +-0.041  462 mm     +-19 mm
+#    5d    0.957 +-0.038  352 mm     +-13 mm
+#   10d    0.934 +-0.027  282 mm     +- 8 mm
+#   15d    0.900 +-0.026  232 mm     +- 6 mm   <- the pick: measured end to end at -4 +- 12 mm, and
+#   20d    0.865 +-0.023  196 mm     +- 5 mm      the standoff it sets is where the look works
+K_EVENT = {0: 0.974, 5: 0.957, 10: 0.934, 15: 0.900, 20: 0.865}
+
+
+def event_distance(pitch, tilt):
+    """Distance to the edge at the instant the floor echo dies, from the robot's own IMU pitch."""
+    k = K_EVENT.get(int(round(math.degrees(tilt))), 1.0)
+    return k * r_floor(pitch, tilt)
+
+
+
+PING_DT = 0.050         # s between pings: the env's control-step cadence, and about an HC-SR04's limit
+CONFIRM = 3             # pings the floor must stay lost before the event counts
+PITCH_BAND = 0.05       # rad: the beam's floor range goes as 1/sin(tilt + 15 + pitch), so a few degrees
+                        # of lean moves it tens of mm. At 0.12 rad the event fired during braking and
+                        # biased the distance +55 mm - towards the drop. Level and steady, or not at all.
+RATE_BAND = 0.60        # rad/s: likewise, a body still rotating is not a calibrated range finder
+
+
+class FloorWatch:
+    """The edge event, defined ONCE and shared by the calibration and the environment.
+
+    Both have to use the same rule or the calibration is meaningless: the factor below is the ratio
+    between where this detector fires and the floor range predicted at that moment, so a detector
+    that fires two pings later produces a different factor. Measuring with one rule and running with
+    another put a +80 mm bias into the distance estimate - in the dangerous direction.
+    """
+
+    def __init__(self, tilt, k=None, h=SONAR_Z_GND):
+        self.tilt, self.k, self.h = tilt, k, h
+        self.on_floor, self.lost_n, self.fired, self.at = False, 0, False, float("nan")
+        self.long_n = 0
+
+    def update(self, r, pitch, pitch_rate=0.0, lost_tol=0.080):
+        exp = r_floor(pitch, self.tilt, self.h)
+        on = (r is not None and math.isfinite(exp) and abs(r - exp) < lost_tol)
+        self.lost_n = 0 if on else self.lost_n + 1
+        # A dropped ping and a vanished floor both read as "no echo", and 2% of pings drop. An edge
+        # also produces POSITIVE evidence: an echo from the stairs below, much longer than the floor
+        # should be. Requiring at least one of those among the confirming pings is what separates the
+        # two - without it, two dropped pings in a row fired the event and put a -239 mm error into
+        # the distance in one episode out of eighty.
+        self.long_n = 0 if on else self.long_n + (1 if (r is not None and r > exp + lost_tol) else 0)
+        fire = (self.on_floor and self.lost_n >= CONFIRM and self.long_n >= 1
+                and abs(pitch) < PITCH_BAND and abs(pitch_rate) < RATE_BAND
+                and math.isfinite(exp) and not self.fired)
+        if fire:
+            k = K_EVENT.get(int(round(math.degrees(self.tilt))), 1.0) if self.k is None else self.k
+            self.fired, self.at = True, k * exp
+        if on:
+            self.on_floor = True
+        return fire
+
+
+def r_floor(pitch, tilt, h=SONAR_Z_GND):
+    """Range the cone should read on flat floor, from the robot's own IMU pitch.
+
+    The nearest point of the beam on the floor is where its lowest edge lands, so the range is
+    h / sin(tilt + HALF + pitch): exact geometry, no calibration. A reading longer than this means the
+    floor the beam was grazing is no longer there - which is the edge, seen without odometry.
+    Positive `pitch` is nose-down in this convention, matching the controller's sign.
+    """
+    a = tilt + HALF + pitch
+    return h / math.sin(a) if a > math.radians(3.0) else float("inf")
+
+
+def xml_with_cone(tilt, rise, tread, steps=6, edge=EDGE, height=None):
+    """The stairs model with the single sonar ray replaced by a cone of them.
+
+    `height` moves the transducer in the body frame. It matters as much as the tilt: the event fires
+    at h/sin(tilt+15) and its sensitivity to body pitch goes as h*cos(a)/sin(a)^2, so a HIGH sensor
+    steeply tilted gets a far event AND a well-conditioned one, which a low sensor cannot.
+    """
     xml = model_xml(rise, tread, steps, edge)
+    z = SONAR_Z if height is None else height - 0.0543
     dirs = cone_dirs(tilt)
-    sites = "".join(f'<site name="son{i}" pos="{SONAR_X} 0 {SONAR_Z}" '
+    sites = "".join(f'<site name="son{i}" pos="{SONAR_X} 0 {z}" '
                     f'zaxis="{d[0]:.6f} {d[1]:.6f} {d[2]:.6f}" size="0.002"/>' for i, d in enumerate(dirs))
     sens = "".join(f'<rangefinder name="son{i}" site="son{i}" cutoff="4"/>' for i in range(len(dirs)))
     old_site = '<site name="sonar" pos="0.032 0 0.080" zaxis="1 0 0" size="0.003"/>'
@@ -77,7 +165,7 @@ class Cone:
         return float(r[ok].min()) if ok.any() else None
 
 
-def approach(tilt, rise, tread, seed, v=0.15, d0=1.0):
+def approach(tilt, rise, tread, seed, v=0.15, d0=1.0, noise=0.005, drop=0.02, rng=None):
     """Creep at the edge, logging the cone's reading against the true distance to the drop."""
     xml, n = xml_with_cone(math.radians(tilt), rise, tread)
     sim = BotSim(xml_str=xml, seed=seed, randomize=True)
@@ -86,13 +174,21 @@ def approach(tilt, rise, tread, seed, v=0.15, d0=1.0):
     sim.cmd.mode = 0
     sim.cmd.v = v
     cone = Cone(sim, n)
-    rows = []
-    for _ in range(int(12.0 / CTRL_DT)):
+    rng = rng or np.random.default_rng(seed)
+    rows, every = [], int(round(PING_DT / CTRL_DT))
+    for i in range(int(12.0 / CTRL_DT)):
         o = sim.step()
         if o.state != 4:
             break
+        if i % every:
+            continue
         d = EDGE - float(sim.d.qpos[0])
-        rows.append((d, cone.read() or float("nan"), float(o.pitch)))
+        r = cone.read()
+        if r is not None and rng.random() >= drop:
+            r += float(rng.normal(0, noise))
+        else:
+            r = None
+        rows.append((d, float("nan") if r is None else r, float(o.pitch), float(o.pitch_rate)))
         if d < 0.12:
             break
     sim.close()
@@ -126,12 +222,47 @@ def pitch_sensitivity(tilt, rise, tread, seed=900):
     return out
 
 
+def calibrate(tilt, trials=8, rises=(0.08, 0.10, 0.13, 0.15, 0.17)):
+    """How far from the edge the echo actually dies, as a fraction of the predicted floor range.
+
+    The beam does not lose the floor the instant its lowest ray clears the edge - the rest of the cone
+    is still on floor - so the event comes in closer than r_floor(). The ratio is what a real robot
+    would calibrate once against a known edge, and what matters is its SPREAD: that is the accuracy of
+    every distance the sonar then hands to the fence.
+    """
+    ks, ds = [], []
+    for k in range(trials):
+        rise = rises[k % len(rises)]
+        rows = approach(tilt, rise, 0.30, 900 + k)
+        w = FloorWatch(math.radians(tilt), k=1.0)
+        for d, r, pitch, prate in rows:
+            if w.update(None if not np.isfinite(r) else r, pitch, prate):
+                exp = r_floor(pitch, math.radians(tilt))      # w.at with k = 1
+                if np.isfinite(exp) and exp > 0:
+                    ks.append(d / exp)      # the factor that makes the prediction land on the truth
+                    ds.append(d)
+                break
+    return (np.array(ks), np.array(ds))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tilt", type=float, default=None)
+    ap.add_argument("--calibrate", action="store_true")
     ap.add_argument("--trials", type=int, default=4)
     a = ap.parse_args()
     tilts = [a.tilt] if a.tilt is not None else [0, 5, 10, 15, 20]
+    if a.calibrate:
+        print(f"\n\033[1mCalibrating the edge event: {a.trials} approaches per tilt, risers 80-170 mm\033[0m")
+        print(f"   {'tilt':>5} {'event / predicted floor':>26} {'event distance':>18} {'spread':>9}")
+        for t in tilts:
+            ks, ds = calibrate(t, a.trials)
+            if not len(ks):
+                print(f"   {t:4.0f}d   never lost the floor")
+                continue
+            print(f"   {t:4.0f}d {ks.mean():16.3f} +-{ks.std():5.3f} {ds.mean()*1000:13.0f} mm "
+                  f"{ds.std()*1000:6.0f} mm")
+        return
     print(f"\n\033[1m1. Where the floor echo dies, approaching the edge "
           f"({a.trials} randomised robots, 100 mm riser)\033[0m")
     print("   'floor at rest' is what the cone reads on open landing: anything closer than that is")

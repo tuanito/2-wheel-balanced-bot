@@ -114,6 +114,25 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   **+62 +- 86 mm**, 100% upright. `sim/stairs_windup.py` has the table. Corollary: **retrying deeper is
   a trap.** 0.90 rad costs +504 mm against 0.75 rad's +62 mm, so a deeper second look spends exactly
   the margin it is trying to earn. Retry closer at the same depth, never deeper.
+- **The sonar's edge event is only a measurement when the body is level and steady.** "The floor echo
+  is gone" means two different things: the floor really ended (the edge), or the beam is pointing over
+  floor that is still there (the robot leaned back). The second fires during every brake and puts
+  +80 mm of error into the distance - towards the drop. The event counts only on a confirmed-floor to
+  lost transition, held two pings, with |pitch| < 0.05 rad and |pitch rate| < 0.6 rad/s. With that gate
+  the estimate runs +3 to +6 mm all episode; without it, +25 to +144 mm.
+- **Calibrate the event with the SAME detector you run.** The factor turning the event into a distance
+  is defined against a detection rule; a calibration that used a different rule (or a different ping
+  rate) is meaningless. Two copies of the rule drifted apart once and cost a day. `FloorWatch` in
+  `sim/stairs_sonar.py` is the single definition, used by both the calibration and the environment.
+- **Grazing beams are hopeless range finders.** The floor range goes as h/sin(tilt+15), so its
+  sensitivity to body pitch is h*cos(a)/sin(a)^2: -1.94 m/rad at 0 deg tilt against -0.46 at 15 deg.
+  Measured end to end, the edge event is +141 +- 87 mm at 0 deg and -4 +- 12 mm at 15 deg. More tilt is
+  better until the event falls inside D_FENCE (250 mm), which rules out 20 deg and makes 15 deg the
+  pick for the as-built 134 mm mounting.
+- **A retry phase that can only reverse walks the robot away from the edge.** The look is entered
+  reversing, so each one ends ~180 mm further back than it started. A reposition step that only closes
+  in when it is too far - and never comes forward when it is too far back - put the third flick's peak
+  pitch at 1200 mm, where nothing is visible: 0 returns on every retry. Reposition from either side.
 - **Tilting the sonar down makes an edge detector, not a sensor.** Modelled as a real +-15 deg cone
   taking the nearest echo (`sim/stairs_sonar.py`, which reproduces h/sin(tilt+15) to 4 mm), a 10 deg
   tilt loses the floor echo at **263 +- 12 mm** from the drop with no odometry involved - the safety

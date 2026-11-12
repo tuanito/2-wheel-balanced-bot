@@ -80,6 +80,7 @@ sys.path.insert(0, str(ROOT / "sim"))
 from botsim import BotSim, LIB, CTRL_DT, quat_pitch       # noqa: E402
 from stairs_probe import estimate, model_xml, RANGE_NOISE  # noqa: E402
 from stairs_map import reconstruct, fuse                    # noqa: E402
+from stairs_sonar import xml_with_cone, r_floor, FloorWatch  # noqa: E402
 
 BALANCE = 4
 N_RAYS = 120
@@ -138,6 +139,10 @@ D_FENCE = 0.25            # m: inside this, a command to drive TOWARDS the drop 
 # -10 on nearly every episode is not a gradient. The fence cannot save the robot from a nod that is too
 # deep to afford (momentum is not a command), so sizing the nod is still entirely the policy's problem.
 EDGE_SD = 0.020           # m: noise on the reconnaissance edge estimate (sim/stairs_probe.py)
+SONAR_NOISE = 0.005       # m: HC-SR04 range noise, well inside its 3 mm quantisation claim
+SONAR_DROP = 0.02         # fraction of pings with no echo at all (soft or oblique surfaces)
+SONAR_LOST = 0.080        # m beyond the predicted floor range at which the floor counts as gone
+SONAR_GATE = 0.150        # m: an event further than this from the running estimate is rejected
 LOOK_MIN = math.radians(12)    # rad: below this the scan plane is too flat to see the floor at all
 RISE_LO, RISE_HI = 0.08, 0.17
 TREAD_LO, TREAD_HI = 0.24, 0.32
@@ -219,7 +224,8 @@ class StairsLookEnv(gym.Env):
     metadata = {"render_modes": []}
 
     def __init__(self, seed=None, rise=None, tread=None, d0=None, randomize=True, curriculum=False,
-                 swing=False, max_nods=None, t_max=None, estimator="surface", d_arm=None):
+                 swing=False, max_nods=None, t_max=None, estimator="surface", d_arm=None,
+                 sonar_tilt=None, sonar_zero=False, sonar_h=None):
         self.observation_space = gym.spaces.Box(-5.0, 5.0, (8,), np.float32)
         self.action_space = gym.spaces.Box(-1.0, 1.0, (3,), np.float32)
         self.sim = None
@@ -237,6 +243,12 @@ class StairsLookEnv(gym.Env):
         # recipe that winds BACKWARDS before looking is further from the edge at the trigger than at
         # the stop, so the gate has to be able to move. Training leaves it at D_ARM.
         self.d_arm = D_ARM if d_arm is None else float(d_arm)
+        # the sonar, modelled as the cone it really is (sim/stairs_sonar.py) rather than the single
+        # ray the model carries. `sonar_zero` lets the robot fuse the one thing the cone tells it
+        # honestly - the floor ahead has ended - back into its own distance estimate.
+        self.sonar_tilt = None if sonar_tilt is None else math.radians(float(sonar_tilt))
+        self.sonar_zero = sonar_zero
+        self.sonar_h = sonar_h
         self.t_extra = t_max
         # the swing itself takes SWING_RUN against the flick's NOD_RUN, so the budget covers the
         # manoeuvre rather than the comparison being decided by the clock
@@ -253,6 +265,9 @@ class StairsLookEnv(gym.Env):
         m = self.sim.m
         self._sites = np.array([m.site(f"ray{i}").id for i in range(N_RAYS)])
         self._adr = np.array([m.sensor(f"lidar{i}").adr[0] for i in range(N_RAYS)])
+        self._son = (np.array([m.sensor(s.name).adr[0] for s in
+                               (m.sensor(i) for i in range(m.nsensor)) if s.name.startswith("son")])
+                     if self.sonar_tilt is not None else None)
 
     def _cloud(self, dpitch):
         """World points the fan struck this tick, with LD19 range noise and the controller's attitude error.
@@ -280,6 +295,50 @@ class StairsLookEnv(gym.Env):
         keep = (p[:, 0] > x + 0.05) & (np.abs(p[:, 1]) < 0.25)
         return p[keep]
 
+    # ---------------------------------------------------------------- the sonar
+    def sonar_m(self):
+        """What an HC-SR04 would report: the nearest echo anywhere in the beam, or None.
+
+        No bearing - that is the whole point of a sonar. A cone of rays with the minimum taken is the
+        right first-order model, since the transducer hears whichever surface answers first.
+        """
+        if self._son is None:
+            return None
+        if self.rng.random() < SONAR_DROP:
+            return None
+        r = self.sim.d.sensordata[self._son]
+        ok = (r > 0.02) & (r < 4.0)
+        if not ok.any():
+            return None
+        return float(r[ok].min() + self.rng.normal(0, SONAR_NOISE))
+
+    def _sonar_update(self):
+        """Watch for the floor ahead ending, through the shared detector in sim/stairs_sonar.py.
+
+        The rule lives there, not here, because the factor that turns the event into a distance was
+        calibrated against that exact rule. Two copies drifted apart once already and put a +80 mm
+        bias into the estimate, in the direction that walks the robot at the drop.
+        """
+        if self.sonar_tilt is None:
+            return
+        pitch = float(self.sim.out.pitch)
+        r = self.sonar_m()
+        self.sonar_r, self.sonar_exp = r, r_floor(pitch, self.sonar_tilt, self.sonar_h or 0.1343)
+        if self._watch.update(r, pitch, float(self.sim.out.pitch_rate)):
+            # innovation gate: the robot already has a distance estimate good to a few tens of mm, so
+            # an event disagreeing with it by more than SONAR_GATE is far likelier to be a false
+            # positive than a correction worth taking
+            if abs(self._watch.at - self.d_est()) > SONAR_GATE:
+                self._watch.fired = False
+                return
+            self.sonar_seen, self.sonar_at = True, self._watch.at
+            # what the event itself was worth, before anything downstream touches it
+            self.sonar_err = self._watch.at - (EDGE - float(self.sim.d.qpos[0]))
+            if self.sonar_zero:
+                # fuse it into the robot's own estimate: what the fence and the recipe both run on
+                self.d0_est = self._watch.at + (float(self.sim.out.x) - self.x_odom0)
+        self.sonar_lost = self._watch.lost_n > 0
+
     # ---------------------------------------------------------------- gym api
     def d_est(self):
         """Distance to the edge as the ROBOT has it: the reconnaissance estimate minus wheel odometry."""
@@ -302,7 +361,10 @@ class StairsLookEnv(gym.Env):
         self.tread = o.get("tread") or self.fixed["tread"] or float(self.rng.uniform(TREAD_LO, TREAD_HI))
         d0 = o.get("d0") or self.fixed["d0"] or float(self.rng.uniform(*self._d_range()))
         sim_seed = int(self.rng.integers(0, 2**31 - 1))
-        self.sim = BotSim(xml_str=model_xml(self.rise, self.tread, STEPS, EDGE),
+        xml = (model_xml(self.rise, self.tread, STEPS, EDGE) if self.sonar_tilt is None
+               else xml_with_cone(self.sonar_tilt, self.rise, self.tread, STEPS, EDGE,
+                                  height=self.sonar_h)[0])
+        self.sim = BotSim(xml_str=xml,
                           seed=sim_seed, randomize=self.randomize)
         self._prep_sensors()
         self.landing_z = float(self.sim.m.geom("landing").pos[2] + self.sim.m.geom("landing").size[2])
@@ -318,6 +380,10 @@ class StairsLookEnv(gym.Env):
         # a scripted recipe that has decided it is finished says so, instead of standing still until
         # the clock runs out: the episode ends where the recipe ends
         self.stop_requested = False
+        self.sonar_r, self.sonar_exp, self.sonar_lost = None, float("inf"), False
+        self.sonar_seen, self.sonar_at, self.sonar_err = False, float("nan"), float("nan")
+        self._watch = (FloorWatch(self.sonar_tilt, h=self.sonar_h or 0.1343)
+                       if self.sonar_tilt is not None else None)
         self.peak, self.d_peak, self.n_pts = 0.0, float("nan"), 0
         self.best_peak, self.best_dpeak, self.nod_pitch = 0.0, float("nan"), 0.0
         self.n_seen, self.seen_paid = 0, 0.0
@@ -384,12 +450,17 @@ class StairsLookEnv(gym.Env):
                 "fell": float(fell), "off_edge": float(off), "no_nod": float(no_nod), "t_end": self.t,
                 "curric": float(curric), "start_d0": self.d0_true, "n_seen": self.n_seen,
                 "n_surf": self.n_surf, "land_seen": float(self.land_seen),
-                "map_conf": self.best_conf, "why": self.view_why}
+                "map_conf": self.best_conf, "why": self.view_why,
+                "sonar_seen": float(self.sonar_seen),
+                "sonar_at_mm": 1000.0 * self.sonar_at if self.sonar_seen else float("nan"),
+                "sonar_err_mm": 1000.0 * self.sonar_err,
+                "d_err_mm": 1000.0 * (self.d_est() - (EDGE - float(self.sim.d.qpos[0])))}
         return self._obs(), r, True, False, info
 
     def step(self, action):
         a = np.clip(np.asarray(action, dtype=float), -1.0, 1.0)
         v_cmd = float(V_MAX * a[0])
+        self._sonar_update()
         if self.d_est() < D_FENCE:
             v_cmd = min(v_cmd, 0.0)          # the fence: no driving at the drop from inside D_FENCE
         self.sim.cmd.v = v_cmd
