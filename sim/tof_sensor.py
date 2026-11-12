@@ -87,8 +87,9 @@ class Tof:
     which is what target status does on the real part.
     """
 
-    def __init__(self, sim, n_rays, rng=None, sub=len(SUB)):
+    def __init__(self, sim, n_rays, rng=None, sub=len(SUB), tilt=math.radians(TOF_TILT), height=TOF_Z):
         self.sim, self.n, self.sub = sim, n_rays, sub
+        self.tilt, self.height = tilt, height
         self.adr = np.array([sim.m.sensor(f"tof{i}").adr[0] for i in range(n_rays)])
         self.sid = np.array([sim.m.site(f"tof{i}").id for i in range(n_rays)])
         self.rng = rng or np.random.default_rng(0)
@@ -112,6 +113,21 @@ class Tof:
         z = z + self.rng.normal(0, 1, len(z)) * sd
         return z.reshape(N, N)
 
+    def cloud_body(self, frame=None, tilt=None):
+        """The same points in the ROBOT's frame, which is where a yaw error exists at all.
+
+        In world coordinates the edge is the same straight line however the robot is turned, so a
+        line fit there measures nothing - it took a nonsense calibration table to notice. The array
+        reports ranges along known bearings, so the body frame is the natural one: no pose needed.
+        """
+        r = (self.frame() if frame is None else frame).reshape(-1)
+        ok = np.isfinite(r)
+        if not ok.any():
+            return np.zeros((0, 3))
+        dirs = np.array(zone_dirs(self.tilt if tilt is None else tilt))[::self.sub]
+        org = np.array([TOF_X, 0.0, self.height])
+        return org + r[ok][:, None] * dirs[ok]
+
     def cloud(self, frame=None):
         """World points, one per valid zone, placed along the zone's CENTRE ray.
 
@@ -129,6 +145,38 @@ class Tof:
         org = d.site_xpos[centre[ok]]
         zax = d.site_xmat[centre[ok]].reshape(-1, 3, 3)[:, :, 2]
         return org + r[ok][:, None] * zax
+
+
+def edge_skew(pts_body, drop_z, tol=0.025, min_side=2):
+    """How square the robot is to the edge: the LEFT-minus-RIGHT difference in how far the floor runs.
+
+    Not an angle - a null. Fitting a yaw angle to the edge endpoints looked obvious and was brittle:
+    at 6 degrees of skew some columns see straight past the edge and down the stairs, their furthest
+    landing return is not the edge at all, and the fitted angle saturated around 40 degrees with the
+    sign inverted. The difference between the two halves has none of that trouble. It is zero when
+    square, it changes sign with the skew, and turning until it is zero is all the robot needs.
+
+    Positive means the floor runs further on the LEFT, so the robot should turn left to square up.
+    Returns None when either half cannot see the edge.
+    """
+    if len(pts_body) < 2 * min_side:
+        return None
+    on = np.abs(pts_body[:, 2] - drop_z) < tol
+    if on.sum() < 2 * min_side:
+        return None
+    q = pts_body[on]
+    # INNER columns only. Using the outer ones looked like more signal and was the problem: at a few
+    # degrees of skew the outermost column has already run past the edge, so its furthest landing
+    # return is bounded by the field of view rather than by the floor, and the difference went
+    # non-monotonic. A narrow pair of windows either side of the centreline stays on the floor.
+    ang = np.degrees(np.arctan2(q[:, 1], q[:, 0]))
+    left = q[(ang > 4.0) & (ang < 16.0)]
+    right = q[(ang < -4.0) & (ang > -16.0)]
+    if len(left) < min_side or len(right) < min_side:
+        return None
+    dl = float(np.sort(left[:, 0])[-min_side:].mean())
+    dr = float(np.sort(right[:, 0])[-min_side:].mean())
+    return dict(skew=dl - dr, d_left=dl, d_right=dr)
 
 
 def stand_and_look(tilt, rise, tread, standoff, seed=0, height=TOF_Z, settle=0.8):

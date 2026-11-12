@@ -64,6 +64,11 @@ struct Command {
   uint8_t arm = 0;          // 1 = armed (motors allowed)
   uint8_t auto_standup = 1; // stand up by itself when lying
   uint8_t obstacle_stop = 1;// refuse to drive forward into a sonar obstacle
+  uint8_t fall_catch = 1;   // stop servoing the wheels while airborne (see the free-fall branch)
+  uint8_t step_mode = 0;    // 1 = taking a known step down: hold attitude, do not servo speed
+  float step_pitch = 0.0f;  // rad: attitude to hold across the edge (slightly negative = heels first)
+  float step_roll = 0.30f;  // m/s: speed to carry over the edge
+  float step_max = 1.2f;    // s: give up and go back to balancing if no landing is detected
   uint8_t drop_stop = 1;    // refuse to drive forward over an edge the front sensor can see
   float drop_margin = 0.25f;// m of floor that must remain ahead before forward driving is refused
 };
@@ -75,6 +80,8 @@ struct Outputs {
   float pitch, pitch_rate, roll, yaw;   // rad, rad/s
   float x, y, v;            // odometry, m, m/s
   float v_ref, yaw_ref;
+  uint8_t airborne;         // 1 = the free-fall catch is holding the wheels (accelerometer)
+  uint8_t stepping;         // 1 = taking a commanded step down (latched; clears itself on landing)
   uint8_t obstacle;         // 1 = sonar is limiting forward speed
   uint8_t standup_tries;
   float standup_energy_adj;  // learned correction, rad^2/s^2 (store it in flash on the real robot)
@@ -175,6 +182,11 @@ class Controller {
   float rate_lp_ = 0;
   float gbias_[3] = {0, 0, 0};    // learned gyro bias, rad/s
   float pitch_ = 0, pitch_rate_ = 0, roll_ = 0, yaw_ = 0, yaw_rate_ = 0;
+  bool airborne_ = false;           // wheels off the ground: see the free-fall branch in balance()
+  float air_t_ = 0, ground_t_ = 0, land_t_ = 0;
+  float step_t_ = 0;                // time in the step
+  bool step_active_ = false;        // latched on the rising edge of cmd_.step_mode, cleared on landing
+  uint8_t step_prev_ = 0;
   float phi_ = 0, phi_rate_ = 0;          // mean absolute wheel angle / rate (rad, rad/s)
   float phi_rate_prev_ = 0, acc_fwd_ = 0;
   float x_ = 0, y_ = 0, v_ = 0;

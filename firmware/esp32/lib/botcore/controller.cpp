@@ -85,6 +85,25 @@ void Controller::estimate(const Inputs& in_raw) {
   y_ += v_ * std::sin(yaw_) * dt;
 }
 
+// free-fall detection: in free fall the accelerometer reads ~0, and on touchdown it spikes
+static constexpr float FALL_A = 6.0f;        // m/s^2: below this the wheels are carrying little
+static constexpr float LAND_A = 7.0f;        // m/s^2: weight back on the wheels. NOT the touchdown
+                                             // spike: a wheel clipping the edge mid-fall reads 18
+                                             // for a tick, and exiting on that released the catch
+                                             // in mid-air, after which the balance law drove the
+                                             // wheels to -3.8 m/s and put the body on its nose.
+static constexpr float LAND_HOLD = 0.008f;   // s it must stay there: sustained support, not a spike
+static constexpr float STEP_SETTLE = 0.50f;  // s of support before a STEP hands back. The landing
+                                             // transient is still running long after touchdown: an
+                                             // exit 8 ms in scores 5%, at 0.35 s it throws the body
+                                             // to 112 deg, and only past ~0.5 s is it over.
+static constexpr float STEP_RATE = 1.2f;     // rad/s: and the body has to have stopped rotating
+static constexpr float FALL_DWELL = 0.006f;  // s. Three ticks, not twelve: unloaded wheels go from
+                                             // 0.56 to 5.78 m/s in 50 ms, so a 25 ms dwell latches
+                                             // after the runaway it exists to prevent.
+static constexpr float AIR_MAX = 0.60f;      // s: a drop this long is not a step, so give up and balance
+static constexpr float AIR_KD = 0.060f;      // Nm per rad/s: enough to actually arrest the spin
+
 float Controller::sonar_speed_limit(const Inputs& in) {
   obstacle_ = 0;
   float vmax = max_speed;
@@ -377,6 +396,74 @@ Outputs Controller::step(const Inputs& in) {
         dock_seq_ = cmd_.seq; last_seq_ = cmd_.seq;
         if (!recovering_ && std::fabs(v_) < 0.15f) { { still_t_ = 0; contact_seen_ = false; lean_tgt_ = std::min(pitch_, 0.0f); go(ST_DOCK_LAND); } break; }
       }
+      // --- a known step down -------------------------------------------------------------
+      // The free-fall catch is reactive, and reacting is not enough: rolling off an edge at walking
+      // pace there IS no clean free fall, because the wheel stays in contact with the corner the
+      // whole way down. |a| never drops far enough to trigger anything, the velocity loop sees its
+      // support vanish, drives the wheels to -4.9 m/s, and the wheel slams into the riser face at
+      // 58 m/s^2. Measured, repeatedly.
+      //
+      // So the robot commits instead of reacting. It knows where the edge is - the zone array puts
+      // it within 13 mm - so it can enter this mode at a chosen distance and simply hold its
+      // attitude across the lip: pitch servo only, at half gains, with the speed loop switched off
+      // entirely so nothing can command a lurch while the wheels are unloaded. It leaves on
+      // sustained support, handing back the speed it actually has.
+      // Latched, and it clears ITSELF. The first version simply ran while the command was held,
+      // which meant it re-did its handover every tick - and that accidentally kept the position loop
+      // switched off, which is most of why it worked. Releasing the command then handed back to a
+      // fresh position loop that immediately fought the robot: 98% became 65%. A step is one event
+      // with a beginning and an end, so the controller owns both.
+      if (cmd_.step_mode && !step_prev_) { step_active_ = true; step_t_ = 0; land_t_ = 0; }
+      step_prev_ = cmd_.step_mode;
+      if (step_active_) {
+        step_t_ += dt;
+        const float a_mag2 = std::sqrt(in.ax * in.ax + in.ay * in.ay + in.az * in.az);
+        if (step_t_ > 0.15f && a_mag2 > LAND_A) land_t_ += dt; else land_t_ = 0;
+        if ((land_t_ > STEP_SETTLE && std::fabs(pitch_rate_) < STEP_RATE)
+            || step_t_ > cmd_.step_max) {
+          step_active_ = false;
+          step_t_ = 0; land_t_ = 0;
+          phi_ref_ = phi_; pos_int_ = 0; v_ref_ = phi_rate_ * Params::WHEEL_R;
+          airborne_ = false;
+        } else {
+          t_sum = clampf(-0.5f * (Params::K[0] * (pitch_ - cmd_.step_pitch) + Params::K[1] * pitch_rate_),
+                         -2 * torque_limit, 2 * torque_limit);
+          t_diff = Params::KP_YAW * (yaw_ref_ - yaw_) - Params::KD_YAW * yaw_rate_;
+          break;
+        }
+      }
+
+      // --- free fall ---------------------------------------------------------------------
+      // Taking a step DOWN, the wheels leave the ground together (one axle), and for ~150 ms there
+      // is nothing to push against. The balance law does not know that: it still sees a pitch error
+      // and still commands torque, the unloaded wheels spin up to 2 m/s in 200 ms, and the reaction
+      // throws the body to -67 deg and onto its back. Measured, repeatedly, on steps as small as
+      // 40 mm - the robot was not losing a fight with the drop, it was losing one with its own
+      // velocity loop. So while airborne: damp the wheels and leave the attitude alone. Gravity
+      // cannot change the body's angular momentum, so an attitude that was upright at the edge is
+      // still upright at touchdown.
+      {
+        const float a_mag = std::sqrt(in.ax * in.ax + in.ay * in.ay + in.az * in.az);
+        if (cmd_.fall_catch && a_mag < FALL_A) air_t_ += dt; else air_t_ = 0;
+        if (!airborne_ && air_t_ > FALL_DWELL) { airborne_ = true; ground_t_ = 0; land_t_ = 0; }
+        if (airborne_) {
+          ground_t_ += dt;
+          // Leave on the touchdown SPIKE, not on the accelerometer merely recovering: a wheel
+          // clipping the edge on the way past reads like ground for a tick and would drop the catch
+          // in the middle of the fall.
+          if (a_mag > LAND_A) land_t_ += dt; else land_t_ = 0;
+          if (land_t_ > LAND_HOLD || ground_t_ > AIR_MAX) {
+            airborne_ = false;
+            // the same handover the nod uses: never hand back a zero speed reference while moving
+            phi_ref_ = phi_; pos_int_ = 0; v_ref_ = phi_rate_ * Params::WHEEL_R;
+          }
+        }
+      }
+      if (airborne_) {
+        t_sum = clampf(-AIR_KD * phi_rate_, -torque_limit, torque_limit);   // damp only: no servo
+        t_diff = 0;
+        break;
+      }
       references(dt);
       balance(dt, t_sum, t_diff);
       side_ = 0;
@@ -425,6 +512,8 @@ Outputs Controller::step(const Inputs& in) {
   o.x = x_; o.y = y_; o.v = v_;
   o.v_ref = v_ref_; o.yaw_ref = yaw_ref_;
   o.obstacle = obstacle_; o.standup_tries = tries_; o.standup_energy_adj = et_adapt_;
+  o.airborne = airborne_ ? 1 : 0;
+  o.stepping = step_active_ ? 1 : 0;
   for (int i = 0; i < 6; ++i) o.dbg[i] = dbg_[i];
   o.motors_on = on;
   return o;

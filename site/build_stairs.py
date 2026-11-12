@@ -12,6 +12,7 @@ HERE = pathlib.Path(__file__).parent
 CLIPS = HERE / "files" / "stairs_clips.json"
 AB = HERE / "files" / "stairs_ab.json"
 DOWN = HERE / "files" / "descend_clips.json"
+FLIGHT = HERE / "files" / "flight_clips.json"
 OUT = HERE / "stairs.html"
 
 NAV = [("index.html", "3D viewer"), ("wiring_boards.html", "Wiring diagram"), ("print.html", "How it prints"),
@@ -128,6 +129,18 @@ def down_clip(r):
 </figure>"""
 
 
+def flight_clip(r):
+    cls = "ok" if r["ok"] else "no"
+    return f"""<figure class="clip">
+<video controls preload="none" playsinline poster="files/flight_{r['slug']}.jpg">
+ <source src="files/{r['file']}" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">{html.escape(r['caption'])}</figcaption>
+<div class="vd {cls}">{html.escape(r['line'])}</div>
+<div class="ro">{cell('riser', f"{r['rise_mm']:.0f} mm")}{cell('tread', f"{r['tread_mm']:.0f} mm")}
+{cell('roll speed', f"{r['v']:.2f} m/s")}{cell('steps', f"{r['steps']} of 4")}</div>
+</figure>"""
+
+
 def pair(r):
     f, w = r["flick"], r["swing"]
     est = lambda d: "--" if d["rise_est_mm"] is None else f'{d["rise_est_mm"]} mm'
@@ -153,6 +166,8 @@ def main():
     ab_blind = sum(1 for r in ab if r["swing"]["rise_est_mm"] is None and r["swing"]["n_seen"] >= 20)
     down = json.loads(DOWN.read_text()) if DOWN.exists() else []
     down_ok = sum(1 for r in down if r["ok"])
+    flights = json.loads(FLIGHT.read_text()) if FLIGHT.exists() else []
+    flight_ok = sum(1 for r in flights if r["ok"])
     good = [r for r in rows if r["ok"] and "LUCKY" not in r["line"]]
     lucky = [r for r in rows if r["ok"] and "LUCKY" in r["line"]]
     clips = []
@@ -282,6 +297,25 @@ robot stands still at 260 mm and the answer arrives at 15 Hz. Same 80 held-out s
 sub-rays per zone, nearest taken, as the part reports. One ray per zone centre deletes every mixed
 pixel from a problem that is entirely about a depth discontinuity, and flattered it to 1.000 at
 3.8 mm. The flattering number was the model, not the sensor.</p>
+
+<h2>Four steps in a row</h2>
+<p class="sub">{flight_ok} of {len(flights)} flights took all four steps. The cycle is: roll at a
+measured speed, <b>commit</b> 20 mm before an edge the array has already located, hold attitude
+through the landing, settle, back off to 75% of the tread &mdash; which is both where the array
+measures best and far enough to approach the next edge deliberately &mdash; and repeat.</p>
+<p class="note"><b>Committing is the whole trick.</b> Reacting cannot work: rolling off a lip at
+walking pace produces no free fall at all, because the wheel stays on the corner the whole way down,
+so the accelerometer never sees anything to react to. Meanwhile the velocity loop watches its support
+vanish and drives the wheels to &minus;4.9 m/s. The robot does not need to detect the edge though
+&mdash; it measured it. Holding attitude across the lip with the speed loop off takes a 100 mm step
+from 0% to 92%, and a 170 mm step from 0% to 75%.</p>
+<p class="note"><b>And it stays square.</b> A step taken skewed lands on one wheel, which is the one
+failure the attitude hold cannot save: at 10&deg; off square the success rate collapses to 10&ndash;15%
+against 65&ndash;90% when square. The yaw controller holds the heading the robot approached on, and
+across four landings the drift stays under <b>0.3&deg;</b>. Worth knowing: the 8&nbsp;&times;&nbsp;8
+array <em>cannot</em> measure that skew &mdash; at a 280 mm standoff 5&deg; moves the edge distance by
+about 1 mm, well under the range noise &mdash; so squareness has to be held, not sensed.</p>
+<div class="grid">{"".join(flight_clip(r) for r in flights)}</div>
 
 <h2>Going down: {len(down)} attempts at a single step</h2>
 <p class="sub">{down_ok} landed it. Mapping first, because it decides the shape of any descent: the

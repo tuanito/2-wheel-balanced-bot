@@ -133,6 +133,10 @@ def take_step(rise, tread, v_app, seed, brake=0.0, brake_at=0.06, steps=8, t_max
         x = float(sim.d.qpos[0])
         if x > EDGE and not over:
             over, t_over = True, i
+            # Stop asking for speed the instant the edge is crossed. Holding the roll command through
+            # the landing carries the robot ~300 mm across a 300 mm tread and off the NEXT edge, and
+            # that - not the landing - was most of what the earlier 65% was losing to.
+            sim.cmd.v = 0.0
             sim.cmd.v = 0.0      # ONE step: stop asking for speed the moment the edge is crossed.
             # Without this the robot keeps its forward command and simply drives off the next step,
             # and the next - which is a test of descending a whole flight, not of taking one step,
@@ -157,6 +161,75 @@ def take_step(rise, tread, v_app, seed, brake=0.0, brake_at=0.06, steps=8, t_max
     sim.close()
     return dict(ok=float(ok), past=x - EDGE, pitch=pitch, v=v, state=int(o.state),
                 drop=drop, peak_pitch=pitch_max, states=states)
+
+
+def committed_step(rise, tread, v_roll, seed, arm_mm=60.0, hold_pitch=0.0, d0=0.45, post=1.6,
+                   handover="ramp", release=True, step_max=1.6, yaw=0.0):
+    """Take a step the robot KNOWS is coming: arm step_mode `arm_mm` before the edge.
+
+    This is the difference between reacting and committing. The free-fall catch cannot help here -
+    rolling off a lip at walking pace produces no free fall at all, because the wheel stays on the
+    corner the whole way down - but the robot does not need to detect anything: the zone array has
+    already told it where the edge is, to about 13 mm. So it holds its attitude across the lip with
+    the speed loop switched off, and hands back only once it is standing on something again.
+    """
+    xml = model_xml(rise, tread, 8, EDGE)
+    sim = BotSim(xml_str=xml, seed=seed, randomize=True)
+    sim.place(pitch=0.0, x=EDGE - d0, yaw=yaw)
+    sim.hold(0.6)
+    sim.cmd.mode = 0
+    sim.cmd.obstacle_stop = 0
+    sim.cmd.drop_stop = 0
+    sim.cmd.step_pitch = hold_pitch
+    sim.cmd.step_max = step_max
+    sim.cmd.v = v_roll
+    armed, over, t_over, peak = False, False, 0, 0.0
+    n = int((d0 / max(0.05, v_roll) + 3.0 + post) / CTRL_DT)
+    for i in range(n):
+        d = EDGE - float(sim.d.qpos[0])
+        if not armed and d < arm_mm / 1000.0:
+            armed = True
+            sim.cmd.step_mode = 1
+        o = sim.step()
+        x = float(sim.d.qpos[0])
+        if x > EDGE and not over:
+            over, t_over = True, i
+            # Stop asking for speed the instant the edge is crossed. Holding the roll command through
+            # the landing carries the robot ~300 mm across a 300 mm tread and off the NEXT edge, and
+            # that - not the landing - was most of what the earlier 65% was losing to.
+            sim.cmd.v = 0.0
+        if over:
+            peak = max(peak, abs(float(o.pitch)))
+            if sim.cmd.step_mode and not int(o.state) == 4:
+                pass
+        # Hold the mode until the robot is actually settled. Handing back 0.35 s after the edge
+        # looked reasonable and was catastrophic - peak pitch 112 deg against 9.6 - because the
+        # landing transient is still running: the body is absorbing, and the full balance law
+        # arriving in the middle of that throws it. At 0.8 s it is over. Let the state decide.
+        if release and armed and over and i - t_over > int(0.80 / CTRL_DT) and abs(float(o.v)) < 0.12 \
+                and abs(float(o.pitch)) < 0.10:
+            sim.cmd.step_mode = 0
+            sim.cmd.v = max(0.0, float(sim.cmd.v) - 0.6 * CTRL_DT)
+        if over and i - t_over > int(post / CTRL_DT):
+            break
+    o = sim.out
+    ok = (over and int(o.state) == 4 and abs(float(o.pitch)) < 0.25
+          and abs(float(o.v)) < 0.35 and peak < 0.80)
+    sim.close()
+    return dict(ok=float(ok), peak_deg=math.degrees(peak), end_pitch=math.degrees(float(o.pitch)),
+                end_v=float(o.v), state=int(o.state))
+
+
+def part_c(trials=12):
+    print(f"\n\033[1mC. A step the robot commits to, armed from the measured edge\033[0m")
+    print("   step_mode holds attitude across the lip with the speed loop off.\n")
+    print(f"   {'riser':>7} " + "  ".join(f"{v:>5.2f} m/s" for v in (0.15, 0.25, 0.35)))
+    for rise in (0.06, 0.08, 0.10, 0.13, 0.15, 0.17):
+        cells = []
+        for v in (0.15, 0.25, 0.35):
+            out = [committed_step(rise, 0.30, v, 900 + k) for k in range(trials)]
+            cells.append(f"{np.mean([o['ok'] for o in out]):6.0%}   ")
+        print(f"   {rise*1000:4.0f} mm  {''.join(cells)}")
 
 
 def part_b2(trials=6):
@@ -193,6 +266,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--map", action="store_true")
     ap.add_argument("--step", action="store_true")
+    ap.add_argument("--commit", action="store_true")
     ap.add_argument("--trials", type=int, default=4)
     a = ap.parse_args()
     if a.map or not (a.map or a.step):
@@ -200,7 +274,80 @@ def main():
     if a.step:
         part_b(max(4, a.trials))
         part_b2(max(4, a.trials))
+    if a.commit:
+        part_c(max(8, a.trials))
 
 
 if __name__ == "__main__":
     main()
+
+
+# --------------------------------------------------------------------------- a flight of steps
+def descend_flight(rise, tread, n_steps=4, v_roll=0.20, arm_mm=20.0, seed=0, yaw0=0.0,
+                   settle=1.2, back_frac=0.75):
+    """Take `n_steps` one after another: step, settle, back off to a measuring standoff, step again.
+
+    This is the cycle the owner asked for. After each landing the robot backs up to `back_frac` of
+    the tread it is standing on, which is both where the array measures best (250-300 mm) and far
+    enough from the next edge to approach it deliberately rather than arriving at it by accident.
+
+    Squareness is HELD, not measured: the yaw controller keeps the heading the robot approached on.
+    The 8 x 8 array cannot resolve the few degrees that matter - a 5 degree skew moves the edge
+    distance by about 1 mm at this standoff, under the range noise - and skew is what kills a step
+    (65-90% square, 10-15% at ten degrees). So the test here is whether the heading SURVIVES four
+    landings, which is the thing that would actually go wrong.
+    """
+    xml = model_xml(rise, tread, 10, EDGE)
+    sim = BotSim(xml_str=xml, seed=seed, randomize=True)
+    sim.place(pitch=0.0, x=EDGE - 0.35, yaw=yaw0)
+    sim.hold(0.6)
+    sim.cmd.mode = 0
+    sim.cmd.obstacle_stop = 0
+    sim.cmd.drop_stop = 0
+    sim.cmd.step_max = 1.6
+    yaw_ref = float(sim.out.yaw)
+    done, yaws, peaks = 0, [], []
+    for k in range(n_steps):
+        edge_k = EDGE + k * tread                 # the edge of the step we are about to take
+        armed = over = False
+        t0 = None
+        peak = 0.0
+        sim.cmd.v = v_roll
+        for i in range(int(8.0 / CTRL_DT)):
+            x = float(sim.d.qpos[0])
+            if not armed and edge_k - x < arm_mm / 1000.0:
+                armed = True
+                sim.cmd.step_mode = 1
+            o = sim.step()
+            if x > edge_k and not over:
+                over, t0 = True, i
+                sim.cmd.v = 0.0                   # one step: stop asking the moment it commits
+            if over:
+                peak = max(peak, abs(float(o.pitch)))
+            if int(o.state) not in (3, 4):
+                sim.close()
+                return dict(steps=done, fell=True, yaws=yaws, peaks=peaks, yaw_drift=0.0)
+            if over and i - t0 > int(settle / CTRL_DT):
+                break
+        if not over:
+            break
+        sim.cmd.step_mode = 0
+        peaks.append(math.degrees(peak))
+        yaws.append(math.degrees(float(sim.out.yaw) - yaw_ref))
+        done += 1
+        if peak > 0.80:
+            break                                  # it tumbled; the flight is over either way
+        # back off to back_frac of this tread: the measuring standoff for the next edge
+        target = (EDGE + (k + 1) * tread) - back_frac * tread
+        for i in range(int(4.0 / CTRL_DT)):
+            x = float(sim.d.qpos[0])
+            sim.cmd.v = -0.15 if x > target else 0.0
+            o = sim.step()
+            if int(o.state) not in (3, 4):
+                sim.close()
+                return dict(steps=done, fell=True, yaws=yaws, peaks=peaks, yaw_drift=0.0)
+            if x <= target and abs(float(o.v)) < 0.05:
+                break
+    drift = max((abs(y) for y in yaws), default=0.0)
+    sim.close()
+    return dict(steps=done, fell=False, yaws=yaws, peaks=peaks, yaw_drift=drift)

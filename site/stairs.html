@@ -375,6 +375,67 @@ sub-rays per zone, nearest taken, as the part reports. One ray per zone centre d
 pixel from a problem that is entirely about a depth discontinuity, and flattered it to 1.000 at
 3.8 mm. The flattering number was the model, not the sensor.</p>
 
+<h2>Four steps in a row</h2>
+<p class="sub">6 of 6 flights took all four steps. The cycle is: roll at a
+measured speed, <b>commit</b> 20 mm before an edge the array has already located, hold attitude
+through the landing, settle, back off to 75% of the tread &mdash; which is both where the array
+measures best and far enough to approach the next edge deliberately &mdash; and repeat.</p>
+<p class="note"><b>Committing is the whole trick.</b> Reacting cannot work: rolling off a lip at
+walking pace produces no free fall at all, because the wheel stays on the corner the whole way down,
+so the accelerometer never sees anything to react to. Meanwhile the velocity loop watches its support
+vanish and drives the wheels to &minus;4.9 m/s. The robot does not need to detect the edge though
+&mdash; it measured it. Holding attitude across the lip with the speed loop off takes a 100 mm step
+from 0% to 92%, and a 170 mm step from 0% to 75%.</p>
+<p class="note"><b>And it stays square.</b> A step taken skewed lands on one wheel, which is the one
+failure the attitude hold cannot save: at 10&deg; off square the success rate collapses to 10&ndash;15%
+against 65&ndash;90% when square. The yaw controller holds the heading the robot approached on, and
+across four landings the drift stays under <b>0.3&deg;</b>. Worth knowing: the 8&nbsp;&times;&nbsp;8
+array <em>cannot</em> measure that skew &mdash; at a 280 mm standoff 5&deg; moves the edge distance by
+about 1 mm, well under the range noise &mdash; so squareness has to be held, not sensed.</p>
+<div class="grid"><figure class="clip">
+<video controls preload="none" playsinline poster="files/flight_flight-080.jpg">
+ <source src="files/flight_flight-080.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">80 mm steps, 300 mm treads: four in a row</figcaption>
+<div class="vd ok">SUCCESS - 4 of 4 steps, never past 1 deg off square</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">80 mm</div></div><div><div class="k">tread</div><div class="v">300 mm</div></div>
+<div><div class="k">roll speed</div><div class="v">0.20 m/s</div></div><div><div class="k">steps</div><div class="v">4 of 4</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/flight_flight-100.jpg">
+ <source src="files/flight_flight-100.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">100 mm steps, 300 mm treads</figcaption>
+<div class="vd ok">SUCCESS - 4 of 4 steps, never past 1 deg off square</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">100 mm</div></div><div><div class="k">tread</div><div class="v">300 mm</div></div>
+<div><div class="k">roll speed</div><div class="v">0.20 m/s</div></div><div><div class="k">steps</div><div class="v">4 of 4</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/flight_flight-130.jpg">
+ <source src="files/flight_flight-130.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">130 mm steps, 280 mm treads</figcaption>
+<div class="vd ok">SUCCESS - 4 of 4 steps, never past 1 deg off square</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">130 mm</div></div><div><div class="k">tread</div><div class="v">280 mm</div></div>
+<div><div class="k">roll speed</div><div class="v">0.15 m/s</div></div><div><div class="k">steps</div><div class="v">4 of 4</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/flight_flight-170.jpg">
+ <source src="files/flight_flight-170.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">170 mm steps, 260 mm treads: the tallest riser in the set</figcaption>
+<div class="vd ok">SUCCESS - 4 of 4 steps, never past 1 deg off square</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">170 mm</div></div><div><div class="k">tread</div><div class="v">260 mm</div></div>
+<div><div class="k">roll speed</div><div class="v">0.20 m/s</div></div><div><div class="k">steps</div><div class="v">4 of 4</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/flight_flight-060.jpg">
+ <source src="files/flight_flight-060.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">60 mm steps, 320 mm treads</figcaption>
+<div class="vd ok">SUCCESS - 4 of 4 steps, never past 1 deg off square</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">60 mm</div></div><div><div class="k">tread</div><div class="v">320 mm</div></div>
+<div><div class="k">roll speed</div><div class="v">0.20 m/s</div></div><div><div class="k">steps</div><div class="v">4 of 4</div></div></div>
+</figure><figure class="clip">
+<video controls preload="none" playsinline poster="files/flight_flight-150.jpg">
+ <source src="files/flight_flight-150.mp4" type="video/mp4">Your browser cannot play this clip.</video>
+<figcaption class="cap">150 mm steps, 270 mm treads</figcaption>
+<div class="vd ok">SUCCESS - 4 of 4 steps, never past 1 deg off square</div>
+<div class="ro"><div><div class="k">riser</div><div class="v">150 mm</div></div><div><div class="k">tread</div><div class="v">270 mm</div></div>
+<div><div class="k">roll speed</div><div class="v">0.15 m/s</div></div><div><div class="k">steps</div><div class="v">4 of 4</div></div></div>
+</figure></div>
+
 <h2>Going down: 10 attempts at a single step</h2>
 <p class="sub">3 landed it. Mapping first, because it decides the shape of any descent: the
 occlusion condition for the <em>k</em>-th tread reduces to the same D &lt; h &times; tread / rise with

@@ -114,6 +114,29 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   **+62 +- 86 mm**, 100% upright. `sim/stairs_windup.py` has the table. Corollary: **retrying deeper is
   a trap.** 0.90 rad costs +504 mm against 0.75 rad's +62 mm, so a deeper second look spends exactly
   the margin it is trying to earn. Retry closer at the same depth, never deeper.
+- **A step down has to be COMMITTED to, not reacted to.** Rolling off a lip at walking pace produces
+  no free fall at all - the wheel stays on the corner the whole way down - so the accelerometer never
+  sees anything and `fall_catch` never fires, while the velocity loop watches its support vanish and
+  drives the wheels to -4.9 m/s. The robot does not need to detect the edge: the array measured it.
+  `step_mode` holds attitude across the lip with the speed loop off, armed 20 mm out, and takes a
+  100 mm step from 0% to 92%, a 170 mm step from 0% to 75%. Three things about it, each learned the
+  hard way: it must LATCH and clear itself (a version that ran while the command was held re-did its
+  handover every tick, which accidentally disabled the position loop - that was most of why it
+  worked, and releasing the command then dropped 98% to 65%); it must not hand back until the
+  landing transient is over (exit 8 ms after touchdown scores 5%, at 0.35 s it throws the body to
+  112 deg, past ~0.5 s it is fine); and the speed command must be released the moment the edge is
+  crossed, or the robot carries ~300 mm across a 300 mm tread and off the next edge.
+- **Skew is the failure the attitude hold cannot save, and the array cannot measure it.** A step
+  taken 10 deg off square scores 10-15% against 65-90% square. But at a 280 mm standoff 5 deg of
+  skew moves the edge distance by about 1 mm - under the range noise - and `d = D/cos(psi)` makes
+  the minimum-distance null quadratically flat, so neither a line fit nor a left-right difference
+  resolves it (both were tried; the line fit saturated at 40 deg with the sign inverted). Squareness
+  is HELD by the yaw controller, not sensed: across four landings the drift stays under 0.3 deg.
+- **The 3D viewer's full part set comes from `export_viewer_real.py`, not `export_viewer_data.py`.**
+  The latter alone gives 63 parts and silently drops the `conn` group and every bought component
+  (c_ESP32, k_LD19 ...); the real one gives 111. Both need `models/bought/mf6015.step`.
+- **three.js is vendored in `site/vendor/`, not loaded from a CDN.** The importmap points at
+  `./vendor/three.module.js`, so the viewer works in the artifact sandbox and offline.
 - **Going down a step, the robot's enemy is its own velocity loop, not the drop.** One axle means
   both wheels leave the ground together, and for ~150 ms the balance law servos against nothing:
   unloaded wheels run 0.56 -> 5.78 m/s in 50 ms and the reaction throws the body to +-90..110 deg,
