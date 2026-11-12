@@ -160,7 +160,9 @@ function visible(o){const v=VIEWS[cur];if(!v.show(o))return false;const g=o.user
   if(g==='mat'&&!v.lie)return false;
   if((g==='wires'||g==='conn')&&!v.wires)return false;
   if(g==='wheels'&&!T.wheels)return false;if(g==='parts'&&!T.parts)return false;return true;}
-function apply(refit){const v=VIEWS[cur];wireG.visible=!!v.wires;if(!v.wires)selectWire(-1);
+function frontWires(){wireMeshes.forEach(m=>{const n=WIRES[m.userData.h].name;
+  m.visible=/sonar/i.test(n)?front==='sonar':(/zone array/i.test(n)?front==='tof':true);});}
+function apply(refit){const v=VIEWS[cur];wireG.visible=!!v.wires;if(!v.wires)selectWire(-1);frontWires();
   for(const o of objs){o.userData.tvis=visible(o)?(v.ghost&&v.ghost.includes(key(o))?.16:1):0;o.userData.target.copy(o.userData.ex).multiplyScalar(v.ex);const off=v.off&&v.off[key(o)];if(off)o.userData.target.set(...off);}
   [...vb.children].forEach(b=>b.classList.toggle('on',b.textContent===cur));
   if(refit)fit(v);

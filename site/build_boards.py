@@ -327,19 +327,26 @@ def zone_array(x, y):
             b += rect(x + 52 + c * 13, y + 25 + r * 7, 9, 5, '#c2185b', 1)
     for i, n in enumerate(['VIN', 'GND', 'SDA', 'SCL', 'LPn', 'INT']):
         b += pin(m, n, x + 24 + i * 20, y + 84, 'd', n)
-    b += title(x, y - 8, "VL53L5CX 8 x 8 zone array (alternative to the sonar)")
+    b += title(x, y - 8, "VL53L5CX 8 x 8 zone array - FRONT SENSOR, plug J2T")
+    b += text(x, y + 104, "64 zones, 15 Hz, 30 deg down. Own I2C bus: SDA 42 / SCL 41, LPn 2, INT 47.",
+              8.5, '#f48fb1')
     g(m, b)
 
 
 def sonar(x, y):
+    """The HC-SR04. One aperture, one sensor: this is the ALTERNATIVE to the zone array above, so it
+    is drawn dimmed and dashed. Both boards used to sit here looking equally fitted, and the owner
+    read the diagram as still having a sonar and no array - which is exactly what it showed."""
     m = "Sonar (HC-SR04)"
-    b = rect(x, y, 220, 96, '#1d4fa8', 4)
+    b = rect(x, y, 220, 96, '#223148', 4, '#6b7a90', 'stroke-dasharray="7 5"')
     for cx in (x + 52, x + 168):
         b += f'<circle cx="{cx}" cy="{y+44}" r="34" fill="#cfd3d8" stroke="#888"/><circle cx="{cx}" cy="{y+44}" r="25" fill="url(#mesh)"/>'
     b += rect(x + 94, y + 8, 32, 14, '#cfd3d8', 3, '#888')
     for i, n in enumerate(['Vcc', 'Trig', 'Echo', 'Gnd']):
         b += pin(m, n, x + 80 + i * 20, y + 88, 'd', n)
-    b += title(x, y - 8, "Ultrasonic sonar HC-SR04")
+    b += title(x, y - 8, "Ultrasonic sonar HC-SR04 - the ALTERNATIVE, plug J2")
+    b += text(x, y + 108, "Either / or: the array and the sonar share the front aperture. Fit one.",
+              8.5, '#8fa3bd')
     g(m, b)
 
 
@@ -454,7 +461,7 @@ motor(150, 940, 'R'); motor(390, 940, 'L')
 perfboard(590, 40); canboard(1110, 60)
 pizero(600, 470); camera(1010, 740); junction(970, 480)
 ld19adapter(770, 740); ld19(820, 1010)
-armbutton(1330, 40); imu(1330, 170); sonar(1490, 160); zone_array(1490, 40); eye(1340, 320, 'R', True); eye(1590, 320, 'L', False)
+armbutton(1330, 40); imu(1330, 170); zone_array(1490, 40); sonar(1490, 190); eye(1340, 320, 'R', True); eye(1590, 320, 'L', False)
 mic(1360, 540, 'L'); mic(1360, 680, 'R'); amp(1520, 560); speaker(1700, 640)
 headlight_driver(1360, 900); headlight(1620, 870, 'L'); headlight(1620, 1040, 'R')
 irrx(1180, 1150)
