@@ -1,4 +1,4 @@
-"""Parametric MF6015 -> 12 mm hex RC wheel adapter (CadQuery).
+"""Parametric hub-motor -> 12 mm hex RC wheel adapter (CadQuery).
 
 Print orientation: hex end DOWN on the bed. The 45-degree cone under the flange
 means no supports are needed, and the motor-facing flange and centering spigot
@@ -7,21 +7,35 @@ come out as clean top surfaces.
 Run:  python3 wheel_adapter.py   -> writes STEP + STL next to this script.
 """
 import cadquery as cq
-import math, pathlib
+import math, os, pathlib, sys
 
-# ---------------- motor interface (from LKMTECH MF6015 v2 drawing + STEP) ------
-BORE_D        = 12.7   # motor centering bore, H7 (1/2")
-SPIGOT_D      = 12.6   # printed spigot: tune 12.55-12.70 for a snug slide fit
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "case"))
+import motors as _motors                                                     # noqa: E402
+
+# ---------------- motor interface (measured off each motor's STEP, see motors.py) ------
+# Happily, the two motors share the output face: the same Ø12.70 centring bore on the same Ø25 bolt
+# circle. Only the screws differ - M3 into 2.5 mm of thread on the MF6015, M4 into 3.5 mm on the
+# MF7015 - so the spigot and the bolt positions carry over unchanged and only the holes resize.
+MOTOR         = os.environ.get("ROBOT_MOTOR", "mf6015")   # mf6015 | mf7015
+_M            = _motors.get(MOTOR)
+BORE_D        = _M["bore_d"]   # motor centering bore, H7 (1/2")
+SPIGOT_D      = BORE_D - 0.1   # printed spigot: tune 12.55-12.70 for a snug slide fit
 SPIGOT_L      = 4.0    # bore is ~17 mm deep, 4 mm is plenty for centering
-PCD           = 25.0   # 4 x M3 bolt circle
-M3_CLEAR      = 3.4
-M3_HEAD_CB    = 6.0    # counterbore for M3 socket head (5.5 mm head)
+PCD           = _M["pcd"]      # 4 x M3 (mf6015) / M4 (mf7015) bolt circle
+M3_CLEAR      = _M["out_clear"]
+# counterbore for the socket head: M3 head is 5.5 across, M4 is 7.0, +0.5 to print clean
+M3_HEAD_CB    = {"M3": 6.0, "M4": 7.5}[_M["out_bolt"]]
 
 # ---------------- adapter body -------------------------------------------------
-FLANGE_D      = 36.0
+FLANGE_D      = 36.0 if _M["out_bolt"] == "M3" else 40.0   # must stay clear of the head counterbores
 FLANGE_T      = 5.5    # plate under screw heads. M3x8 -> 2.5 mm into motor
 NECK_D        = 18.0
-NECK_L        = 6.0    # standoff so the wheel clears the motor - set per wheel
+# The neck is the one free length in the stack, so it ABSORBS any change in the cone. A bigger bolt
+# needs a bigger flange, a bigger flange makes the 45 deg support-free cone taller, and a taller cone
+# would push the wheel outboard and quietly break body_case.WHEEL_GAP (which says "set NECK_L to
+# match"). Deriving it from a fixed total keeps the wheel's inner face exactly where the body puts it,
+# whichever motor is fitted.
+STACK_L       = 31.5   # spigot + flange + cone + neck + hex: the MF6015 stack, and the wheel position
 HEX_AF        = 11.95  # 12 mm hex across flats, minus a print tolerance
 HEX_L         = 7.0    # match the depth of your wheel's hex pocket (it must bottom out)
 M4_INSERT_D   = 5.6    # hole for M4 heat-set insert (check your insert's spec)
@@ -30,6 +44,8 @@ CHAMFER       = 0.6
 BRIDGE_LAYER  = 0.2    # layer height used by the two-layer bridge at the screw-head seats
 
 CONE_H = (FLANGE_D - NECK_D) / 2          # 45 degrees -> support-free
+NECK_L = STACK_L - (SPIGOT_L + FLANGE_T + CONE_H + HEX_L)   # mf6015 6.0, mf7015 4.0
+assert NECK_L >= 3.0, f"neck too short ({NECK_L:.1f} mm): the flange grew past what the stack allows"
 
 
 def build():

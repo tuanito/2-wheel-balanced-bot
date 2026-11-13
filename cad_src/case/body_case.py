@@ -21,37 +21,64 @@ Parts:
 Run: python3 body_case.py
 """
 import cadquery as cq
-import math, pathlib
+import math, os, pathlib
+
+import motors as _motors
 
 # ------------------------------------------------------------------ wheels / motors
+# Which hub motor this body is cut for. Every motor-derived dimension below comes from motors.py,
+# so a swap is one name, not a hunt through four files. ROBOT_MOTOR overrides it the same way
+# ROBOT_CASE and friends override the paths.
+MOTOR       = os.environ.get("ROBOT_MOTOR", "mf6015")   # mf6015 | mf7015
+_M          = _motors.get(MOTOR)
+
 WHEEL_R     = 54.3           # Fastrax SC wheel, 108.6 mm
 WHEEL_W     = 45.0
 WELL_R      = WHEEL_R + 4.2  # wheel arch clearance
 ARCH_T      = 3.0
-MOTOR_LEN   = 34.0           # MF6015 back face -> rotor face
+MOTOR_LEN   = _M["length"]   # back face -> rotor face (mf6015 34.0, mf7015 33.9)
 WHEEL_GAP   = 3.0            # rotor face -> wheel inner face (set NECK_L in wheel_adapter.py to match)
 GAP_HALF    = 17.0           # half width of the centre gap between the two motor walls
 MWALL_T     = 7.0            # motor wall thickness
-POCKET_D    = 49.4
-POCKET_DEP  = 2.0
+# The wall's register for the motor. The MF6015 has a Ø49 x 8 rear boss and this is the counterbore
+# it seats in; the MF7015 has NO boss, so the same counterbore goes round its Ø69 outside diameter
+# instead and does the identical job.
+POCKET_D    = _M["pocket_d"]
+POCKET_DEP  = _M["pocket_dep"]
 MOTOR_BACK_Y = GAP_HALF + MWALL_T - POCKET_DEP          # 22: motor back face
 WHEEL_IN_Y  = MOTOR_BACK_Y + MOTOR_LEN + WHEEL_GAP      # 59
 WHEEL_OUT_Y = WHEEL_IN_Y + WHEEL_W                      # 104
 Y_OUT       = WHEEL_OUT_Y - WHEEL_W / 3                 # 89: 1/3 of the wheel sticks out
 WELL_Y0     = WHEEL_IN_Y - 2.0                          # arch starts here
 
-M25_CLEAR   = 2.9
-MOTOR_SQ    = 20.0
-SLOT_W      = 24.0           # over the motor's connector bay (top of the Ø49 boss, 15 mm wide): plugs + leads + fingers
+M25_CLEAR   = _M["bolt_clear"]   # motor screw clearance: M2.5 on the mf6015, M3 on the mf7015
+MOTOR_SQ    = _M["bolt_sq"]     # 20 x 20 on the mf6015, 30 x 30 on the mf7015
+SLOT_W      = _M["slot_w"]   # over the motor's connector bay (top of the Ø49 boss, 15 mm wide): plugs + leads + fingers
 SLOT_Z      = (17.0, 43.0)   # top raised with the shelf: the motor leads arc through its upper part; closed window (a slot open to the top printed as a 20 mm cantilever); plugs + leads pass through it; open to the top: plug in from above before the shelf; the screwed shelf closes it
 
 # ------------------------------------------------------------------ overall box
-X_FRONT    = 35.0            # +4: 3 mm air in front of the motor (r 29 -> inner face 32)
-X_BACK     = -32.0           # -1: 3 mm air behind the motor
 WALL       = 3.0
 SIDE       = 3.0
-Z_BOT      = -35.0
-Z_TOP      = 152.0          # 134 -> 142 (6S 1400 pack, 42 tall) -> 152: the shelf went up 10 mm (motor leads)
+# The body's depth and ride height are set by the motor's RADIUS and nothing else. This used to be
+# three hand-set literals (35 / -32 / -35) whose comments said "3 mm air ... (r 29)", which is why a
+# fatter motor interfered on three sides at once with no symbol to change.
+MOTOR_R    = _M["od"] / 2.0  # mf6015 29.0, mf7015 34.5
+MOTOR_AIR  = 3.0             # air around the can: in front, behind, and under
+X_FRONT    = MOTOR_R + MOTOR_AIR + WALL    # mf6015 35.0
+X_BACK     = -(MOTOR_R + MOTOR_AIR)        # mf6015 -32.0
+Z_BOT      = -(MOTOR_R + MOTOR_AIR + WALL) # mf6015 -35.0
+# Top of the motor walls = underside of the shelf. It is set by how much room the motor's LEADS need
+# above the can: 18 mm on the MF6015, so they rise and bend back down into the wall window gently
+# (R ~8 mm; it was a 90 deg kink in 8 mm before the shelf went up 10 mm). Tracking MOTOR_R keeps that
+# clearance when the can grows. NOTE: 18 mm was measured against the MF6015's AXIAL plugs on top of
+# its rear boss. The MF7015's connector is a socket in the side rim, so the mating plug's height is
+# a different number and has to be checked against the real part.
+SHELF_CLEAR = 18.0
+SHELF_Z    = MOTOR_R + SHELF_CLEAR         # mf6015 47.0, mf7015 52.5
+SHELF_T     = 5.0
+BATT_H      = 42.0           # 6S 1400 pack height
+UPPER_BAY   = 58.0           # shelf + battery -> lid: the front panel / back cover bay
+Z_TOP      = SHELF_Z + SHELF_T + BATT_H + UPPER_BAY   # mf6015 152.0 (134 -> 142 for the 6S pack -> 152 when the shelf rose 10 mm)
 TOP_T      = 4.0
 COVER_T    = 3.0
 FILLET     = 4.0
@@ -61,10 +88,8 @@ Z_FLOOR = Z_BOT + WALL       # -32
 Z_IN_TOP = Z_TOP - TOP_T     # 130
 
 # ------------------------------------------------------------------ battery shelf
-SHELF_Z     = 47.0           # top of the motor walls = underside of the shelf: 18 mm over the motor plugs (top z 29), so
-                             # their leads rise and bend back down into the wall window gently (R ~8 mm, was a 90° kink in 8 mm)
-SHELF_T     = 5.0
-BATT_H      = 42.0           # 6S 1400 pack height
+# SHELF_Z / SHELF_T / BATT_H are up in the overall-box block: the shelf height is motor-derived and
+# Z_TOP is measured from it.
 BATT_TOP    = SHELF_Z + SHELF_T + BATT_H   # 94: the back-cover boards are placed from here
 RAIL_W      = (3.0, 6.0)     # dovetail rail on each motor wall: width at base, width at top
 RAIL_H      = 2.5
@@ -383,7 +408,11 @@ def wells(x0, x1, r):
 # SKIN = None -> the original rounded box. Otherwise a dict:
 #   {"half_w": [(z, half_width), ...] bottom->top polygon, "r_top": .., "r_bot": .., "front_round": ..}
 # Chosen design: proposal C "Bean" (Nov 2026): sides lean in above the eyes, soft corners, fender eyebrows.
-SKIN = {"half_w": [(Z_BOT, 89.0), (100.0, 89.0), (Z_TOP, 82.0)], "r_top": 21.0, "r_bot": 14.0, "front_round": 10.0}
+# half_w follows Y_OUT: it is the SAME line as the wheel edge, and writing it as a literal 89.0
+# meant the silhouette silently stopped matching the wheels whenever the motor length changed.
+# The taper at the top keeps its 7 mm, measured off that, not off an absolute 82.
+SKIN = {"half_w": [(Z_BOT, Y_OUT), (100.0, Y_OUT), (Z_TOP, Y_OUT - 7.0)],
+        "r_top": 21.0, "r_bot": 14.0, "front_round": 10.0}
 FENDER_LIPS = True
 
 

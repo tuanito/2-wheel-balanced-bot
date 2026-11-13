@@ -34,8 +34,9 @@ LIST = {   # no published model: envelope from the listed size, placed where the
 DRAWN = {"Motor plugs + leads L (LK drawing)": (motor_plugs_fn := None, 6)}
 
 def motor_plugs(s):
-    y = lambda a, b: (min(s * a, s * b), max(s * a, s * b))
-    return cq.Compound.makeCompound([B(-7.0, 7.0, *y(25.7, 29.8), 18.5, 29.0), B(-4.5, 2.0, *y(22.6, 25.5), 18.5, 27.0)])
+    # same source as assemble.py's: motors.plug_boxes. These two used to hold a hand-copied MF6015
+    # envelope each, so a Ø69 motor was reported as clashing with its own connectors.
+    return cq.Compound.makeCompound([B(*b) for b in bc._motors.plug_boxes(bc.MOTOR, s, bc.MOTOR_BACK_Y)])
 
 ALL = {}
 for k, (shp, src, g) in P.items(): ALL[k] = (shp, src, g)

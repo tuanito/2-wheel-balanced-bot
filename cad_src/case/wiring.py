@@ -8,6 +8,7 @@ between the battery and the sonar), HOLE (shelf cable hole x 19..26, y +-12), GA
 """
 import math, cadquery as cq
 import body_case as bc
+import motors as _motors
 from real_parts import to_robot, pi_gpio, esp_pin
 
 PI = "Raspberry Pi Zero 2 W"
@@ -46,9 +47,12 @@ def imu_pin(i):             # GY-521 header along the back edge of the board: VC
 JUNC = (4.0, 27.5, bc.BATT_TOP + 2.5)    # I2S junction board (20 x 15 perfboard) on the battery top: its pad row
 def jc(i, n=7):
     return (JUNC[0] + (i - (n - 1) / 2) * 2.0, JUNC[1], JUNC[2])
-def motor_pin(side, i):     # motor main plug (V+, V-, CAN-H, CAN-L), top of the mated plug in the bay
+def motor_pin(side, i):     # motor main plug (V+, V-, CAN-H, CAN-L), top of the mated plug
+    # z comes from motors.plug_pin_z, not a literal: the MF6015's plugs stand on its rear boss at
+    # z 29, the MF7015's stands off its Ø69 rim. |y| 27.75 happens to suit both - it is the middle
+    # of the connector on each, which sits 2.9-8.6 mm out from the rear face either way.
     s = 1 if side == "L" else -1
-    return (-4.5 + 3.0 * i, s * 27.75, 29.0)
+    return (-4.5 + 3.0 * i, s * 27.75, _motors.plug_pin_z(bc.MOTOR))
 _x0, _x1, _y0, _y1, _z0, _z1 = bc.pwr_sw_box()                                     # power switch board on the shelf
 _cy = (_y0 + _y1) / 2
 SW = {"VIN": (_x1, _cy - 9, _z0 + 2), "GND": (_x1, _cy, _z0 + 2), "VOUT": (_x1, _cy + 9, _z0 + 2),          # pads face the front

@@ -3,6 +3,8 @@ Checks interference, ground contact when lying flat, centre of mass; renders vie
 """
 import sys, math, pathlib, os
 import robot_paths as RP; RP.add_sources()
+import functools
+
 import cadquery as cq
 import body_case as bc
 import wheel_adapter as wa
@@ -15,19 +17,27 @@ def box(x0, x1, y0, y1, z0, z1):
     return cq.Workplane("XY").box(x1 - x0, y1 - y0, z1 - z0, centered=False).translate((x0, y0, z0)).val()
 
 # ---------------- motor (sewn into solids so boolean checks work) ----------------
-m = cq.importers.importStep(str(RP.mf6015_step())).val()
+m = cq.importers.importStep(str(RP.motor_step(bc.MOTOR))).val()
 sew = BRepBuilderAPI_Sewing(0.01); sew.Add(m.wrapped); sew.Perform()
 msol = []
 for s in cq.Shape.cast(sew.SewedShape()).Shells():
     so = cq.Solid(BRepBuilderAPI_MakeSolid(TopoDS.Shell_s(s.wrapped)).Solid()); so.fix()
     if abs(so.Volume()) > 1: msol.append(so)
 motor = cq.Compound.makeCompound(msol)
-adapter = wa.build().val().rotate((0, 0, 0), (0, 1, 0), 90).translate((-5, 0, 0))   # motor frame
+# Where the motor sits in its OWN STEP's frame, and which way its axis runs. These are not
+# transferable between motors: the MF6015's STEP has the rear face at x = +29 with the axis running
+# +x from the output face, while the L-7015's has the rear at x = -33.9 with the axis running -x. Get
+# the sign wrong and the motor is placed inside out, crossing the centreline, with no error.
+_AX = bc._M["step_axis"]                   # +1 (mf6015) or -1 (mf7015)
+_BACK = abs(bc._M["step_back_face"])       # 29.0 (mf6015) or 33.9 (mf7015)
+_FACE = bc._M["step_back_face"] - _AX * bc.MOTOR_LEN   # output face x: mf6015 -5.0, mf7015 0.0
+adapter = wa.build().val().rotate((0, 0, 0), (0, 1, 0), 90 * _AX).translate((_FACE, 0, 0))  # motor frame
 yb = bc.MOTOR_BACK_Y                       # motor back face position
 def place(shape, side):
-    if side > 0:   # motor +X -> robot -Y, back face (x=29) at y=+yb
-        return shape.rotate((0, 0, 0), (0, 0, 1), -90).translate((0, yb + 29, 0))
-    return shape.rotate((0, 0, 0), (0, 0, 1), 90).translate((0, -yb - 29, 0))
+    # rear face lands at |y| = yb with the can extending outboard, for either axis direction
+    if side > 0:
+        return shape.rotate((0, 0, 0), (0, 0, 1), -90 * _AX).translate((0, yb + _BACK, 0))
+    return shape.rotate((0, 0, 0), (0, 0, 1), 90 * _AX).translate((0, -yb - _BACK, 0))
 
 wheel_y0 = bc.WHEEL_IN_Y        # wheel inner face (set NECK_L in wheel_adapter.py to match)
 def wheel(side):
@@ -55,11 +65,9 @@ eye = box(bc.X_IN_F - 1.1, bc.X_IN_F + 2.2, bc.EYE_Y - 13, bc.EYE_Y + 13, bc.EYE
 # motor plugs (from the LK drawing: a 6-pin and a 3-pin header side by side in a 15 mm bay on top of the Ø49 boss,
 # plugs inserted downward). Envelope: plug bodies up to z 29, leads bend up and inward through the wall slot.
 def motor_plugs(s):
-    y = lambda a, b: (min(s * a, s * b), max(s * a, s * b))
-    p6 = box(-7.0, 7.0, *y(25.7, 29.8), 18.5, 29.0)          # 6-pin housing (PH/GH-class), mated
-    p3 = box(-4.5, 2.0, *y(22.6, 25.5), 18.5, 27.0)          # 3-pin GH1.25, mated
-    lead = box(-5.0, 5.0, *y(23.0, 29.0), 29.0, 33.0).fuse(box(-5.0, 5.0, *y(12.0, 24.0), 29.0, 33.0))
-    return p6.fuse(p3).fuse(lead)
+    # shape comes from motors.plug_boxes: ONE definition, shared with real_assembly.py
+    bs = [box(*b) for b in bc._motors.plug_boxes(bc.MOTOR, s, bc.MOTOR_BACK_Y, with_leads=True)]
+    return functools.reduce(lambda a, b: a.fuse(b), bs)
 comps = {
  "motor plugs + leads (left)": (6, motor_plugs(1)),
  "motor plugs + leads (right)": (6, motor_plugs(-1)),
