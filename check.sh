@@ -91,11 +91,16 @@ fi
 if want sim; then
   run "sim: build the controller library" core/build_lib.sh
   if "$PY" -c "import mujoco" 2>/dev/null; then
+    run "sim: ctypes structs match controller.hpp" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' check_structs.py"
     run "sim: regenerate the MuJoCo models" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' build_model.py && '$PY' build_model.py --arena"
     run "sim: 30 randomised robots" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' run_tests.py >/dev/null && '$PY' -c \"
 import json; r = json.load(open('results/report.json'))
 for k in ('stand-up from face-down', 'stand-up from back-down'): print(f'  {k}: {r[k][\\\"success\\\"]}')
-print('  balance push recovery:', r['balance 10 s (randomised)']['push_recovered'])\""
+print('  balance push recovery:', r['balance 10 s (randomised)']['push_recovered'])
+# print the cruise speed: it sat at -0.0 m/s for a whole release because drop_m defaulted to 0, and
+# nothing on screen said so - the suite only ever printed success counts, and the mission block
+# reached check.sh as a one-line DRIFT note naming the file, never the field.
+print('  mission cruise speed:', r['mission (nominal robot)']['cruise: true speed over last 1 s (m/s)'], 'm/s')\""
   else
     SKIP+=("sim: model and simulation tests (no mujoco: ml/setup_mac.sh)")
   fi

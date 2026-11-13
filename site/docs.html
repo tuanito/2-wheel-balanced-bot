@@ -1368,59 +1368,180 @@ and tilt, lidar noise; 0.15 N rod friction; <code>sim/dock_sim.py</code>):
 <h2>Not tested yet (needs the hardware)</h2>
 <p>These can't be simulated: the AI Camera stream and its detections, the LED-eye panel wiring order (<code>serpentine</code>), the real LD19 byte stream, the real bus's reply delays, motor encoder scaling, ADC calibration, the IP2368 6S setting, and how the real tyres scrub when turning. The simulation's contact model is a rounded tyre touching at one point.</p>
 <p><strong>Lower-latency video (optional).</strong> MJPEG works in every browser. For WebRTC, install mediamtx with its <code>rpiCamera</code> source and point the web page's <code>&lt;img&gt;</code> to its WHEP page instead.</p>
-<h2>Cheaper motors (simulation, <code>sim/wobble_compare.py</code>)</h2>
-<p>Same robot and firmware, 10 randomized runs each (battery 21–25 V, ±10 % torque, 1–2 cycles of CAN delay, IMU noise and bias).</p>
+<h2>Other motors (simulation)</h2>
+<p>Same robot and firmware, randomized runs (battery 21–25 V, ±10 % torque, 1–2 cycles of CAN delay, IMU
+noise and bias). Columns come from <code>sim/wobble_compare.py</code> (10 runs), except stand-up, which is
+<code>sim/motor_compare.py</code> (40: 20 seeds × both sides) and top speed, which is <code>sim/motor_margin.py</code> (6).</p>
+<p><strong>These numbers were all re-measured after a fence bug was fixed</strong> — <code>drop_m</code> defaulted to 0 instead of
+−1, which pinned forward speed to zero, so every "drive" result published here before was scored on a
+robot that never moved. They are also measured on the current body (shelf +10 mm, CoM 40.6 mm above the
+axle), which the previous table predated. Both changes moved real numbers; see below.</p>
 <div class="tw"><table>
 <thead>
 <tr>
-<th>Motor (pair price)</th>
-<th>Standing 10 s: pitch wobble p-p</th>
+<th>Motor</th>
+<th>Upright 10 s</th>
+<th>Pitch wobble p-p</th>
 <th>Torque jitter</th>
-<th>Push survived (1.5 / 2.0 N·s)</th>
+<th>Push 1.5 / 2.0 N·s</th>
 <th>Drive 1 m/s, stop, turn</th>
+<th>Stand-up</th>
+<th>2.5 m/s cmd</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MF6015-V2 15T (current)</strong></td>
+<td>10/10</td>
+<td>0.40°</td>
+<td>0.5 mN·m</td>
+<td>10/10 · 8/10</td>
+<td>10/10</td>
+<td>38/40</td>
+<td>2.46 m/s, 6/6</td>
+</tr>
+<tr>
+<td>MF5015-V2 10T</td>
+<td>10/10</td>
+<td>0.40°</td>
+<td>0.6 mN·m</td>
+<td>10/10 · 0/10</td>
+<td>10/10</td>
+<td>40/40</td>
+<td>2.46 m/s, 6/6</td>
+</tr>
+<tr>
+<td>MF4015-V2 20T</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>14/40</td>
+<td>2.46 m/s, 6/6</td>
+</tr>
+<tr>
+<td>DM-H6215, firmware speed from Hall counts</td>
+<td>10/10</td>
+<td>1.82°</td>
+<td>41.5 mN·m</td>
+<td>10/10 · 2/10</td>
+<td>10/10</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>DM-H6215, drive's speed with 5 ms lag</td>
+<td><strong>1/10</strong></td>
+<td>117.5°</td>
+<td>436.5 mN·m</td>
+<td>2/10 · 2/10</td>
+<td><strong>0/10</strong></td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>MF7015-V2 10T</td>
+<td>10/10</td>
+<td>0.39°</td>
+<td>0.4 mN·m</td>
+<td>10/10 · 10/10</td>
+<td>10/10</td>
+<td>25/40</td>
+<td>2.46 m/s, 6/6</td>
+</tr>
+<tr>
+<td>MF7015-V2 23T</td>
+<td>10/10</td>
+<td>0.39°</td>
+<td>0.4 mN·m</td>
+<td>10/10 · 10/10</td>
+<td>10/10</td>
+<td>40/40</td>
+<td>2.46 m/s, 6/6</td>
+</tr>
+<tr>
+<td>MF7015-V2 45T</td>
+<td>10/10</td>
+<td>0.39°</td>
+<td>0.4 mN·m</td>
+<td>10/10 · 10/10</td>
+<td>10/10</td>
+<td>39/40</td>
+<td><strong>0.92 m/s, 0/6</strong></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>The lagged-speed row is the one the fence bug was hiding.</strong> It used to read 10/10 on drive. With the
+  robot actually driving it is <strong>0/10</strong>, and it only stays upright 1 time in 10 even standing still. The
+  conclusion was already right — the LK driver must use the fresh speed in each reply — but the drive
+  column had been saying the opposite of what it measured.</li>
+<li>DM-H6215: the coarse Hall encoder (84 counts/rev) is fine only if the firmware computes wheel speed
+  from the counts over ~20 ms. Feeding the controller a delayed speed sample makes it oscillate (MF5015
+  too: 2 ms of lag already gives 3.6° p-p). H6215 numbers use an estimated rotor inertia (600 g·cm²) and
+  Kt from the no-load speed.</li>
+<li>The stand-up column retunes the kick to each motor's torque cap (<code>bot_tune(min(1.6, tmax), …)</code>), so it
+  answers "could this motor stand the robot up", not "does it work with the shipped tuning".</li>
+<li>The push limit is set by the controller, not the motor — up to a point. Everything with ≥ 1.8 N·m
+  survives 2.0 N·s; nothing survives 2.5 N·s.</li>
+</ul>
+<h3>A bigger motor: MF7015-V2 (= MyActuator RMD-L-7015)</h3>
+<p>Not a saving — a larger 70 mm frame, considered as a replacement. The 23T is the published variant
+(0.28 N·m/A, 34 rpm/V, 1.14 Ω, 933 g·cm², 360 g, 15 A instantaneous, 18-bit encoder). The 10T and 45T are
+that stator rewound, so Kt ∝ turns, R ∝ turns², Kv ∝ 1/turns — which reproduces the one published 10T
+table (79 rpm/V, 0.12 N·m/A) to 1 %.</p>
+<p><strong>The 23T is clearly the pick of the three.</strong> 40/40 stand-up against the MF6015's 38/40, 10/10 at 2.0 N·s
+against 8/10, and full speed where the robot actually uses it (<code>max_speed</code> is 1.5 m/s). The 45T has the
+most torque and the best step-down, but tops out at 0.92 m/s under a 2.5 m/s command and falls over every
+time it is asked for more — no recovery margin. The 10T keeps the most speed headroom and is simply
+weaker than what is already fitted (1.83 N·m against 2.31), losing 15 stand-ups in 40 for it.</p>
+<p><strong>But the gain is the mass, not the windings.</strong> Swapping only the electricals, or only the mass, isolates
+it:</p>
+<p><code>sim/motor_isolate.py</code>, 20 randomised robots on the same seeds as the table above:</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th></th>
+<th>Push 2.0 N·s</th>
+<th>Push 2.2 N·s</th>
 <th>Stand-up</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>MF6015-V2 (current, ~$320)</td>
-<td>0.38°</td>
-<td>0.5 mN·m</td>
-<td>10/10 · 0/10</td>
-<td>10/10</td>
-<td>yes</td>
+<td>MF6015-V2 (current)</td>
+<td>14/20</td>
+<td>2/20</td>
+<td>38/40</td>
 </tr>
 <tr>
-<td>MF5015-V2 10T (~$240)</td>
-<td>0.39°</td>
-<td>0.6 mN·m</td>
-<td>10/10 · 0/10</td>
-<td>10/10</td>
-<td>no (0.7 N·m)</td>
+<td>MF7015-V2 23T</td>
+<td>20/20</td>
+<td>15/20</td>
+<td>40/40</td>
 </tr>
 <tr>
-<td>DM-H6215, firmware speed from Hall counts (~$120)</td>
-<td>1.97°</td>
-<td>39.5 mN·m</td>
-<td>9/10 · 0/10</td>
-<td>10/10</td>
-<td>no (~1.7 m/s top)</td>
+<td>MF6015 electricals + MF7015 mass</td>
+<td><strong>20/20</strong></td>
+<td><strong>15/20</strong></td>
+<td>39/40</td>
 </tr>
 <tr>
-<td>DM-H6215, drive's speed with 5 ms lag</td>
-<td>53° (limit cycle)</td>
-<td>1458 mN·m</td>
-<td>9/10 · 1/10</td>
-<td>10/10</td>
-<td>no</td>
+<td>MF7015 electricals + MF6015 mass</td>
+<td><strong>14/20</strong></td>
+<td><strong>2/20</strong></td>
+<td>40/40</td>
 </tr>
 </tbody>
 </table></div>
-<ul>
-<li>MF5015-V2 balances exactly like the MF6015; the push limit is set by the controller, not the motor.</li>
-<li>DM-H6215: the coarse Hall encoder (84 counts/rev) is fine only if the firmware computes wheel speed from the counts over ~20 ms. Feeding the controller a delayed speed sample makes it oscillate (MF5015 too: 2 ms of lag already gives 3.6° p-p), so the LK driver must keep using the fresh speed in each reply.</li>
-<li>H6215 numbers use an estimated rotor inertia (600 g·cm²) and Kt from the no-load speed.</li>
-</ul></div>
+<p>The push rows pair up <strong>exactly by mass</strong>: the two chimeras score what their mass says they should, not
+what their windings say. So the push advantage is entirely the 109 g per motor sitting on the axle line,
+which drags the centre of mass down — the known weak point of this build. Roughly 220 g of ballast at the
+axle, or a lower battery, buys the same numbers without putting a Ø69 motor in a body dimensioned for
+Ø58. Stand-up is the honest exception: there the extra torque does show (40/40 for the
+MF7015-electricals chimera against the real MF6015's 38/40), because the kick is torque-limited in a way
+that holding station is not.</p></div>
 <script>
 function tab(p){document.querySelectorAll('.tabs button').forEach(b=>{const on=b.dataset.p===p;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
 document.querySelectorAll('.pane').forEach(x=>x.hidden=x.id!==p)}

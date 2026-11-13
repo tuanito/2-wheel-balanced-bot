@@ -544,17 +544,70 @@ These can't be simulated: the AI Camera stream and its detections, the LED-eye p
 
 **Lower-latency video (optional).** MJPEG works in every browser. For WebRTC, install mediamtx with its `rpiCamera` source and point the web page's `<img>` to its WHEP page instead.
 
-## Cheaper motors (simulation, `sim/wobble_compare.py`)
+## Other motors (simulation)
 
-Same robot and firmware, 10 randomized runs each (battery 21–25 V, ±10 % torque, 1–2 cycles of CAN delay, IMU noise and bias).
+Same robot and firmware, randomized runs (battery 21–25 V, ±10 % torque, 1–2 cycles of CAN delay, IMU
+noise and bias). Columns come from `sim/wobble_compare.py` (10 runs), except stand-up, which is
+`sim/motor_compare.py` (40: 20 seeds × both sides) and top speed, which is `sim/motor_margin.py` (6).
 
-| Motor (pair price) | Standing 10 s: pitch wobble p-p | Torque jitter | Push survived (1.5 / 2.0 N·s) | Drive 1 m/s, stop, turn | Stand-up |
-|---|---|---|---|---|---|
-| MF6015-V2 (current, ~$320) | 0.38° | 0.5 mN·m | 10/10 · 0/10 | 10/10 | yes |
-| MF5015-V2 10T (~$240) | 0.39° | 0.6 mN·m | 10/10 · 0/10 | 10/10 | no (0.7 N·m) |
-| DM-H6215, firmware speed from Hall counts (~$120) | 1.97° | 39.5 mN·m | 9/10 · 0/10 | 10/10 | no (~1.7 m/s top) |
-| DM-H6215, drive's speed with 5 ms lag | 53° (limit cycle) | 1458 mN·m | 9/10 · 1/10 | 10/10 | no |
+**These numbers were all re-measured after a fence bug was fixed** — `drop_m` defaulted to 0 instead of
+−1, which pinned forward speed to zero, so every "drive" result published here before was scored on a
+robot that never moved. They are also measured on the current body (shelf +10 mm, CoM 40.6 mm above the
+axle), which the previous table predated. Both changes moved real numbers; see below.
 
-- MF5015-V2 balances exactly like the MF6015; the push limit is set by the controller, not the motor.
-- DM-H6215: the coarse Hall encoder (84 counts/rev) is fine only if the firmware computes wheel speed from the counts over ~20 ms. Feeding the controller a delayed speed sample makes it oscillate (MF5015 too: 2 ms of lag already gives 3.6° p-p), so the LK driver must keep using the fresh speed in each reply.
-- H6215 numbers use an estimated rotor inertia (600 g·cm²) and Kt from the no-load speed.
+| Motor | Upright 10 s | Pitch wobble p-p | Torque jitter | Push 1.5 / 2.0 N·s | Drive 1 m/s, stop, turn | Stand-up | 2.5 m/s cmd |
+|---|---|---|---|---|---|---|---|
+| **MF6015-V2 15T (current)** | 10/10 | 0.40° | 0.5 mN·m | 10/10 · 8/10 | 10/10 | 38/40 | 2.46 m/s, 6/6 |
+| MF5015-V2 10T | 10/10 | 0.40° | 0.6 mN·m | 10/10 · 0/10 | 10/10 | 40/40 | 2.46 m/s, 6/6 |
+| MF4015-V2 20T | — | — | — | — | — | 14/40 | 2.46 m/s, 6/6 |
+| DM-H6215, firmware speed from Hall counts | 10/10 | 1.82° | 41.5 mN·m | 10/10 · 2/10 | 10/10 | — | — |
+| DM-H6215, drive's speed with 5 ms lag | **1/10** | 117.5° | 436.5 mN·m | 2/10 · 2/10 | **0/10** | — | — |
+| MF7015-V2 10T | 10/10 | 0.39° | 0.4 mN·m | 10/10 · 10/10 | 10/10 | 25/40 | 2.46 m/s, 6/6 |
+| MF7015-V2 23T | 10/10 | 0.39° | 0.4 mN·m | 10/10 · 10/10 | 10/10 | 40/40 | 2.46 m/s, 6/6 |
+| MF7015-V2 45T | 10/10 | 0.39° | 0.4 mN·m | 10/10 · 10/10 | 10/10 | 39/40 | **0.92 m/s, 0/6** |
+
+- **The lagged-speed row is the one the fence bug was hiding.** It used to read 10/10 on drive. With the
+  robot actually driving it is **0/10**, and it only stays upright 1 time in 10 even standing still. The
+  conclusion was already right — the LK driver must use the fresh speed in each reply — but the drive
+  column had been saying the opposite of what it measured.
+- DM-H6215: the coarse Hall encoder (84 counts/rev) is fine only if the firmware computes wheel speed
+  from the counts over ~20 ms. Feeding the controller a delayed speed sample makes it oscillate (MF5015
+  too: 2 ms of lag already gives 3.6° p-p). H6215 numbers use an estimated rotor inertia (600 g·cm²) and
+  Kt from the no-load speed.
+- The stand-up column retunes the kick to each motor's torque cap (`bot_tune(min(1.6, tmax), …)`), so it
+  answers "could this motor stand the robot up", not "does it work with the shipped tuning".
+- The push limit is set by the controller, not the motor — up to a point. Everything with ≥ 1.8 N·m
+  survives 2.0 N·s; nothing survives 2.5 N·s.
+
+### A bigger motor: MF7015-V2 (= MyActuator RMD-L-7015)
+
+Not a saving — a larger 70 mm frame, considered as a replacement. The 23T is the published variant
+(0.28 N·m/A, 34 rpm/V, 1.14 Ω, 933 g·cm², 360 g, 15 A instantaneous, 18-bit encoder). The 10T and 45T are
+that stator rewound, so Kt ∝ turns, R ∝ turns², Kv ∝ 1/turns — which reproduces the one published 10T
+table (79 rpm/V, 0.12 N·m/A) to 1 %.
+
+**The 23T is clearly the pick of the three.** 40/40 stand-up against the MF6015's 38/40, 10/10 at 2.0 N·s
+against 8/10, and full speed where the robot actually uses it (`max_speed` is 1.5 m/s). The 45T has the
+most torque and the best step-down, but tops out at 0.92 m/s under a 2.5 m/s command and falls over every
+time it is asked for more — no recovery margin. The 10T keeps the most speed headroom and is simply
+weaker than what is already fitted (1.83 N·m against 2.31), losing 15 stand-ups in 40 for it.
+
+**But the gain is the mass, not the windings.** Swapping only the electricals, or only the mass, isolates
+it:
+
+`sim/motor_isolate.py`, 20 randomised robots on the same seeds as the table above:
+
+| | Push 2.0 N·s | Push 2.2 N·s | Stand-up |
+|---|---|---|---|
+| MF6015-V2 (current) | 14/20 | 2/20 | 38/40 |
+| MF7015-V2 23T | 20/20 | 15/20 | 40/40 |
+| MF6015 electricals + MF7015 mass | **20/20** | **15/20** | 39/40 |
+| MF7015 electricals + MF6015 mass | **14/20** | **2/20** | 40/40 |
+
+The push rows pair up **exactly by mass**: the two chimeras score what their mass says they should, not
+what their windings say. So the push advantage is entirely the 109 g per motor sitting on the axle line,
+which drags the centre of mass down — the known weak point of this build. Roughly 220 g of ballast at the
+axle, or a lower battery, buys the same numbers without putting a Ø69 motor in a body dimensioned for
+Ø58. Stand-up is the honest exception: there the extra torque does show (40/40 for the
+MF7015-electricals chimera against the real MF6015's 38/40), because the kick is torque-limited in a way
+that holding station is not.

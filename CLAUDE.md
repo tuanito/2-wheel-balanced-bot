@@ -231,6 +231,31 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   and `bash -c` does not inherit the script's `pipefail`, so the status was tail's. Both now call
   `wiring.harness_record()`, and every `bash -c` in `check.sh` is `bash -o pipefail -c`. Any new
   piped check has to be too, or a crash reads as a pass.
+- **The robot could not drive forward, in the sim, for a whole release.** `BotSim.sense()` built
+  `Inputs(...)` without `drop_m`, ctypes zero-filled it, and 0.0 does not mean "no reading" - the C++
+  default is `-1` = unknown, and 0.0 means **the floor ends at the wheels**. `check_drop()` therefore
+  returned a speed limit of 0, and `controller.cpp` applies it as a ONE-SIDED `min`: forward speed
+  pinned to zero, reverse untouched. Nothing faulted. The state stayed `BALANCE`, so every test that
+  asks only "did it stay upright" passed with the robot standing still - `run_tests.py`'s cruise
+  phase read **-0.0 m/s against a committed 1.114**, stop distance 0.0 against 0.637, and the three
+  motor-comparison scripts scored their "drive 1 m/s" column 10/10 on a robot that never moved.
+  It survived because `check.sh` prints drift as one line naming the FILE, not the field, under a
+  note saying last-digit differences are normal - so it read as platform noise for months.
+  Three defences now: `sense()` passes `DROP_UNKNOWN`, `sim/check_structs.py` fails if any non-zero
+  C++ default is not mirrored on the Python side (and if the two `sizeof`s disagree), and
+  `check.sh sim` prints the cruise speed so a zero is visible on screen. The general rule: **every
+  field of `bot::Inputs`/`bot::Command` with a non-zero C++ default must be repeated in `botsim.py`**
+  - the comment saying so was already there for `Command`, and `Inputs` had been missed.
+  **What that bug touched, and what it did not.** Anything that drove FORWARD with a `cmd.v > 0` and
+  did not clear the fences itself was measuring a stationary robot: `sim/stairs_probe.py` (the
+  "accelerate -> it leans" lean test, and the forward entry before a look), `sim/stairs_osc.py` (the
+  whole creep-in premise), `sim/stairs_sonar.py`, `sim/nav_sim.py`, `sim/power_sim.py`'s drive rows,
+  `sim/quick_eval.py`, the drive columns of the three motor scripts, and **`ml/stairs_env.py` - the
+  nod policy was trained on a robot that could only reverse.** Those numbers need re-measuring before
+  anything is built on them. NOT affected, because they cleared the fences by hand or only ever
+  reverse: `sim/stairs_descend.py` (so the whole committed-step and flight result stands),
+  `ml/descend_env.py`, `sim/stairs_windup.py`, `sim/stairs_look.py`, `sim/flip_*.py`, and the
+  stand-up, balance and push blocks of `run_tests.py`.
 - **`site/build_docs.py` copies the working tree to build the published software zip**, so anything
   sitting in the repo goes out with it. It swept in `.venv` (~2.4 GB, minutes of build time) and
   `models/bought/` - the vendor STEP models, which are **not ours to redistribute**. It now has an

@@ -8,6 +8,15 @@ MOTORS = {  # name: (Kt N·m/A, speed const rpm/V, line resistance ohm, max torq
     "MF6015-V2 15T (current)": (0.14, 53.0, 0.89, 2.31, 0.251, 515e-7),       # drive limit 16.5 A
     "MF5015-V2 10T":           (0.08, 97.0, 0.96, 0.70, 0.175, 202e-7),
     "MF4015-V2 20T":           (0.11, 46.9, 6.0, 0.65, 0.116, 81e-7),
+    # MF7015-V2 (= MyActuator RMD-L-7015), the larger 70 mm frame. The 23T is the published variant
+    # (Dings Motion / MyActuator L-series parameter sheet): 0.28 N.m/A, 34 rpm/V, 1.14 ohm, 933 g.cm2,
+    # 360 g, 15 A instantaneous. The 10T and 45T are the same stator rewound, so Kt ~ turns, R ~ turns^2,
+    # Kv ~ 1/turns - which reproduces the one published 10T table (79 rpm/V, 0.12 N.m/A) to 1 %, so it is
+    # arithmetic rather than a guess. Torque cap = 15 A x Kt clamped to the published peak, the same way
+    # the MF6015 row is its drive limit (16.5 A x 0.14 = 2.31) and not its paper 5.5 N.m.
+    "MF7015-V2 10T":           (0.122, 78.0, 0.215, 1.83, 0.360, 933e-7),
+    "MF7015-V2 23T":           (0.280, 34.0, 1.14, 3.80, 0.360, 933e-7),
+    "MF7015-V2 45T":           (0.548, 17.4, 4.36, 8.22, 0.360, 933e-7),
 }
 def apply_mass(s, name):
     """Lighter motor: 40 % of its mass turns with the wheel (rotor), 60 % stays in the body (stator + drive)."""

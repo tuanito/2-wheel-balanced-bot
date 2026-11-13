@@ -10,6 +10,9 @@ HERE = pathlib.Path(__file__).parent
 LIB = C.CDLL(str(HERE / ("libbot.dylib" if (HERE / "libbot.dylib").exists() and os.uname().sysname == "Darwin" else "libbot.so")))   # macOS: built by ml/setup_mac.sh
 # IMU full scale: MPU6050 = +-2000 dps, +-16 g (env GYRO_DPS / ACC_G to try a wide-range IMU such as the ICM-20649)
 GYRO_MAX = math.radians(float(os.environ.get("GYRO_DPS", "2000"))); ACC_MAX = 9.81 * float(os.environ.get("ACC_G", "16"))
+DROP_UNKNOWN = -1.0    # bot::Inputs::drop_m default: < 0 = no bearing-resolved sensor, floor unknown.
+                       # Only a sensor that resolves bearing can fill this honestly, so with an
+                       # HC-SR04 fitted it stays -1 and the drop fence never arms. See sense().
 
 
 class Inputs(C.Structure):
@@ -141,7 +144,15 @@ class BotSim:
             r = self.d.sensordata[self.m.sensor("sonar").adr[0]]
             sonar = r if 0.02 < r < 4.0 else -1.0
         return Inputs(dt=CTRL_DT, gx=g[0], gy=g[1], gz=g[2], ax=a[0], ay=a[1], az=a[2],
-                      ql=enc(q[0]), qr=enc(q[1]), wl=wq(w[0]), wr=wq(w[1]), sonar_m=sonar, vbat=self.vbat, charging=int(self.charging()))
+                      ql=enc(q[0]), qr=enc(q[1]), wl=wq(w[0]), wr=wq(w[1]), sonar_m=sonar,
+                      # DROP_UNKNOWN, not 0. ctypes zero-fills every field not named here, and drop_m = 0
+                      # means "the floor ends AT the wheels": check_drop() returns a speed limit of 0 and
+                      # controller.cpp applies it with a ONE-SIDED min, so forward speed is pinned to zero
+                      # while reverse still works. The state stays BALANCE throughout, so a test that only
+                      # asks "did it stay upright" passes with the robot standing still. That is exactly
+                      # how run_tests.py's cruise phase read 0.006 m/s against a committed 1.114.
+                      drop_m=DROP_UNKNOWN,
+                      vbat=self.vbat, charging=int(self.charging()))
 
     def lidar(self):
         """Ranges (m) of the simulated lidar, -1 = no return, ray i at angle 2*pi*i/N in the robot frame."""

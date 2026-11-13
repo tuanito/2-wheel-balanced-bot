@@ -9,7 +9,9 @@ import botsim, motor_compare as mc
 from botsim import BotSim, LIB, Inputs
 mc.MOTORS["DM-H6215"] = (0.716, 13.3, 2.5, 2.0, 0.360, 600e-7)   # Kt from 320 rpm @ 24 V; inertia estimated
 CASES = [("MF6015-V2 15T (current)", "abs16"), ("MF5015-V2 10T", "abs16"),
-         ("DM-H6215", "hall-ok"), ("DM-H6215", "hall-raw")]
+         ("DM-H6215", "hall-ok"), ("DM-H6215", "hall-raw"),
+         # the bigger 70 mm frame, as a replacement rather than a saving (see README)
+         ("MF7015-V2 10T", "abs16"), ("MF7015-V2 23T", "abs16"), ("MF7015-V2 45T", "abs16")]
 
 class Sim(BotSim):
     def __init__(self, enc_mode, **kw):
