@@ -148,14 +148,33 @@ def models_dir():
     return REPO / "models" / "bought"
 
 
-def mf6015_step():
-    """The MF6015 motor STEP. Not redistributable: it comes from the LKMTECH product page."""
+# How each motor's STEP is obtained. The MF6015's is NOT redistributable and not downloadable
+# without going through the dealer's product page, so fetch_models.sh deliberately leaves it out;
+# the MF7015's is a plain public download from the vendor, so fetch_models.sh takes it.
+_MOTOR_STEP = {
+    "mf6015": ("ROBOT_MF6015_STEP", "mf6015.step",
+               "download it from the LKMTECH / dealer product page"),
+    "mf7015": ("ROBOT_MF7015_STEP", "mf7015.step",
+               "run models/fetch_models.sh, which downloads it from myactuator.com"),
+}
+
+
+def motor_step(profile="mf6015"):
+    """The hub motor's STEP, by motor profile name. See _MOTOR_STEP for where each one comes from."""
+    try:
+        var, fname, how = _MOTOR_STEP[profile]
+    except KeyError:
+        raise KeyError("unknown motor profile %r: know %s" % (profile, sorted(_MOTOR_STEP)))
     _ws_step = _ws("mf_step")
-    for p in (_env("ROBOT_MF6015_STEP"), models_dir() / "mf6015.step",
-              _ws_step / "mf6015.step" if _ws_step else None, _VM / "mf_step" / "mf6015.step"):
+    for p in (_env(var), models_dir() / fname,
+              _ws_step / fname if _ws_step else None, _VM / "mf_step" / fname):
         if p and p.exists():
             return p
     raise FileNotFoundError(
-        "MF6015 motor STEP not found. It is not in the repo (see the last line of "
-        "models/fetch_models.sh): download it from the LKMTECH / dealer product page, save it as "
-        "%s, or point ROBOT_MF6015_STEP at it." % (models_dir() / "mf6015.step"))
+        "%s motor STEP not found. It is not in the repo (models/bought/ is gitignored): %s, save it "
+        "as %s, or point %s at it." % (profile.upper(), how, models_dir() / fname, var))
+
+
+def mf6015_step():
+    """Back-compatible alias: the MF6015 motor STEP. Prefer motor_step(profile)."""
+    return motor_step("mf6015")

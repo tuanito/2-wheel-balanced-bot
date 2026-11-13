@@ -23,5 +23,20 @@ curl -sL -o bought/adafruit_3968_speaker40.step "$A/3968%20Speaker%2040mm/3968%2
 curl -sL -o bought/adafruit_6049_ics43434.step "$A/6049%20I2S%20MEMS%20Microphone/6049%20I2S%20MEMS%20Microphone.step"
 # HC-SR04 (FreeCAD-library, community model)
 curl -sL -o bought/hc_sr04_freecadlib.step "https://raw.githubusercontent.com/FreeCAD/FreeCAD-library/master/Sensors/Ultrasonic%20Sensors/HC-SR04.step"
+# MF7015-V2 / RMD-L-7015 motor: official STEP + 2D drawing + parameter sheet, straight from the vendor.
+# Public download, unlike the MF6015's, so it can live in the script. The archive has GBK filenames
+# that unzip(1) refuses, hence the python extraction.
+curl -sL -A "Mozilla/5.0" -o tmp/l7015.zip "https://www.myactuator.com/_files/archives/cab28a_da333fb383e74af4ac6e9e89d8dcba32.zip?dn=L-7015-251029.zip"
+python3 -c "
+import re, sys, zipfile, pathlib
+z = zipfile.ZipFile('tmp/l7015.zip')
+for i in z.infolist():
+    raw = i.filename.encode() if i.flag_bits & 0x800 else i.filename.encode('cp437', 'replace')
+    try: name = raw.decode('gbk')
+    except Exception: name = raw.decode('utf-8', 'replace')
+    if name.endswith('RMD-7015.step'): pathlib.Path('bought/mf7015.step').write_bytes(z.read(i))
+    elif name.endswith('RMD-7015.pdf'): pathlib.Path('drawings/myactuator_l7015_dimensions.pdf').write_bytes(z.read(i))
+    elif name.endswith('.pdf') and 'parameter' in name.lower(): pathlib.Path('drawings/myactuator_l7015_parameters.pdf').write_bytes(z.read(i))
+"
 # MF6015 motor: STEP from LKMTECH / the dealer's product page (already used for the CAD).
 rm -rf tmp; echo done
