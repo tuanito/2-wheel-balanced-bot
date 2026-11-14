@@ -37,8 +37,9 @@ shutil.rmtree("/tmp/swz", ignore_errors=True); os.makedirs("/tmp/swz")
 # which quietly swept in .venv (~2.4 GB, so the build took minutes and the zip was nonsense) and
 # models/bought - the vendor STEP models, which are not ours to redistribute (the MF6015 one comes
 # from the LKMTECH product page). The zip is published, so this list is a licence matter, not tidiness.
+# `.pio` is the same class of thing: 101 MB of build output the moment anyone compiles the firmware.
 SKIP = {".git", ".venv", "venv", "env", "node_modules", "__pycache__", ".pytest_cache",
-        ".mypy_cache", ".ruff_cache", ".DS_Store", "bought"}
+        ".mypy_cache", ".ruff_cache", ".DS_Store", "bought", ".pio"}
 SKIP_PATH = {"site/files", "site/vendor", "ml/runs"}   # the downloads themselves, vendored three.js, RL checkpoints
 BIG = 1_000_000   # every file this size in this repo is a GENERATED blob - the viewer's base64 part
                   # data, the built pages, the exported meshes - and all of them are rebuildable from

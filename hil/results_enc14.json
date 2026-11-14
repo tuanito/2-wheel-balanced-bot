@@ -1,59 +1,75 @@
 {
  "drive_1": {
-  "cycles": 5025,
-  "sim_s": 10.05,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.265,
-  "dt_ms_max": 5.56,
-  "host_ms_p99": 0.502,
-  "host_ms_max": 2.95,
+  "cycles": 5046,
+  "sim_s": 10.09,
+  "dt_ms_median": 1.725,
+  "dt_ms_p99": 3.098,
+  "dt_ms_max": 3.51,
+  "host_ms_p99": 0.449,
+  "host_ms_max": 1.08,
   "states": [
    [
     0.0,
     "state DISARMED side 0 tries 0"
    ],
    [
-    0.3,
+    0.301,
     "state BALANCE side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.563,
+    "encoder range detected: 16384 counts/turn"
+   ]
+  ],
+  "enc_bits": 14,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": -1.2,
+  "final_pitch_deg": -0.0,
   "speed_cmd": 0.5,
-  "speed_true": 0.472,
-  "dist_true_m": 1.417,
-  "odo_x_m": 1.431,
+  "speed_true": 0.465,
+  "dist_true_m": 1.436,
+  "odo_x_m": 1.436,
   "turn_cmd_deg": 90,
   "yaw_true_deg": 89.2,
   "upright": true,
-  "wall_s": 35.1
+  "wall_s": 19.5
  },
  "balance_push_1": {
-  "cycles": 5763,
-  "sim_s": 11.53,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.269,
-  "dt_ms_max": 8.03,
-  "host_ms_p99": 0.487,
-  "host_ms_max": 6.1,
+  "cycles": 5831,
+  "sim_s": 11.66,
+  "dt_ms_median": 1.726,
+  "dt_ms_p99": 3.093,
+  "dt_ms_max": 3.58,
+  "host_ms_p99": 0.49,
+  "host_ms_max": 2.26,
   "states": [
    [
     0.0,
     "state DISARMED side 0 tries 0"
    ],
    [
-    0.3,
+    0.301,
     "state BALANCE side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.595,
+    "encoder range detected: 16384 counts/turn"
+   ]
+  ],
+  "enc_bits": 14,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": -1.6,
+  "final_pitch_deg": -0.7,
   "pushes": [
    {
     "impulse_Ns": 1.0,
@@ -71,8 +87,8 @@
     "state": "BALANCE"
    }
   ],
-  "still_pitch_std_deg": 0.374,
-  "still_drift_mm": 13,
-  "wall_s": 36.1
+  "still_pitch_std_deg": 0.062,
+  "still_drift_mm": 3,
+  "wall_s": 21.4
  }
 }

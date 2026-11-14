@@ -1,60 +1,68 @@
 {
  "standup_face_1": {
-  "cycles": 2258,
-  "sim_s": 4.52,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.386,
-  "dt_ms_max": 5.65,
-  "host_ms_p99": 0.577,
-  "host_ms_max": 1.35,
+  "cycles": 2280,
+  "sim_s": 4.56,
+  "dt_ms_median": 1.75,
+  "dt_ms_p99": 3.102,
+  "dt_ms_max": 5.47,
+  "host_ms_p99": 0.494,
+  "host_ms_max": 1.16,
   "states": [
    [
     0.0,
     "state DISARMED side 0 tries 0"
    ],
    [
-    0.518,
+    0.548,
     "state LYING side 0 tries 0"
    ],
    [
-    0.82,
+    0.85,
     "state LIFT side 1 tries 1"
    ],
    [
-    0.862,
+    0.915,
     "state COAST side 1 tries 1"
    ],
    [
-    0.992,
+    1.035,
     "state BALANCE side 1 tries 1"
    ]
   ],
+  "enc_events": [
+   [
+    0.863,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": -1.2,
+  "final_pitch_deg": -0.0,
   "booted": true,
   "stood_up": true,
-  "t_standup_s": 0.49,
+  "t_standup_s": 0.53,
   "upright_at_end": true,
-  "wall_s": 20.0
+  "wall_s": 10.9
  },
  "standup_face_2": {
-  "cycles": 2268,
-  "sim_s": 4.54,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.287,
-  "dt_ms_max": 11.57,
-  "host_ms_p99": 0.538,
-  "host_ms_max": 12.9,
+  "cycles": 2274,
+  "sim_s": 4.55,
+  "dt_ms_median": 1.722,
+  "dt_ms_p99": 3.094,
+  "dt_ms_max": 3.46,
+  "host_ms_p99": 0.354,
+  "host_ms_max": 0.77,
   "states": [
    [
     0.0,
     "state DISARMED side 0 tries 0"
    ],
    [
-    0.528,
+    0.527,
     "state LYING side 0 tries 0"
    ],
    [
@@ -62,7 +70,7 @@
     "state LIFT side 1 tries 1"
    ],
    [
-    0.868,
+    0.88,
     "state COAST side 1 tries 1"
    ],
    [
@@ -70,25 +78,131 @@
     "state BALANCE side 1 tries 1"
    ]
   ],
+  "enc_events": [
+   [
+    0.845,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": 4.2,
+  "final_pitch_deg": 4.4,
   "booted": true,
   "stood_up": true,
   "t_standup_s": 0.5,
   "upright_at_end": true,
-  "wall_s": 19.6
+  "wall_s": 10.5
  },
  "standup_face_3": {
-  "cycles": 2259,
-  "sim_s": 4.53,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.473,
-  "dt_ms_max": 6.98,
-  "host_ms_p99": 0.72,
-  "host_ms_max": 5.08,
+  "cycles": 2289,
+  "sim_s": 4.58,
+  "dt_ms_median": 1.654,
+  "dt_ms_p99": 3.035,
+  "dt_ms_max": 3.42,
+  "host_ms_p99": 0.334,
+  "host_ms_max": 1.1,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.558,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.858,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    0.919,
+    "state COAST side 1 tries 1"
+   ],
+   [
+    1.033,
+    "state BALANCE side 1 tries 1"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.872,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 5.0,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 0.53,
+  "upright_at_end": true,
+  "wall_s": 10.4
+ },
+ "standup_back_1": {
+  "cycles": 2269,
+  "sim_s": 4.54,
+  "dt_ms_median": 1.726,
+  "dt_ms_p99": 3.089,
+  "dt_ms_max": 3.48,
+  "host_ms_p99": 0.275,
+  "host_ms_max": 0.85,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.509,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.81,
+    "state LIFT side -1 tries 1"
+   ],
+   [
+    0.864,
+    "state COAST side -1 tries 1"
+   ],
+   [
+    0.983,
+    "state BALANCE side -1 tries 1"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.824,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 0.3,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 0.48,
+  "upright_at_end": true,
+  "wall_s": 10.6
+ },
+ "standup_back_2": {
+  "cycles": 2269,
+  "sim_s": 4.54,
+  "dt_ms_median": 1.743,
+  "dt_ms_p99": 3.096,
+  "dt_ms_max": 4.91,
+  "host_ms_p99": 0.349,
+  "host_ms_max": 0.97,
   "states": [
    [
     0.0,
@@ -99,18 +213,26 @@
     "state LYING side 0 tries 0"
    ],
    [
-    0.816,
-    "state LIFT side 1 tries 1"
+    0.817,
+    "state LIFT side -1 tries 1"
    ],
    [
-    0.86,
-    "state COAST side 1 tries 1"
+    0.874,
+    "state COAST side -1 tries 1"
    ],
    [
-    0.986,
-    "state BALANCE side 1 tries 1"
+    0.987,
+    "state BALANCE side -1 tries 1"
    ]
   ],
+  "enc_events": [
+   [
+    0.827,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
@@ -120,120 +242,46 @@
   "stood_up": true,
   "t_standup_s": 0.48,
   "upright_at_end": true,
-  "wall_s": 17.8
- },
- "standup_back_1": {
-  "cycles": 2252,
-  "sim_s": 4.52,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.478,
-  "dt_ms_max": 11.29,
-  "host_ms_p99": 0.533,
-  "host_ms_max": 4.94,
-  "states": [
-   [
-    0.0,
-    "state DISARMED side 0 tries 0"
-   ],
-   [
-    0.512,
-    "state LYING side 0 tries 0"
-   ],
-   [
-    0.814,
-    "state LIFT side -1 tries 1"
-   ],
-   [
-    0.85,
-    "state COAST side -1 tries 1"
-   ],
-   [
-    0.974,
-    "state BALANCE side -1 tries 1"
-   ]
-  ],
-  "final_state": "BALANCE",
-  "motor_fault": false,
-  "armed": true,
-  "batt_low": false,
-  "final_pitch_deg": -0.8,
-  "booted": true,
-  "stood_up": true,
-  "t_standup_s": 0.47,
-  "upright_at_end": true,
-  "wall_s": 18.9
- },
- "standup_back_2": {
-  "cycles": 2263,
-  "sim_s": 4.53,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.252,
-  "dt_ms_max": 4.18,
-  "host_ms_p99": 0.547,
-  "host_ms_max": 3.14,
-  "states": [
-   [
-    0.0,
-    "state DISARMED side 0 tries 0"
-   ],
-   [
-    0.511,
-    "state LYING side 0 tries 0"
-   ],
-   [
-    0.813,
-    "state LIFT side -1 tries 1"
-   ],
-   [
-    0.856,
-    "state COAST side -1 tries 1"
-   ],
-   [
-    0.981,
-    "state BALANCE side -1 tries 1"
-   ]
-  ],
-  "final_state": "BALANCE",
-  "motor_fault": false,
-  "armed": true,
-  "batt_low": false,
-  "final_pitch_deg": 4.6,
-  "booted": true,
-  "stood_up": true,
-  "t_standup_s": 0.48,
-  "upright_at_end": true,
-  "wall_s": 18.6
+  "wall_s": 10.8
  },
  "standup_back_3": {
-  "cycles": 2267,
-  "sim_s": 4.54,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.255,
-  "dt_ms_max": 11.32,
-  "host_ms_p99": 0.72,
-  "host_ms_max": 2.28,
+  "cycles": 2286,
+  "sim_s": 4.57,
+  "dt_ms_median": 1.754,
+  "dt_ms_p99": 3.103,
+  "dt_ms_max": 3.6,
+  "host_ms_p99": 0.395,
+  "host_ms_max": 0.88,
   "states": [
    [
     0.0,
     "state DISARMED side 0 tries 0"
    ],
    [
-    0.528,
+    0.548,
     "state LYING side 0 tries 0"
    ],
    [
-    0.83,
+    0.849,
     "state LIFT side -1 tries 1"
    ],
    [
-    0.876,
+    0.925,
     "state COAST side -1 tries 1"
    ],
    [
-    1.0,
+    1.041,
     "state BALANCE side -1 tries 1"
    ]
   ],
+  "enc_events": [
+   [
+    0.859,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
@@ -241,18 +289,18 @@
   "final_pitch_deg": 5.1,
   "booted": true,
   "stood_up": true,
-  "t_standup_s": 0.5,
+  "t_standup_s": 0.54,
   "upright_at_end": true,
-  "wall_s": 18.0
+  "wall_s": 10.7
  },
  "balance_push_1": {
-  "cycles": 5775,
-  "sim_s": 11.55,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.279,
-  "dt_ms_max": 5.01,
-  "host_ms_p99": 0.541,
-  "host_ms_max": 6.56,
+  "cycles": 5794,
+  "sim_s": 11.59,
+  "dt_ms_median": 1.735,
+  "dt_ms_p99": 3.093,
+  "dt_ms_max": 3.55,
+  "host_ms_p99": 0.373,
+  "host_ms_max": 3.2,
   "states": [
    [
     0.0,
@@ -263,11 +311,19 @@
     "state BALANCE side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.015,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": -1.6,
+  "final_pitch_deg": -0.8,
   "pushes": [
    {
     "impulse_Ns": 1.0,
@@ -285,18 +341,162 @@
     "state": "BALANCE"
    }
   ],
-  "still_pitch_std_deg": 0.379,
-  "still_drift_mm": 13,
-  "wall_s": 34.4
+  "still_pitch_std_deg": 0.063,
+  "still_drift_mm": 3,
+  "wall_s": 21.8
  },
  "balance_push_2": {
-  "cycles": 5780,
-  "sim_s": 11.56,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.391,
-  "dt_ms_max": 3.7,
-  "host_ms_p99": 0.51,
-  "host_ms_max": 4.68,
+  "cycles": 5791,
+  "sim_s": 11.6,
+  "dt_ms_median": 1.937,
+  "dt_ms_p99": 3.409,
+  "dt_ms_max": 12.87,
+  "host_ms_p99": 0.506,
+  "host_ms_max": 1.69,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.302,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.586,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 4.2,
+  "pushes": [
+   {
+    "impulse_Ns": 1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": -1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": 1.5,
+    "upright": true,
+    "state": "BALANCE"
+   }
+  ],
+  "still_pitch_std_deg": 1.769,
+  "still_drift_mm": 74,
+  "wall_s": 22.5
+ },
+ "balance_push_3": {
+  "cycles": 5832,
+  "sim_s": 11.66,
+  "dt_ms_median": 1.94,
+  "dt_ms_p99": 3.426,
+  "dt_ms_max": 3.62,
+  "host_ms_p99": 0.418,
+  "host_ms_max": 1.01,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.303,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.611,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 4.7,
+  "pushes": [
+   {
+    "impulse_Ns": 1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": -1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": 1.5,
+    "upright": true,
+    "state": "BALANCE"
+   }
+  ],
+  "still_pitch_std_deg": 2.059,
+  "still_drift_mm": 83,
+  "wall_s": 22.3
+ },
+ "drive_1": {
+  "cycles": 5057,
+  "sim_s": 10.11,
+  "dt_ms_median": 1.929,
+  "dt_ms_p99": 3.408,
+  "dt_ms_max": 3.88,
+  "host_ms_p99": 0.494,
+  "host_ms_max": 0.98,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.014,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -0.1,
+  "speed_cmd": 0.5,
+  "speed_true": 0.465,
+  "dist_true_m": 1.439,
+  "odo_x_m": 1.438,
+  "turn_cmd_deg": 90,
+  "yaw_true_deg": 89.2,
+  "upright": true,
+  "wall_s": 19.9
+ },
+ "drive_2": {
+  "cycles": 5049,
+  "sim_s": 10.1,
+  "dt_ms_median": 1.926,
+  "dt_ms_p99": 3.412,
+  "dt_ms_max": 3.81,
+  "host_ms_p99": 0.411,
+  "host_ms_max": 0.84,
   "states": [
    [
     0.0,
@@ -307,148 +507,36 @@
     "state BALANCE side 0 tries 0"
    ]
   ],
-  "final_state": "BALANCE",
-  "motor_fault": false,
-  "armed": true,
-  "batt_low": false,
-  "final_pitch_deg": 4.2,
-  "pushes": [
-   {
-    "impulse_Ns": 1.0,
-    "upright": true,
-    "state": "BALANCE"
-   },
-   {
-    "impulse_Ns": -1.0,
-    "upright": true,
-    "state": "BALANCE"
-   },
-   {
-    "impulse_Ns": 1.5,
-    "upright": true,
-    "state": "BALANCE"
-   }
-  ],
-  "still_pitch_std_deg": 1.643,
-  "still_drift_mm": 66,
-  "wall_s": 32.5
- },
- "balance_push_3": {
-  "cycles": 5783,
-  "sim_s": 11.57,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.245,
-  "dt_ms_max": 5.43,
-  "host_ms_p99": 0.513,
-  "host_ms_max": 6.79,
-  "states": [
+  "enc_events": [
    [
-    0.0,
-    "state DISARMED side 0 tries 0"
-   ],
-   [
-    0.3,
-    "state BALANCE side 0 tries 0"
+    0.601,
+    "encoder range detected: 65536 counts/turn"
    ]
   ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": 4.7,
-  "pushes": [
-   {
-    "impulse_Ns": 1.0,
-    "upright": true,
-    "state": "BALANCE"
-   },
-   {
-    "impulse_Ns": -1.0,
-    "upright": true,
-    "state": "BALANCE"
-   },
-   {
-    "impulse_Ns": 1.5,
-    "upright": true,
-    "state": "BALANCE"
-   }
-  ],
-  "still_pitch_std_deg": 1.812,
-  "still_drift_mm": 75,
-  "wall_s": 33.3
- },
- "drive_1": {
-  "cycles": 5014,
-  "sim_s": 10.04,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.413,
-  "dt_ms_max": 7.6,
-  "host_ms_p99": 0.607,
-  "host_ms_max": 2.65,
-  "states": [
-   [
-    0.0,
-    "state DISARMED side 0 tries 0"
-   ],
-   [
-    0.3,
-    "state BALANCE side 0 tries 0"
-   ]
-  ],
-  "final_state": "BALANCE",
-  "motor_fault": false,
-  "armed": true,
-  "batt_low": false,
-  "final_pitch_deg": -1.2,
+  "final_pitch_deg": 4.8,
   "speed_cmd": 0.5,
-  "speed_true": 0.472,
-  "dist_true_m": 1.417,
-  "odo_x_m": 1.431,
+  "speed_true": 0.471,
+  "dist_true_m": 1.518,
+  "odo_x_m": 1.445,
   "turn_cmd_deg": 90,
-  "yaw_true_deg": 89.2,
+  "yaw_true_deg": 86.2,
   "upright": true,
-  "wall_s": 30.5
- },
- "drive_2": {
-  "cycles": 5029,
-  "sim_s": 10.06,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.271,
-  "dt_ms_max": 4.3,
-  "host_ms_p99": 0.6,
-  "host_ms_max": 4.59,
-  "states": [
-   [
-    0.0,
-    "state DISARMED side 0 tries 0"
-   ],
-   [
-    0.3,
-    "state BALANCE side 0 tries 0"
-   ]
-  ],
-  "final_state": "BALANCE",
-  "motor_fault": false,
-  "armed": true,
-  "batt_low": false,
-  "final_pitch_deg": 4.6,
-  "speed_cmd": 0.5,
-  "speed_true": 0.478,
-  "dist_true_m": 1.505,
-  "odo_x_m": 1.441,
-  "turn_cmd_deg": 90,
-  "yaw_true_deg": 86.4,
-  "upright": true,
-  "wall_s": 32.2
+  "wall_s": 19.7
  },
  "drive_3": {
-  "cycles": 5042,
-  "sim_s": 10.09,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.301,
-  "dt_ms_max": 12.13,
-  "host_ms_p99": 0.634,
-  "host_ms_max": 2.67,
+  "cycles": 5035,
+  "sim_s": 10.07,
+  "dt_ms_median": 1.936,
+  "dt_ms_p99": 3.419,
+  "dt_ms_max": 6.62,
+  "host_ms_p99": 0.466,
+  "host_ms_max": 1.26,
   "states": [
    [
     0.0,
@@ -459,82 +547,106 @@
     "state BALANCE side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.573,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": 5.1,
+  "final_pitch_deg": 5.2,
   "speed_cmd": 0.5,
-  "speed_true": 0.479,
-  "dist_true_m": 1.507,
-  "odo_x_m": 1.442,
+  "speed_true": 0.473,
+  "dist_true_m": 1.521,
+  "odo_x_m": 1.448,
   "turn_cmd_deg": 90,
   "yaw_true_deg": 88.3,
   "upright": true,
-  "wall_s": 31.4
+  "wall_s": 19.7
  },
  "cmd_timeout_1": {
-  "cycles": 3771,
+  "cycles": 3774,
   "sim_s": 7.55,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.261,
-  "dt_ms_max": 5.89,
-  "host_ms_p99": 0.684,
-  "host_ms_max": 2.76,
+  "dt_ms_median": 1.929,
+  "dt_ms_p99": 3.425,
+  "dt_ms_max": 4.39,
+  "host_ms_p99": 0.449,
+  "host_ms_max": 1.11,
   "states": [
    [
     0.0,
     "state DISARMED side 0 tries 0"
    ],
    [
-    0.3,
+    0.303,
     "state BALANCE side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.015,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": -1.8,
-  "speed_after_silence": 0.029,
+  "final_pitch_deg": -0.7,
+  "speed_after_silence": 0.034,
   "upright": true,
-  "wall_s": 26.2
+  "wall_s": 15.6
  },
  "cmd_timeout_2": {
-  "cycles": 3784,
-  "sim_s": 7.57,
-  "dt_ms_median": 1.999,
-  "dt_ms_p99": 2.443,
-  "dt_ms_max": 6.45,
-  "host_ms_p99": 0.676,
-  "host_ms_max": 2.82,
+  "cycles": 3798,
+  "sim_s": 7.6,
+  "dt_ms_median": 1.781,
+  "dt_ms_p99": 3.178,
+  "dt_ms_max": 3.5,
+  "host_ms_p99": 0.378,
+  "host_ms_max": 0.8,
   "states": [
    [
     0.0,
     "state DISARMED side 0 tries 0"
    ],
    [
-    0.3,
+    0.303,
     "state BALANCE side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.615,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": 4.2,
-  "speed_after_silence": 0.023,
+  "final_pitch_deg": 4.4,
+  "speed_after_silence": 0.028,
   "upright": true,
-  "wall_s": 25.7
+  "wall_s": 15.0
  },
  "cmd_timeout_3": {
-  "cycles": 3768,
-  "sim_s": 7.54,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.292,
-  "dt_ms_max": 9.59,
-  "host_ms_p99": 0.723,
-  "host_ms_max": 9.09,
+  "cycles": 3796,
+  "sim_s": 7.59,
+  "dt_ms_median": 1.693,
+  "dt_ms_p99": 3.036,
+  "dt_ms_max": 3.47,
+  "host_ms_p99": 0.358,
+  "host_ms_max": 0.61,
   "states": [
    [
     0.0,
@@ -545,89 +657,113 @@
     "state BALANCE side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.554,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "BALANCE",
   "motor_fault": false,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": 4.7,
-  "speed_after_silence": 0.024,
+  "final_pitch_deg": 4.8,
+  "speed_after_silence": 0.029,
   "upright": true,
-  "wall_s": 26.3
+  "wall_s": 14.7
  },
  "can_loss_1": {
-  "cycles": 1533,
-  "sim_s": 3.06,
-  "dt_ms_median": 1.999,
-  "dt_ms_p99": 2.22,
-  "dt_ms_max": 3.79,
-  "host_ms_p99": 0.817,
-  "host_ms_max": 2.81,
+  "cycles": 1516,
+  "sim_s": 3.03,
+  "dt_ms_median": 1.704,
+  "dt_ms_p99": 3.066,
+  "dt_ms_max": 3.33,
+  "host_ms_p99": 0.316,
+  "host_ms_max": 0.47,
   "states": [
    [
     0.0,
     "state DISARMED side 0 tries 0"
    ],
    [
-    0.3,
+    0.301,
     "state BALANCE side 0 tries 0"
    ],
    [
-    2.064,
+    2.054,
     "state DISARMED side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.523,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "DISARMED",
   "motor_fault": true,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": 99.1,
+  "final_pitch_deg": 97.9,
+  "fault_flag": true,
+  "motors_on_at_end": false,
+  "reaction_s": 0.022,
+  "motors_off_after_bus_back_s": 0.025,
+  "wall_s": 8.0
+ },
+ "can_loss_2": {
+  "cycles": 1527,
+  "sim_s": 3.05,
+  "dt_ms_median": 1.654,
+  "dt_ms_p99": 3.028,
+  "dt_ms_max": 3.43,
+  "host_ms_p99": 0.333,
+  "host_ms_max": 0.48,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ],
+   [
+    2.055,
+    "state DISARMED side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.59,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "DISARMED",
+  "motor_fault": true,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 97.9,
   "fault_flag": true,
   "motors_on_at_end": false,
   "reaction_s": 0.022,
   "motors_off_after_bus_back_s": 0.024,
-  "wall_s": 16.2
- },
- "can_loss_2": {
-  "cycles": 1524,
-  "sim_s": 3.05,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.222,
-  "dt_ms_max": 7.52,
-  "host_ms_p99": 0.765,
-  "host_ms_max": 2.74,
-  "states": [
-   [
-    0.0,
-    "state DISARMED side 0 tries 0"
-   ],
-   [
-    0.3,
-    "state BALANCE side 0 tries 0"
-   ],
-   [
-    2.064,
-    "state DISARMED side 0 tries 0"
-   ]
-  ],
-  "final_state": "DISARMED",
-  "motor_fault": true,
-  "armed": true,
-  "batt_low": false,
-  "final_pitch_deg": 99.1,
-  "fault_flag": true,
-  "motors_on_at_end": false,
-  "reaction_s": 0.024,
-  "motors_off_after_bus_back_s": 0.028,
-  "wall_s": 16.1
+  "wall_s": 7.9
  },
  "can_loss_3": {
-  "cycles": 1531,
-  "sim_s": 3.06,
-  "dt_ms_median": 2.0,
-  "dt_ms_p99": 2.237,
-  "dt_ms_max": 4.16,
-  "host_ms_p99": 0.797,
-  "host_ms_max": 1.83,
+  "cycles": 1520,
+  "sim_s": 3.04,
+  "dt_ms_median": 1.735,
+  "dt_ms_p99": 3.085,
+  "dt_ms_max": 3.19,
+  "host_ms_p99": 0.311,
+  "host_ms_max": 0.5,
   "states": [
    [
     0.0,
@@ -638,19 +774,27 @@
     "state BALANCE side 0 tries 0"
    ],
    [
-    2.062,
+    2.058,
     "state DISARMED side 0 tries 0"
    ]
   ],
+  "enc_events": [
+   [
+    0.572,
+    "encoder range detected: 65536 counts/turn"
+   ]
+  ],
+  "enc_bits": 16,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
   "final_state": "DISARMED",
   "motor_fault": true,
   "armed": true,
   "batt_low": false,
-  "final_pitch_deg": 99.1,
+  "final_pitch_deg": 97.9,
   "fault_flag": true,
   "motors_on_at_end": false,
-  "reaction_s": 0.022,
-  "motors_off_after_bus_back_s": 0.026,
-  "wall_s": 17.1
+  "reaction_s": 0.025,
+  "motors_off_after_bus_back_s": 0.025,
+  "wall_s": 8.2
  }
 }

@@ -9,7 +9,8 @@ sys.path.insert(0, str(ROOT / "sim"))
 from botsim import BotSim, CTRL_DT, KT, I_MAX, quat_pitch      # noqa: E402,F401  (plant, motor model, IMU model)
 
 ENC_BITS = int(os.environ.get("ENC_BITS", "16"))
-ENC_RANGE = 1 << ENC_BITS
+ENC_RANGE = 1 << ENC_BITS                                       # counts per TURN of the sensor
+ENC_FIELD = 1 << 16                                             # the CAN reply's encoder field is 16 bits, always
 ID_L, ID_R, ID_MULTI = 0x141, 0x142, 0x280
 DIR = {ID_L: +1, ID_R: -1}                                      # must match config.h DIR_LEFT/DIR_RIGHT
 IQ_FULL, IQ_MAX = 16.5, 2048
@@ -73,7 +74,11 @@ class Plant(BotSim):
         enc = int(round((raw / (2 * math.pi)) * ENC_RANGE)) % ENC_RANGE
         dps = int(round(math.degrees(DIR[mid] * w)))
         iq = int(self.iq_cmd[mid] if self.on[mid] else 0)
-        return struct.pack("<BbhhH", cmd, 30, iq, max(-32768, min(32767, dps)), enc)
+        # The field is 16 bits whatever the sensor is. A 14/15/16-bit encoder's whole turn fits in it; an
+        # 18-bit one does not, and the motor sends the low 16 bits - so the field wraps FOUR TIMES per turn.
+        # That is the case lk_motor.cpp's enc_mod_ / enc_per_turn_ split exists for, and ENC_BITS=18 here is
+        # how it gets exercised end to end. Masking is a no-op for ENC_BITS <= 16.
+        return struct.pack("<BbhhH", cmd, 30, iq, max(-32768, min(32767, dps)), enc % ENC_FIELD)
 
 
 class VirtualLK:

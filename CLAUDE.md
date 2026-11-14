@@ -18,6 +18,7 @@ unless the robot is on them (sense divider, short = latch off). Full list: `bom/
 | `core/` | The controller (`controller.cpp/.hpp`), LQR gains (`gains.hpp`, from `sim/design_lqr.py`), learned stand-up policy (`standup_policy.hpp`, generated), C API for the sim (`sim_api.cpp`). The **same C++** runs in the sim and on the ESP32. |
 | `firmware/esp32/` | PlatformIO (`pio run -e esp32s3`), host tests `test_host/run_tests.sh`. `lib/botcore/` is a COPY of `core/` — keep them in sync after editing `core/`. |
 | `firmware/dock_beacon/` | ATtiny85 dock controller + `test_dock_logic.cpp`. |
+| `hil/` | Hardware-in-the-loop: the **real firmware image** (env `esp32s3_sim`) in Espressif QEMU, driven in lock-step against the MuJoCo plant, with virtual LK motors (`lkbus.py`) on a virtual CAN bus and the real `pi/robot/link.py` on the other UART. `setup_toolchain.sh` installs PlatformIO + QEMU, `build_flash.sh` builds the image, `run_hil.py` runs the scenarios. Evidence: `results.json` (6 scenarios x 3 seeds) and `results_enc{14,15,16,18}.json` (encoder widths). |
 | `pi/` | Python on the Pi: `robot/brain.py`, `dock.py` (DockPilot), `ld19.py`, `link.py`; tests `python -m pytest -q` in `pi/` (48). |
 | `sim/` | MuJoCo + `botsim.py` (loads `libbot.so`/`.dylib`). `run_tests.py` (stand-up, balance, pushes, missions), `dock_sim.py` (40-start docking sweep), `nav_sim.py`, `build_model.py` (regenerates the XML from the CAD), `design_lqr.py 0.06 0.6 10` (the weights we use), `rebuild.sh` (all of that in order). |
 | `ml/` | RL: the stand-up and the stair-measuring nod, see `ml/README.md`. `setup_mac.sh` (venv, `--cad` also installs CadQuery), `run_training.sh` (the stand-up loop). Stairs: `stairs_env.py` (when to nod), `stairs_baseline.py` (the hand-scripted recipe it has to beat), `train_stairs.py`, `evaluate_stairs.py`. |
@@ -30,8 +31,9 @@ unless the robot is on them (sense divider, short = latch off). Full list: `bom/
 ## Build / check commands
 Prefer the scripts: each one is the documented sequence, in order, and they are what gets maintained.
 ```bash
-./check.sh                  # everything checkable here (~40 s): firmware host tests, ERC + its 8
-                            # mutation tests, CAN check, the 48 Pi tests, models + 30-robot sim suite.
+./check.sh                  # everything checkable here (~40 s, + ~20 s if PlatformIO is installed):
+                            # firmware host tests and the ESP32-S3 image for BOTH motor builds, ERC + its
+                            # 8 mutation tests, CAN check, the 48 Pi tests, models + 30-robot sim suite.
                             # Takes section names: ./check.sh elec pi. Exits non-zero on failure.
 core/build_lib.sh           # the controller library: libbot.dylib on macOS, libbot.so elsewhere
 sim/rebuild.sh              # models -> LQR gains -> library -> sim suite
@@ -43,6 +45,8 @@ By hand, when you want one step only:
 cd sim && python run_tests.py          # 30 robots, ~11 s on an M4 Mac; writes results/report.json
 cd sim && python dock_sim.py           # 40 starts (slow)
 cd firmware/esp32 && pio run -e esp32s3 && test_host/run_tests.sh
+hil/setup_toolchain.sh                 # PlatformIO + Espressif QEMU, both outside the repo and the venv
+hil/build_flash.sh && .venv/bin/python hil/run_hil.py     # the firmware image in QEMU on the MuJoCo plant
 cd pi && python -m pytest -q
 cd elec && python erc.py && python test_erc.py && python erc.py   # see the trap below
 ```
@@ -256,8 +260,17 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   reply and used one variable, `enc_range_`, as both the modulus that field wraps at AND the counts
   per mechanical turn. Those are equal for a 14/15/16-bit encoder, whose whole turn fits in the
   field. They are NOT equal for a finer sensor reporting its low 16 bits: an 18-bit count wraps the
-  field four times a turn, the wrap detector reads that as "65536 counts per turn", and every angle,
-  speed and odometry reading comes out **4x too small with nothing faulted**. Now split:
+  field four times a turn, and the wrap detector reads that as "65536 counts per turn". **Measured
+  in QEMU** against a virtual 18-bit motor (`hil/results_enc18_conflated.json`, the pre-split code
+  put back on purpose): the wheel ANGLE reads 4x too far, the wheel SPEED stays right - it comes
+  from the drive's own reported dps, not from the encoder (`lk_motor.cpp`: `s->speed = dir * dps`) -
+  so `K[2] * e_phi`, the position term, believes the robot has overshot by 4x. It saturates, and the
+  robot crawls at **0.134 m/s against a 0.5 m/s command** (0.44 m instead of 1.44 m), holding a
+  **15.4 deg lean**, while `motor_fault` stays false, the state stays BALANCE, it still stands up on
+  command, **and the odometry reads 0.438 m against 0.439 m true** - because `x_` integrates that
+  same correct speed. Nothing in the telemetry says anything is wrong; the only symptom is a robot
+  that will not drive. With the split in place the same scenario locks 65536 at 0.51 s, corrects to
+  262144 at 2.11 s, and finishes at 0.497 m/s, 1.34 m, pitch -0.1 deg. Now split:
   `enc_mod_` (set by the wrap, used for unwrapping) and `enc_per_turn_` (set by the ratio of counts
   to the drive's own reported speed, used for radians), with 262144 added to the candidates. The
   ratio outranks the wrap and keeps running after the lock, so a wrong guess self-corrects inside a
@@ -266,8 +279,29 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   and the ratio need SEPARATE lock flags or each blocks the other (`mod_locked_` vs `enc_locked_`),
   and the one-off offset before the lock is bounded by 3x the learning window here, not under it,
   because the starting guess under-states counts per turn instead of over-stating it.
-  `test_host/test_lk_motor.cpp` has the 18-bit-through-a-16-bit-field case both directions, and
-  `src/bench/can_probe.cpp` counts field wraps per hand turn instead of assuming one.
+  `test_host/test_lk_motor.cpp` has the 18-bit-through-a-16-bit-field case both directions,
+  `src/bench/can_probe.cpp` counts field wraps per hand turn instead of assuming one, and
+  `ENC_BITS=18 hil/run_hil.py` runs the whole chain in QEMU (`hil/lkbus.py` masks the count to the
+  16-bit field, as the motor does). The four `hil/results_enc*.json` are that evidence: 14/15/16
+  lock the right value within 0.6 s and their odometry matches truth to 1 mm; 18 locks the wrong one
+  first and corrects itself.
+- **The ESP32 image IS buildable here, and the QEMU HIL runs - but `hil/results*.json` timing is a
+  property of the QEMU BUILD, not of the firmware.** `hil/setup_toolchain.sh` installs PlatformIO
+  (into `~/.pio-venv`, deliberately not the project venv, which holds the pinned `mujoco==4.0.0`)
+  and Espressif's QEMU fork (into `~/.qemu-esp`, checksum-verified; on macOS it needs
+  `brew install sdl2-compat`, because it links SDL2 even with `-nographic`). All five `platformio.ini`
+  envs build, plus `esp32s3_mf7015`, and `check.sh firmware` now compiles both motor builds when
+  `pio` is present and skips them when it is not. What the toolchain does NOT give: the control
+  period. `dt_ms_*` is measured by the firmware's own `micros()`, and how emulated instruction count
+  maps to emulated time differs between QEMU builds - esp_develop 9.2.2_20250817 reports a flat
+  **2.000 ms** median where 9.2.2_20261109 reports **1.65-1.94 ms** on byte-identical firmware.
+  `run_hil.py` writes the build into every result now (`qemu` field). Compare dt within a file, never
+  across files. The behavioural numbers moved only in the last digit or two (6/6 stand-ups, CAN-loss
+  reaction 22-25 ms, drive within 7% of command), which is what the file is for.
+- **The HIL's virtual motors are an MF6015, in a third copy of the drive constants.** `hil/lkbus.py`
+  hard-codes `IQ_FULL, IQ_MAX = 16.5, 2048` and loads the committed `robot_c.xml` plant, so an
+  MF7015 HIL run needs `sim/motor_profile.py` wired in there too and the firmware built from
+  `env:esp32s3_mf7015`. Until that is done, a HIL result is evidence about the mf6015 build only.
 - **The motor is chosen in two files, and they must not be able to disagree.**
   `firmware/esp32/include/config.h`'s `FITTED_MOTOR` carries the DRIVE's half (`KT`, what an iq
   command of 2048 means in amps); `core/motor.hpp`'s `BOT_MOTOR_*` carries the CONTROLLER's half
@@ -376,7 +410,9 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 - **`site/build_docs.py` copies the working tree to build the published software zip**, so anything
   sitting in the repo goes out with it. It swept in `.venv` (~2.4 GB, minutes of build time) and
   `models/bought/` - the vendor STEP models, which are **not ours to redistribute**. It now has an
-  explicit skip list; keep licence-encumbered files out of it.
+  explicit skip list; keep licence-encumbered files out of it - and big build trees:
+  `firmware/esp32/.pio` is 101 MB the moment anyone compiles the ESP32 image, and it is now skipped
+  too. (It did not exist when the committed zip was last built, so that zip is unaffected.)
 - `mujoco` is pinned to `==4.0.0` in `ml/requirements.txt` because the committed `sim/results/report.json`
   is version-dependent. 4.0 split the distribution (mujoco-core + mujoco-studio) and an in-place upgrade
   from 3.x can delete files that moved: uninstall first. Verified: 4.0.0 reproduces the committed counts.

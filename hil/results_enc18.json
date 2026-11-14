@@ -1,0 +1,420 @@
+{
+ "drive_1": {
+  "cycles": 5052,
+  "sim_s": 10.1,
+  "dt_ms_median": 1.751,
+  "dt_ms_p99": 3.114,
+  "dt_ms_max": 3.51,
+  "host_ms_p99": 0.439,
+  "host_ms_max": 1.09,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.509,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    2.114,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -0.0,
+  "speed_cmd": 0.5,
+  "speed_true": 0.497,
+  "dist_true_m": 1.347,
+  "odo_x_m": 1.347,
+  "turn_cmd_deg": 90,
+  "yaw_true_deg": 89.2,
+  "upright": true,
+  "wall_s": 19.6
+ },
+ "balance_push_1": {
+  "cycles": 5808,
+  "sim_s": 11.62,
+  "dt_ms_median": 1.759,
+  "dt_ms_p99": 3.112,
+  "dt_ms_max": 7.71,
+  "host_ms_p99": 0.4,
+  "host_ms_max": 1.12,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.301,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.543,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    2.643,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -0.7,
+  "pushes": [
+   {
+    "impulse_Ns": 1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": -1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": 1.5,
+    "upright": true,
+    "state": "BALANCE"
+   }
+  ],
+  "still_pitch_std_deg": 0.214,
+  "still_drift_mm": 3,
+  "wall_s": 21.7
+ },
+ "standup_face_1": {
+  "cycles": 2274,
+  "sim_s": 4.55,
+  "dt_ms_median": 1.707,
+  "dt_ms_p99": 3.093,
+  "dt_ms_max": 3.51,
+  "host_ms_p99": 0.363,
+  "host_ms_max": 0.75,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.516,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.817,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    0.885,
+    "state COAST side 1 tries 1"
+   ],
+   [
+    1.005,
+    "state BALANCE side 1 tries 1"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.83,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.845,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -0.1,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 0.5,
+  "upright_at_end": true,
+  "wall_s": 10.5
+ },
+ "standup_face_2": {
+  "cycles": 2279,
+  "sim_s": 4.56,
+  "dt_ms_median": 1.741,
+  "dt_ms_p99": 3.081,
+  "dt_ms_max": 3.51,
+  "host_ms_p99": 0.496,
+  "host_ms_max": 1.22,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.559,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.858,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    0.915,
+    "state COAST side 1 tries 1"
+   ],
+   [
+    1.037,
+    "state BALANCE side 1 tries 1"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.873,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.89,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 4.5,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 0.53,
+  "upright_at_end": true,
+  "wall_s": 10.6
+ },
+ "standup_face_3": {
+  "cycles": 2288,
+  "sim_s": 4.57,
+  "dt_ms_median": 1.721,
+  "dt_ms_p99": 3.083,
+  "dt_ms_max": 3.53,
+  "host_ms_p99": 0.452,
+  "host_ms_max": 0.84,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.553,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.854,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    0.915,
+    "state COAST side 1 tries 1"
+   ],
+   [
+    1.031,
+    "state BALANCE side 1 tries 1"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.869,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.884,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 5.0,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 0.53,
+  "upright_at_end": true,
+  "wall_s": 10.8
+ },
+ "standup_back_1": {
+  "cycles": 2287,
+  "sim_s": 4.57,
+  "dt_ms_median": 1.689,
+  "dt_ms_p99": 3.076,
+  "dt_ms_max": 3.41,
+  "host_ms_p99": 0.364,
+  "host_ms_max": 0.54,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.561,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.862,
+    "state LIFT side -1 tries 1"
+   ],
+   [
+    0.915,
+    "state COAST side -1 tries 1"
+   ],
+   [
+    1.035,
+    "state BALANCE side -1 tries 1"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.874,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.89,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 0.3,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 0.53,
+  "upright_at_end": true,
+  "wall_s": 10.6
+ },
+ "standup_back_2": {
+  "cycles": 2279,
+  "sim_s": 4.56,
+  "dt_ms_median": 1.736,
+  "dt_ms_p99": 3.099,
+  "dt_ms_max": 3.52,
+  "host_ms_p99": 0.336,
+  "host_ms_max": 0.66,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.55,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.85,
+    "state LIFT side -1 tries 1"
+   ],
+   [
+    0.91,
+    "state COAST side -1 tries 1"
+   ],
+   [
+    1.027,
+    "state BALANCE side -1 tries 1"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.859,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.882,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 4.7,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 0.52,
+  "upright_at_end": true,
+  "wall_s": 10.5
+ },
+ "standup_back_3": {
+  "cycles": 2279,
+  "sim_s": 4.56,
+  "dt_ms_median": 1.728,
+  "dt_ms_p99": 3.099,
+  "dt_ms_max": 3.56,
+  "host_ms_p99": 0.339,
+  "host_ms_max": 0.82,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.535,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.839,
+    "state LIFT side -1 tries 1"
+   ],
+   [
+    0.915,
+    "state COAST side -1 tries 1"
+   ],
+   [
+    1.029,
+    "state BALANCE side -1 tries 1"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.846,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.866,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 5.1,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 0.53,
+  "upright_at_end": true,
+  "wall_s": 10.4
+ }
+}

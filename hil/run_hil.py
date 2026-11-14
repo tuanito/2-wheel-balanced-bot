@@ -8,17 +8,37 @@ robot. The Pi side is the real pi/robot/link.py.
 
 Usage: python3 run_hil.py [scenario ...]   (scenarios: standup_face standup_back balance_push drive cmd_timeout can_loss)
        ENC_BITS=14 python3 run_hil.py ...  -> virtual motors with a 14-bit encoder (the LK manual allows 14/15/16 bit)
+       ENC_BITS=18 python3 run_hil.py ...  -> an 18-bit sensor sending its LOW 16 BITS, as the MF7015 does: the reply
+                                              field wraps four times per turn, which is what enc_mod_ vs enc_per_turn_
+                                              in lk_motor.cpp is for. Watch `enc_events` and `odo_x_m`.
+
+Needs PlatformIO and Espressif QEMU: hil/setup_toolchain.sh installs both, and build_flash.sh builds the image.
 """
 import math, os, socket, struct, subprocess, sys, threading, time, json, pathlib, collections
 import numpy as np, mujoco
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sim")); sys.path.insert(0, str(ROOT / "pi")); sys.path.insert(0, str(ROOT / "hil"))
-from lkbus import Plant, VirtualLK, crc, frame, quat_pitch, CTRL_DT, ID_L, ID_R    # noqa: E402  (plant + virtual motors)
+from lkbus import Plant, VirtualLK, crc, frame, quat_pitch, CTRL_DT, ID_L, ID_R, ENC_BITS  # noqa: E402  (plant + virtual motors)
 from robot.link import Link, MODE_VELOCITY, MODE_TURN_BY        # noqa: E402  (the Pi's own link code)
 
 QEMU = os.environ.get("QEMU", "/opt/dl/qemu/qemu/bin/qemu-system-xtensa")
 FLASH = os.environ.get("FLASH", "/tmp/flash_sim.bin")
+
+
+def qemu_version():
+    """Which QEMU produced a results file. The dt_ms_* figures are NOT comparable across builds: the
+    control period is measured by the firmware's own micros(), and how emulated instruction count maps to
+    emulated time is a property of the QEMU build. esp_develop_9.2.2_20250817 reports a 2.000 ms median
+    where 9.2.2_20261109 reports 1.717 ms on the same firmware. Compare within a file, not across."""
+    try:
+        out = subprocess.run([QEMU, "--version"], capture_output=True, text=True, timeout=10).stdout
+        return out.splitlines()[0].strip() if out else "?"
+    except Exception as e:
+        return f"? ({e})"
+
+
+QEMU_V = "not measured"
 
 
 class SockPort:
@@ -142,12 +162,16 @@ class Host:
 def summary(h, extra=None):
     tr = np.array([(t, p, x, y) for t, p, x, y, *_ in h.plant.trace]) if h.plant.trace else np.zeros((1, 4))
     st = [(round(t, 3), e) for t, e in h.events if e.startswith("state")]
+    # What the firmware decided the encoder's counts/turn is. With ENC_BITS=18 the reply field wraps 4x per
+    # turn, so a build that conflated the field with the turn would lock 65536 here and read every angle,
+    # speed and odometry 4x short - which `odo_x_m` against `dist_true_m` then shows.
+    enc = [(round(t, 3), e) for t, e in h.events if e.startswith("encoder range")]
     dts = np.array(h.dts) if h.dts else np.array([0])
     r = dict(cycles=h.cycles, sim_s=round(h.plant.t, 2), dt_ms_median=round(1e3 * float(np.median(dts)), 3),
              dt_ms_p99=round(1e3 * float(np.percentile(dts, 99)), 3), dt_ms_max=round(1e3 * float(dts.max()), 2),
              host_ms_p99=round(float(np.percentile(h.host_ms, 99)), 3) if h.host_ms else None,
              host_ms_max=round(float(max(h.host_ms)), 2) if h.host_ms else None,
-             states=st, final_state=h.link.telem.state_name, motor_fault=h.link.telem.motor_fault, armed=h.link.telem.armed,
+             states=st, enc_events=enc, enc_bits=ENC_BITS, qemu=QEMU_V, final_state=h.link.telem.state_name, motor_fault=h.link.telem.motor_fault, armed=h.link.telem.armed,
              batt_low=h.link.telem.battery_low, final_pitch_deg=round(math.degrees(tr[-1, 1]), 1))
     if extra: r.update(extra)
     return r
@@ -245,6 +269,8 @@ SCEN = {"standup_face": lambda s: standup(s, +1), "standup_back": lambda s: stan
         "drive": drive, "cmd_timeout": cmd_timeout, "can_loss": can_loss}
 
 if __name__ == "__main__":
+    QEMU_V = qemu_version()
+    print(f"# {QEMU_V}   flash {FLASH}   encoder {ENC_BITS} bit through a 16-bit reply field", flush=True)
     names = sys.argv[1:] or list(SCEN)
     seeds = [int(x) for x in os.environ.get("SEEDS", "1").split(",")]
     allr = {}

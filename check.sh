@@ -55,6 +55,15 @@ if want firmware; then
   else
     SKIP+=("firmware: host unit tests (no g++)")
   fi
+  # The real ESP32-S3 image, both motor builds. hil/setup_toolchain.sh installs PlatformIO if it is missing;
+  # without it this is skipped, because a plain checkout has to pass the rest of check.sh with no toolchain.
+  PIO=$(command -v pio || echo "$HOME/.pio-venv/bin/pio")
+  if [ -x "$PIO" ]; then
+    run "firmware: ESP32-S3 image builds (mf6015 + mf7015)" bash -o pipefail -c \
+      "cd '$ROOT/firmware/esp32' && '$PIO' run -e esp32s3 -e esp32s3_mf7015 | tail -4"
+  else
+    SKIP+=("firmware: ESP32-S3 image (no pio; hil/setup_toolchain.sh installs it)")
+  fi
 fi
 
 if want elec; then
