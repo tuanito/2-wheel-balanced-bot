@@ -54,7 +54,13 @@ WELL_Y0     = WHEEL_IN_Y - 2.0                          # arch starts here
 M25_CLEAR   = _M["bolt_clear"]   # motor screw clearance: M2.5 on the mf6015, M3 on the mf7015
 MOTOR_SQ    = _M["bolt_sq"]     # 20 x 20 on the mf6015, 30 x 30 on the mf7015
 SLOT_W      = _M["slot_w"]   # over the motor's connector bay (top of the Ø49 boss, 15 mm wide): plugs + leads + fingers
-SLOT_Z      = (17.0, 43.0)   # top raised with the shelf: the motor leads arc through its upper part; closed window (a slot open to the top printed as a 20 mm cantilever); plugs + leads pass through it; open to the top: plug in from above before the shelf; the screwed shelf closes it
+# The wall window: plugs + leads + fingers pass through it. Open to the top (plug in from above
+# before the shelf goes on; the screwed shelf closes it - a slot open to the top printed as a 20 mm
+# cantilever). Its TOP is 4 mm under the shelf because the motor leads arc through its upper part, so
+# it has to follow the shelf; this was a literal (17, 43) for both motors, which put both motor-power
+# arcs and both CAN branches through the solid wall on the MF7015. The profile carries the pair and
+# the assert keeps the top tied to the shelf.
+SLOT_Z      = _M["slot_z"]   # the assert tying its top to SHELF_Z is below, where SHELF_Z exists
 
 # ------------------------------------------------------------------ overall box
 WALL       = 3.0
@@ -68,13 +74,25 @@ X_FRONT    = MOTOR_R + MOTOR_AIR + WALL    # mf6015 35.0
 X_BACK     = -(MOTOR_R + MOTOR_AIR)        # mf6015 -32.0
 Z_BOT      = -(MOTOR_R + MOTOR_AIR + WALL) # mf6015 -35.0
 # Top of the motor walls = underside of the shelf. It is set by how much room the motor's LEADS need
-# above the can: 18 mm on the MF6015, so they rise and bend back down into the wall window gently
-# (R ~8 mm; it was a 90 deg kink in 8 mm before the shelf went up 10 mm). Tracking MOTOR_R keeps that
-# clearance when the can grows. NOTE: 18 mm was measured against the MF6015's AXIAL plugs on top of
-# its rear boss. The MF7015's connector is a socket in the side rim, so the mating plug's height is
-# a different number and has to be checked against the real part.
+# above the MATED PLUG: 18 mm on the MF6015, so they rise and bend back down into the wall window
+# gently (R ~8 mm; it was a 90 deg kink in 8 mm before the shelf went up 10 mm, and 8 mm was rejected
+# then).
+#
+# It used to track MOTOR_R, which is the same number ONLY on the MF6015: its 6-pin housing stands on
+# the rear boss and its top lands exactly at the can radius, z 29. The MF7015's connector is a socket
+# in the side rim, so its mated plug tops out 10 mm ABOVE the can - and MOTOR_R + 18 left the leads
+# 8 mm, i.e. precisely the 90 deg kink this constant exists to avoid. wire_check.py proved it: both
+# motor-power arcs and both CAN branches ran through the shelf and the body. So the clearance is
+# measured from motors.plug_pin_z, which is what the comment above always claimed.
+#
+# The cost is height, and it is real: the MF7015 body is 15.5 mm taller overall than the MF6015's
+# (Z_TOP 167.5 against 152.0) and its CoM rises with it, against a build whose CoM is already the
+# known weak point. The motor's own 109 g per side sits on the axle and pulls the other way.
 SHELF_CLEAR = 18.0
-SHELF_Z    = MOTOR_R + SHELF_CLEAR         # mf6015 47.0, mf7015 52.5
+SHELF_Z    = _motors.plug_pin_z(MOTOR) + SHELF_CLEAR   # mf6015 47.0 (= 29 + 18), mf7015 62.5
+assert abs(SLOT_Z[1] - (SHELF_Z - 4.0)) < 1e-9, (
+    "%s: slot_z top %.1f is not SHELF_Z - 4.0 (%.1f). The motor leads arc through the window's upper "
+    "part, so the window has to follow the shelf." % (MOTOR, SLOT_Z[1], SHELF_Z - 4.0))
 SHELF_T     = 5.0
 BATT_H      = 42.0           # 6S 1400 pack height
 UPPER_BAY   = 58.0           # shelf + battery -> lid: the front panel / back cover bay

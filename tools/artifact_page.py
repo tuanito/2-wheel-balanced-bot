@@ -18,7 +18,11 @@ Two separate traps live here, and the viewer has been dark because of them.
 The repo's site/index.html keeps the importmap and site/vendor/, which is the right shape for
 `python3 -m http.server -d site` and for any ordinary web host.
 
-  python tools/artifact_page.py [out.html]
+  python tools/artifact_page.py [out.html] [src.html] [--standalone]
+
+`--standalone` keeps the document skeleton, for a page published as a SUPPORTING file
+(the Artifact tool's `files`): those are served unwrapped, so trap 2 does not apply to
+them - but trap 1 does, because their base URL is just as unknowable.
 """
 import pathlib, re, sys
 
@@ -54,7 +58,10 @@ def three_bundle():
             + "const OrbitControls = (function(){\n" + orbit + "\nreturn OrbitControls;\n})();\n")
 
 
-def build(src_html=None):
+def build(src_html=None, keep_skeleton=False):
+    """src_html: a path, or the HTML itself. keep_skeleton: for a page published as a SUPPORTING
+    file (via the Artifact tool's `files`), which is served unwrapped and therefore needs to stay a
+    complete document - trap 2 does not apply to it, but trap 1 still does."""
     s = (src_html or (SITE / "index.html")).read_text() if not isinstance(src_html, str) else src_html
     # 1) no imports: drop the importmap and the two import lines, inline the libraries instead
     s = re.sub(r'<script type="importmap">.*?</script>\s*', "", s, flags=re.S)
@@ -62,7 +69,9 @@ def build(src_html=None):
     s = re.sub(r"^\s*import \{OrbitControls\} from ['\"][^'\"]*OrbitControls\.js['\"];\s*$", "",
                s, flags=re.M)
     s = s.replace('<script type="module">', "<script type=\"module\">\n" + three_bundle(), 1)
-    # 2) no nested document: the Artifact tool supplies the skeleton
+    if keep_skeleton:
+        return s.strip() + "\n"
+    # 2) no nested document: the Artifact tool supplies the skeleton for the PAGE it publishes
     for pat in (r"(?is)<!doctype[^>]*>", r"(?is)</?html[^>]*>", r"(?is)</?head[^>]*>",
                 r"(?is)<body[^>]*>", r"(?is)</body>"):
         s = re.sub(pat, "", s)
@@ -70,14 +79,19 @@ def build(src_html=None):
 
 
 def main():
-    out = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_OUT
-    s = build()
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    standalone = "--standalone" in sys.argv          # keep the skeleton: published via `files`
+    src = pathlib.Path(args[1]) if len(args) > 1 else None
+    out = pathlib.Path(args[0]) if args else DEFAULT_OUT
+    s = build(src, keep_skeleton=standalone)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(s)
     low = s.lower()
     bad = []
-    if low.count("<!doctype") or low.count("<html") or low.count("<head>"):
+    if not standalone and (low.count("<!doctype") or low.count("<html") or low.count("<head>")):
         bad.append("skeleton tags survived")
+    if standalone and not low.count("<!doctype"):
+        bad.append("--standalone but no doctype: a supporting file is served unwrapped")
     if "importmap" in low:
         bad.append("importmap survived")
     if re.search(r"^\s*import\s", s, re.M):

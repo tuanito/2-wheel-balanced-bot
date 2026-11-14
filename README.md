@@ -611,3 +611,66 @@ axle, or a lower battery, buys the same numbers without putting a Ø69 motor in 
 Ø58. Stand-up is the honest exception: there the extra torque does show (40/40 for the
 MF7015-electricals chimera against the real MF6015's 38/40), because the kick is torque-limited in a way
 that holding station is not.
+
+#### The body that fits it
+
+Both motors stay buildable from the same CAD. One profile record per motor lives in
+`cad_src/case/motors.py` — OD, length, pocket, bolt square, bore, PCD, connector bay, STEP back-face
+offset, mass split, Kt, Kv, line R, rotor inertia — and `ROBOT_MOTOR=mf6015|mf7015` picks it. All 28
+MF6015 parts come out of the refactor byte-identical (`tools/cad_baseline.py`), so the robot that
+exists is untouched.
+
+The MF7015 is **axially identical** (33.9 mm against 34.0), and `MOTOR_LEN` is the master width
+parameter of the whole robot — wheel track, body width, shelf, panels, `SKIN["half_w"]` and the dock's
+wheel-track saddle all flow from it. None of them move. The wheel adapter keeps the Ø12.70 spigot and
+the Ø25 bolt circle; only the output bolts change, M3 → M4, and the neck absorbs the taller
+support-free cone so the wheel does not move outboard.
+
+What does move is **depth, +11 mm** (radially +5.5 mm front and back; ground clearance 19.3 → 13.8 mm)
+— and **height, +15.5 mm**, which is the expensive part and was not obvious. `SHELF_CLEAR = 18.0` is
+clearance over the motor's *leads*, but `SHELF_Z` was computed as `MOTOR_R + SHELF_CLEAR`, which is the
+same number only on the MF6015: its 6-pin housing stands on the rear boss and tops out exactly at the
+can radius, z 29. The MF7015's connector is a socket in the side rim whose mated plug tops out 10 mm
+*above* the can, so `MOTOR_R + 18` left the leads **8 mm** — precisely the 90° kink that constant
+exists to prevent, and which this build already rejected once. It now reads
+`plug_pin_z(MOTOR) + SHELF_CLEAR`: 47.0 on the MF6015 exactly as before, 62.5 on the MF7015, `Z_TOP`
+167.5 against 152.0. **The CoM rises with it**, against a build whose CoM is already the weak point —
+which eats into the one thing the swap was measured to buy. The motor's own 109 g per side sits on the
+axle and pulls the other way; which wins is a question for the plant model, not for the CAD.
+
+**Five numbers had to stop being literals, and every one of them was a trap.** The motor's OD had *no
+symbol at all* — it existed only as a hand-set clearance box whose comments said "r 29", which is why
+a fatter motor interfered on three sides with nothing to change. `SKIN["half_w"] = 89.0` duplicated the
+wheel line. `SHELF_Z` is defined as clearance over the leads, as above. `SLOT_Z = (17.0, 43.0)` — the
+window in the motor wall the leads pass through, whose own comment says "the motor leads arc through
+its upper part" — was fixed for both motors, which put **both motor-power arcs and both CAN branches
+through solid wall**; `motors.py` already carried a per-motor `slot_z` field that nothing read. Its top
+is now asserted to be `SHELF_Z - 4` so the window cannot drift from the shelf again.
+
+Then every harness had to be re-laid. `wiring.py`'s routes are hand-laid waypoints that were written
+as absolute coordinates, and each one means "clear of something by k mm" — so on the taller body six
+ran through the shelf, seven through the battery, both motor arcs through their own plugs, and the
+charge-pad ring lugs into the Raspberry Pi. They are now written against the thing they dodge (`ZSH`,
+`ZBT`, `ZSK`, `ZFL`, `XPN`, `XCV`, `ZPL`), and three more needed the obstacle named rather than the
+clearance guessed: the battery's front-top corner (a `92.5` that was 1.5 under the MF6015's battery top
+by coincidence), the shelf's front notch at |y| 26, and the contact-plate insert bosses, which are at
+absolute (±47, 96) and (±47, 125) and reach 4 mm into the body — a route sat *behind* one of them and
+only the MF6015's z happened to miss it.
+
+`wire_check.py` under both profiles is the only thing that catches any of this. It now reports the
+MF6015 byte-for-byte as before, and the MF7015 clean apart from one part: **the HC-SR04 does not fit
+the MF7015 body as mounted.** Its 4-pin header hangs down off the board, and the raised shelf comes to
+4 mm under it, so the header fouls the shelf and the 5 V run up the cable hole fouls the header. The
+HC-SR04 is the *alternative* to the zone array — the fitted front sensor is the VL53L5CX, which is
+clear — so on this body it wants a right-angle header, or the board moved up ~14 mm, which would crowd
+the eyes at 104 and change its tilt geometry. Not decided here.
+
+`real_assembly.py` reports **3 contacts on the MF7015 body against the MF6015's 4**: the extra depth
+resolves the 20.8 mm³ Raspberry Pi OTG clash, which is the only genuine clash this robot has.
+
+**None of the electrical or control work is done.** The plant model, the LQR gains, `torque_limit`,
+`WHEEL_W_MAX` (120 rad/s against a motor that tops out near 78 — the runaway guard could never fire),
+the firmware and both learned policies are all still the MF6015's. And buy the LKMTECH **MF7015-V2**
+with the DF70V2 drive (7.4–32 V, LK V2 protocol): the MyActuator RMD-L-7015-**200** is an MC200,
+12–24 V and V3, which a 6S pack at 25.2 V over-volts. The drive is inside the motor, so that choice is
+made at the order, not afterwards.

@@ -224,6 +224,39 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 - **`build_model.py --stairs` landings are finite.** The landing runs from `edge - 3.0` to `edge`, so a
   script that reverses for a second or two can drive off the BACK of it, and that reads exactly like
   falling over. Two of the nod-cost measurements were wrong that way before the start was moved forward.
+- **A hand-laid harness route is a body-relative path written in absolute numbers.** Every waypoint
+  in `cad_src/case/wiring.py` means "clear of *something* by k mm" - the shelf top, the battery top,
+  the top skin, the tray floor, the front panel, the back cover, the motor plug - but they were all
+  typed as absolute coordinates, so they were only ever right for the body they were laid in. On the
+  MF7015 body (11 mm deeper, shelf/battery/skin 5.5 mm higher, motor plug 15.5 mm higher) the same
+  numbers put six harnesses through the shelf, seven through the battery, the sonar's Dupont housing
+  1.5 mm into the shelf, both motor arcs through their own plugs, and the charge-pad ring lugs into
+  the Pi. The fix is `ZSH`/`ZBT`/`ZSK`/`ZFL`/`XPN`/`XCV`/`ZPL` at the top of `wiring.py`: pick the
+  anchor by **what the waypoint is dodging**, not by which number is closest to it. What genuinely
+  stays absolute: the front-panel parts (sonar, eyes, camera, headlights, zone array) and the
+  side-wall parts (speaker, mics, amp, IP2368, USB-C), because they are aimed at the world or set by
+  the wheel line - for those only the *x* follows the panel or the cover. Three obstacles have to be
+  named rather than cleared by a guessed margin: the battery's front-top corner, the shelf's front
+  notch at |y| 26 (cross it ABOVE the shelf top or the descent clips the corner), and the
+  contact-plate insert bosses at absolute (+-47, 96) and (+-47, 125), O/ 8, reaching `X_BACK + 4` in -
+  a route can sit *behind* a boss and be clean only because its z happens to miss. `wire_check.py` is
+  the only thing that catches any of this, and it has to be run under **both** `ROBOT_MOTOR` values.
+- **"Clearance over the motor" is clearance over its PLUG, and the two are the same number only on
+  the MF6015.** `SHELF_CLEAR = 18.0` is room for the leads to rise and bend back down gently, and
+  `SHELF_Z` used to read `MOTOR_R + SHELF_CLEAR`. That works by coincidence: the MF6015's 6-pin
+  housing stands on the rear boss and tops out exactly at the can radius, z 29. The MF7015's
+  connector is a socket in the side rim, so its mated plug tops out 10 mm ABOVE the can and
+  `MOTOR_R + 18` left the leads 8 mm - the 90 deg kink the constant exists to prevent, and which this
+  build had already rejected. It is `_motors.plug_pin_z(MOTOR) + SHELF_CLEAR` now: 47.0 unchanged on
+  the MF6015, 62.5 on the MF7015, and `Z_TOP` 167.5 against 152.0. **Height is the swap's hidden
+  cost** - the CoM rises, against the one weakness the extra 109 g per motor was supposed to fix.
+  The same shape of bug sat one line below in `SLOT_Z = (17.0, 43.0)`, the wall window the leads pass
+  through: fixed for both motors, so both motor-power arcs and both CAN branches ran through solid
+  wall. `motors.py` already had a per-motor `slot_z` that nothing read; `body_case.py` now reads it
+  and **asserts its top is `SHELF_Z - 4`**, so the window cannot come adrift from the shelf again.
+  Consequence worth knowing: on the MF7015 body the raised shelf comes 4 mm under the HC-SR04's
+  board, and that board's pin header hangs DOWN off it, so the alternative sonar needs a right-angle
+  header there. The fitted front sensor is the VL53L5CX and is clear.
 - **Two scripts wrote `wiring_data.json` with different fields.** `dump_wiring.py` included `awg`
   and `slack`; `export_viewer_real.py` did not, and measured `L` without the slack. Whichever ran
   second won, so after a viewer export `elec/can_ground_check.py` died on `KeyError: 'awg'` - and

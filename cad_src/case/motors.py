@@ -65,7 +65,9 @@ MOTORS = {
         # from the rear face. The 4-fold bolt square lets it be clocked; point it UP, as INSTALL.md
         # already says for the MF6015.
         bay="radial", bay_w=15.66, bay_axial=(2.9, 8.6), bay_depth=1.14,
-        slot_w=24.0, slot_z=(17.0, 43.0), plug_h=10.0,   # ESTIMATE: see plug_boxes()
+        # slot_z: the wall window the leads pass through. Bottom 12 mm under the can top as on the
+        # MF6015 (34.5 - 12); top is SHELF_Z - 4, which body_case asserts, so it tracks the shelf.
+        slot_w=24.0, slot_z=(22.5, 58.5), plug_h=10.0,   # ESTIMATE: see plug_boxes()
         # ---- output face: bore and bolt circle UNCHANGED, but the screws go M3 -> M4 ----
         bore_d=12.7, pcd=25.0, out_bolt="M4", out_clear=4.5, out_depth=3.5,
         # ---- how the STEP sits in its own frame (axis runs the OTHER way to the MF6015's) ----
