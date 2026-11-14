@@ -42,6 +42,21 @@ LIB.bot_free.argtypes = [C.c_void_p]
 LIB.bot_set_cmd.argtypes = [C.c_void_p, C.POINTER(Command)]
 LIB.bot_step.argtypes = [C.c_void_p, C.POINTER(Inputs), C.POINTER(Outputs)]
 
+# The library is COMPILED for one motor (core/motor.hpp: torque limit, speed ceiling, rotor inertia),
+# and nothing about libbot.so says which. A stale one built for the other motor drives this plant with
+# the wrong limits and reports nothing - measured cost of exactly that: the MF7015 scored 0/30 on the
+# stand-up instead of 30/30, and it read as a physical speed ceiling. So: refuse to run on a mismatch.
+LIB.bot_motor.restype = C.c_char_p
+LIB.bot_motor_tau_max.restype = C.c_float
+LIB.bot_motor_w_max.restype = C.c_float
+LIB_MOTOR = LIB.bot_motor().decode()
+if LIB_MOTOR != _motors.PROFILE:
+    raise SystemExit(
+        f"libbot was built for {LIB_MOTOR}, but the plant is {_motors.PROFILE}.\n"
+        f"  torque limit {LIB.bot_motor_tau_max():.2f} N.m, speed ceiling {LIB.bot_motor_w_max():.0f} rad/s "
+        f"- the other motor's.\n"
+        f"  Rebuild it:  ROBOT_MOTOR={_motors.PROFILE} core/build_lib.sh")
+
 STATES = ["DISARMED", "LYING", "LIFT", "COAST", "BALANCE", "FALLEN", "CHARGING", "FAULT", "FLIP_RUN", "FLIP_BRAKE", "FLIP_AIR", "DOCK_LAND", "UNDOCK"]
 CTRL_DT = 0.002
 # The drive model's constants come from the motor profile (sim/motors.py -> cad_src/case/motors.py),

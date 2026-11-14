@@ -14,6 +14,12 @@ extern "C" void bot_limits(void* p, float max_speed, float max_accel, float max_
 }
 extern "C" void bot_recover(void* p, float accel, float hold) { auto* c = static_cast<bot::Controller*>(p); c->recover_accel = accel; c->recover_hold = hold; }
 extern "C" void bot_torque_limit(void* p, float lim) { static_cast<bot::Controller*>(p)->torque_limit = lim; }
+// Which motor this library was COMPILED for. botsim.py checks it against ROBOT_MOTOR and refuses
+// to run on a mismatch: a stale libbot built for the other motor is otherwise undetectable, and
+// it would silently drive the new plant with the old torque limit and speed ceiling.
+extern "C" const char* bot_motor() { return bot::motor::NAME; }
+extern "C" float bot_motor_tau_max() { return bot::motor::TAU_MAX; }
+extern "C" float bot_motor_w_max() { return bot::motor::W_MAX; }
 extern "C" void bot_flip(void* p, float lie_tq, float kick_t, float air_tq, float catch_p) {
   auto* c = static_cast<bot::Controller*>(p); c->flip_lie_torque = lie_tq; c->flip_brake_time = kick_t; c->flip_air_torque = air_tq; c->flip_catch = catch_p;
 }

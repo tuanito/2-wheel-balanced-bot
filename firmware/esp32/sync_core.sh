@@ -4,7 +4,7 @@
 set -eu
 cd "$(dirname "$0")"
 mkdir -p lib/botcore
-FILES="controller.hpp controller.cpp gains.hpp standup_policy.hpp"
+FILES="controller.hpp controller.cpp gains.hpp motor.hpp standup_policy.hpp"
 for f in $FILES; do cp "../../core/$f" lib/botcore/; done
 # Verify, rather than just claiming it: this script used to omit standup_policy.hpp and still print
 # "updated", so the firmware could have been built against the placeholder policy while the sim ran

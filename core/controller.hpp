@@ -9,6 +9,7 @@
 // RELATIVE TO THE BODY (that is what the motor encoder sees).
 #pragma once
 #include <cstdint>
+#include "motor.hpp"   // the fitted motor's torque limit, speed ceiling and rotor inertia
 
 namespace bot {
 
@@ -104,7 +105,9 @@ class Controller {
   float max_accel = 0.6f;       // m/s^2 for the speed reference (low CoM: 0.6 m/s^2 already means ~9° of lean)
   float max_yaw_rate = 1.2f;    // rad/s (sim: pitch wobble grows above ~1.8 rad/s)
   float max_yaw_accel = 3.0f;   // rad/s^2
-  float torque_limit = 2.3f;    // N·m per motor (LK drive: iq 2048 ≙ 16.5 A × 0.14 N·m/A)
+  // N·m per motor. From the motor profile, NOT a literal: with the MF7015's plant and the
+  // MF6015's 2.3 here, the stand-up scores 0/30 instead of 30/30. See core/motor.hpp.
+  float torque_limit = motor::TAU_MAX;   // mf6015 2.3, mf7015 3.8
   float stop_dist = 0.25f;      // m, sonar: closest allowed approach
   float brake_decel = 1.0f;     // m/s^2 used to compute the sonar speed limit
   // Stand-up (tuned in sim/tune_standup.py)
@@ -169,7 +172,8 @@ class Controller {
   float dock_hold_kd = 0.3f;     // N·m per rad/s
   float dock_settle = 0.0f;      // s: hold the wheels this long after docking, then motors off. 0 = motors off at once:
                                  // the floor wave holds it (sim: no difference); kept as an option
-  float dock_hold_max = 0.25f;   // N·m per motor (≈ 9 N at the tyres, ~1.8 A peak; ~0.1 N·m / 0.7 A typical)
+  float dock_hold_max = 0.25f;   // N·m per motor (≈ 9 N at the tyres). The phase current for it is
+                                 // motor-dependent: 1.8 A peak at Kt 0.14, 0.9 A at Kt 0.28
 
  private:
   void estimate(const Inputs& in);

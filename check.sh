@@ -92,6 +92,7 @@ if want sim; then
   run "sim: build the controller library" core/build_lib.sh
   if "$PY" -c "import mujoco" 2>/dev/null; then
     run "sim: ctypes structs match controller.hpp" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' check_structs.py"
+    run "sim: motor profile matches the CAD" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' check_motor.py"
     run "sim: regenerate the MuJoCo models" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' build_model.py && '$PY' build_model.py --arena"
     run "sim: 30 randomised robots" bash -o pipefail -c "cd '$ROOT/sim' && '$PY' run_tests.py >/dev/null && '$PY' -c \"
 import json; r = json.load(open('results/report.json'))

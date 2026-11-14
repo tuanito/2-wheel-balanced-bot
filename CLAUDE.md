@@ -224,6 +224,25 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 - **`build_model.py --stairs` landings are finite.** The landing runs from `edge - 3.0` to `edge`, so a
   script that reverses for a second or two can drive off the BACK of it, and that reads exactly like
   falling over. Two of the nod-cost measurements were wrong that way before the start was moved forward.
+- **The stand-up kick saturates the motor on purpose, so the runaway guard could not tell it from a
+  runaway - and was aborting good kicks on the real robot.** `controller.cpp`'s guard ran from LIFT
+  to BALANCE and cut to FALLEN above 95% of `WHEEL_W_MAX`. Measured peak wheel speed *relative to
+  the body* (what the encoder and the back-EMF see) over 12 stand-ups: MF6015 median 97 rad/s - 79%
+  of its 123 rad/s ceiling - p90 106, **max 117**, against a guard at 0.95 x 120 = **114**. So on
+  its worst robots the as-built robot was cutting its own kick. Restricting the guard to BALANCE
+  takes the hand-tuned stand-up from **25/30 and 23/30 to 30/30 and 30/30** with pushes, cruise,
+  stop distance and balance drift unchanged. `LIFT_TIMEOUT` (1.2 s) already bounds a stuck kick, so
+  nothing is lost. On the MF7015 this is not optional: its kick needs a median 75 rad/s of a 79 rad/s
+  ceiling (95%, peaks to 81), so **no threshold is both under the motor's ceiling and above its
+  kick** - at `W_MAX` 78 it scored 11/30, and with the state restriction 30/30. Any future speed
+  guard has to be measured against what the manoeuvres legitimately demand, not just against the
+  motor's rating. Note the nod (`look_mode`) runs inside BALANCE, so the guard still applies there
+  and `look_gain`'s history is unaffected on the MF6015.
+- **A learned-vs-hand-tuned comparison is only as good as the baseline's bugs.** `CLAUDE.md` recorded
+  the learned stand-up beating the hand-tuned one 60/60 against 155/180. The hand-tuned baseline was
+  handicapped by the guard above; with it fixed the scripted recipe is 30/30 and 30/30 too. The
+  learned policy may still win on handover quality (1.77 rad/s against 3.66) and repeatability - that
+  part was measured separately - but the headline margin needs re-measuring before it is quoted.
 - **`sim/run_tests.py` does NOT set the torque limit, so changing the plant without changing
   `controller.hpp` measures a motor that does not exist.** `motor_compare.py`, `wobble_compare.py`
   and `motor_margin.py` all call `LIB.bot_torque_limit(...)`; `run_tests.py` never does, and uses
@@ -337,8 +356,10 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 
 ## State (Nov 2026) and open points
 - Shelf raised 10 mm (SHELF_Z 47, Z_TOP 152) so the motor leads loop gently; back cover unplugs as a module.
-- Cost: CoM 40.6 mm above the axle → hand-tuned stand-up 25/30 face-down, 23/30 back-down within 5 s (was
-  30/30), 52/60 within 12 s; docking 34/40 (was 37/40).
+- Cost: CoM 40.6 mm above the axle; docking 34/40 (was 37/40). The stand-up's 25/30 and 23/30 was
+  **blamed on the same CoM rise and was not that at all**: the runaway guard was aborting legitimate
+  kicks (see the trap below). With the guard restricted to BALANCE the hand-tuned stand-up is back to
+  **30/30 and 30/30**, first attempt on 30/30 and 29/30, with everything else byte-unchanged.
 - **The learned stand-up now beats the hand-tuned one in the sim** (Nov 2026, third training run):
   `evaluate.py --compiled` 60/60 on the usual seeds 3000-3029 and 60/60 on two held-out sets (9000, 12000),
   against 155/180 for the hand-tuned one; median travel 0.84 m vs 0.97. It hands over to the balance

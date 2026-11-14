@@ -24,7 +24,11 @@ constexpr float FALL_PITCH     = 0.85f;   // rad (49°): balancing lost
 constexpr float SIDE_ROLL      = 0.80f;   // rad (46°): lying on its side, cannot stand up
 constexpr float LIFT_TIMEOUT   = 1.2f;    // s
 constexpr float STILL_RATE     = 0.6f;    // rad/s: "not moving" while lying
-constexpr float WHEEL_W_MAX    = 120.f;   // rad/s: no-load speed at 22 V (53 rpm/V); cut motors beyond 95% of it
+// rad/s: the motor's no-load speed; the runaway guard cuts beyond 95% of it. From the profile:
+// at 120 against a motor that tops out near 79, the guard can never fire and a runaway shows
+// up as silent torque saturation with no state change. NOTE it also normalises the learned
+// policy's wheel-speed observation (o[2]), so a policy is only valid for the motor it trained on.
+constexpr float WHEEL_W_MAX    = motor::W_MAX;   // mf6015 120, mf7015 78
 constexpr int   MAX_TRIES      = 5;
 }  // namespace
 
@@ -102,7 +106,10 @@ static constexpr float FALL_DWELL = 0.006f;  // s. Three ticks, not twelve: unlo
                                              // 0.56 to 5.78 m/s in 50 ms, so a 25 ms dwell latches
                                              // after the runaway it exists to prevent.
 static constexpr float AIR_MAX = 0.60f;      // s: a drop this long is not a step, so give up and balance
-static constexpr float AIR_KD = 0.060f;      // Nm per rad/s: enough to actually arrest the spin
+// Nm per rad/s: enough to actually arrest the spin. Damping an unloaded wheel is a fight against
+// the rotor's own inertia, so it scales with it rather than being re-guessed (mf6015 0.060,
+// mf7015 0.109 for its 1.81x rotor).
+static constexpr float AIR_KD = 0.060f * (motor::ROTOR_J / motor::ROTOR_J_REF);
 
 float Controller::sonar_speed_limit(const Inputs& in) {
   obstacle_ = 0;
@@ -267,7 +274,14 @@ Outputs Controller::step(const Inputs& in) {
   if (!cmd_.arm && st_ != ST_CHARGING && st_ != ST_DISARMED) go(ST_DISARMED);
   const float wheel_rel = 0.5f * std::fabs(in.wl + in.wr);
   wheel_w_ = 0.5f * (in.wl + in.wr); vbat_ = in.vbat;
-  if (st_ >= ST_LIFT && st_ <= ST_BALANCE && wheel_rel > 0.95f * WHEEL_W_MAX) go(ST_FALLEN);   // runaway: cut, then retry
+  // Runaway: the velocity loop has lost the wheels, so cut and retry. BALANCE only. The stand-up kick
+  // saturates the motor ON PURPOSE - measured peak wheel speed relative to the body, over 12 robots:
+  // MF6015 median 97 rad/s (79% of its 123 ceiling) and max 117; MF7015 median 75 (95% of its 79) and
+  // max 81. So in LIFT/COAST this test cannot tell a working kick from a runaway, and LIFT_TIMEOUT
+  // already bounds a stuck one. It used to run from LIFT to BALANCE: at 0.95 x 120 = 114 the MF6015's
+  // kick tripped it on its worst robots, and on the MF7015 NO threshold is both under the motor's
+  // ceiling and above its kick, so restricting the state is the only correct form of the check.
+  if (st_ == ST_BALANCE && wheel_rel > 0.95f * WHEEL_W_MAX) go(ST_FALLEN);
 
   switch (st_) {
     case ST_DISARMED:
