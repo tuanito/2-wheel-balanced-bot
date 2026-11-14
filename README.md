@@ -691,26 +691,33 @@ mf6015 and reproduces `robot_c.xml`, `robot_c_arena.xml` and `gains.hpp` byte fo
 | chassis Iyy about its CoM | 4125 kg·mm² | **5949 (+44 %)** |
 | `WN2` | 122.34 (rad/s)² | **104.08 (−15 %)** |
 | `K[0]` pitch gain | −11.644 | −12.777 |
-| balance: median drift / pitch std | 1.4 mm / 0.010° | **1.1 mm / 0.011°** |
-| pushes recovered | **20/20**, max pitch 34.6° | 18/20, max pitch 97.1° |
-| stand-up face-down / back-down | **25/30 / 23/30** | **0/30 / 1/30** |
+| balance: median drift / pitch std | 1.4 mm / 0.010° | **1.0 mm / 0.010°** |
+| pushes recovered | 20/20, max pitch 34.6° | **20/20, max pitch 30.3°** |
+| stand-up face-down / back-down | 25/30 / 23/30 | **30/30 / 30/30**, first try every time |
+| stand-up peak wheel speed | 5.02 / 5.11 m/s | **3.70 / 3.72 m/s** |
+| cruise / stop distance | 1.114 m/s / 0.637 m | 1.119 m/s / 0.629 m |
 
-**Balance is fine — slightly better.** The LQR re-synthesises cleanly against the heavier, slower body
-and holds station to 1.1 mm. The swap does not hurt the thing the robot does all day.
+**The MF7015 is better everywhere, and the stand-up margin is the surprise: 60/60 against 48/60, first
+attempt on all 30 robots both ways, in 0.21 s.** No retuning at all — the scripted recipe's constants
+(`lift_torque`, `energy_target`, `catch_pitch`) are untouched; only the LQR gains were re-synthesised
+from the new plant and `torque_limit` raised from 2.3 to the motor's real 3.8 N·m.
 
-**The stand-up is not a tuning problem, it is a ceiling.** The hand-tuned kick reaches 5.02 and
-5.11 m/s on the MF6015, whose no-load ceiling at 53 rpm/V on a nominal 6S pack is 6.69 m/s — 25 %
-headroom. The 23T's ceiling is **4.29 m/s** (34 rpm/V × 22.2 V), or 4.87 m/s on a *fully charged*
-25.2 V pack. The MF7015 run peaked at 4.69 m/s and scored 0/30: the recipe asks for a wheel speed the
-motor cannot reach at any state of charge below full, so the body never gets the energy to come up, and
-median travel goes 0.91 → 1.56 m (max 10.21) as it scrabbles along the floor retrying. Pushes fall to
-18/20 for the same reason — a push that tips it past 90° can no longer be recovered from.
+The *why* matters, because it is the torque-for-speed trade working exactly as intended. The MF6015's
+kick peaks at 5.02 m/s — 123 rad/s, 75 % of its no-load ceiling — because it has to earn the body's
+potential energy at low torque, and `P = τ·ω` leaves it no other way. The 23T's ceiling is lower
+(**4.29 m/s** at 34 rpm/V × 22.2 V) but it has 65 % more torque, so it buys the same energy with a
+shorter, slower, harder kick: 3.70 m/s, comfortably inside its own ceiling. Peak mechanical power is
+near-identical either way — 2.31 × 123 ≈ 284 W against 3.80 × 79 ≈ 300 W — which is the reason to
+expect this before measuring it.
 
-So the 23T trades speed for torque, and the stand-up as written spends its margin on *speed*. The next
-step is not re-tuning the same recipe: it is re-deriving the kick for a motor with 65 % more torque and
-35 % less speed — more torque at a lower peak wheel speed — and that is what `ml/train.py` searches over
-anyway, so the learned stand-up (which already beats the hand-tuned one on the MF6015) is the more
-likely route. Carried forward honestly: **the motor comparison that justified the swap did not include
-this.** `motor_compare.py` and `wobble_compare.py` swap mass and electricals into the MF6015 body at the
-MF6015's gains and torque limit, so their 40/40 stand-up is a number for a robot with the 23T's mass and
-the 15T's speed ceiling. The push advantage they measured stands; the stand-up advantage does not.
+**A trap worth not repeating:** `sim/run_tests.py` never calls `bot_torque_limit`, so it uses whatever
+`core/controller.hpp` has. Run on the MF7015 plant with the committed 2.3 N·m still in place, it scored
+**0/30 and 1/30** — the new motor's mass penalty (+290 g, +44 % pitch inertia) and lower speed ceiling
+with none of its torque, which is the worst of both motors and a robot nobody would build. That number
+was briefly recorded here as the swap's verdict; it is not. Changing the plant without changing
+`torque_limit` measures a motor that does not exist.
+
+Still open on this build: `WHEEL_W_MAX` is 120 rad/s against a motor that tops out near 79, so the
+runaway guard can never fire — a safety hole, not a performance one. And the comparison that originally
+justified the swap (`motor_compare.py`, `wobble_compare.py`) still measures mass and electricals in the
+MF6015 body at the MF6015's gains, so its numbers are indicative rather than a verdict either way.

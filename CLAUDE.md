@@ -224,20 +224,23 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 - **`build_model.py --stairs` landings are finite.** The landing runs from `edge - 3.0` to `edge`, so a
   script that reverses for a second or two can drive off the BACK of it, and that reads exactly like
   falling over. Two of the nod-cost measurements were wrong that way before the start was moved forward.
-- **The stand-up kick spends its margin on SPEED, so a torquier motor can be worse at it.** The
-  hand-tuned recipe reaches 5.02 / 5.11 m/s peak wheel speed (`sim/results/report.json`), and the
-  MF6015's no-load ceiling at 53 rpm/V on a nominal 6S pack is 6.69 m/s - 25% headroom. The MF7015
-  23T has 65% more torque and a ceiling of **4.29 m/s** (34 rpm/V x 22.2 V; 4.87 m/s on a full
-  25.2 V pack). Measured on its own plant and freshly synthesised gains it scores **0/30 and 1/30**
-  against 25/30 and 23/30, peaking at 4.69 m/s - the recipe asks for a speed the motor cannot reach
-  below full charge, so the body never gets the energy, and median travel goes 0.91 -> 1.56 m as it
-  scrabbles and retries. Balance is unaffected and slightly better (1.1 mm drift against 1.4); the
-  pushes drop to 18/20 only because a tipped robot can no longer get up. Two lessons: a stand-up
-  recipe is a statement about the motor's SPEED ceiling as much as its torque, and
-  `sim/motor_compare.py` / `wobble_compare.py` cannot see this at all - they swap mass and
-  electricals into the MF6015 body at the MF6015's gains and torque limit, so their stand-up column
-  describes a robot with the new motor's mass and the old motor's ceiling. Their push column is
-  sound; their stand-up column is not transferable.
+- **`sim/run_tests.py` does NOT set the torque limit, so changing the plant without changing
+  `controller.hpp` measures a motor that does not exist.** `motor_compare.py`, `wobble_compare.py`
+  and `motor_margin.py` all call `LIB.bot_torque_limit(...)`; `run_tests.py` never does, and uses
+  whatever `core/controller.hpp:107` holds. Run on the MF7015 23T plant with the committed 2.3 N.m
+  still in place, the suite scored **0/30 and 1/30** against 25/30 and 23/30, and it looked like a
+  physical ceiling: the hand-tuned kick peaks at 5.02 m/s and the 23T tops out at 4.29 m/s
+  (34 rpm/V x 22.2 V), so the "the recipe asks for a speed the motor cannot reach" story fitted the
+  numbers perfectly. It was wrong. That run gave the robot the new motor's mass penalty (+290 g,
+  +44% pitch inertia) and lower ceiling with **none of its torque** - the worst of both motors.
+  With `torque_limit = 3.8f`, its real peak, the same recipe and the same freshly synthesised gains
+  score **30/30 and 30/30, first attempt on every robot**, at a peak of only 3.70 m/s - inside the
+  23T's ceiling with room to spare. More torque buys the same potential energy with a shorter,
+  slower kick; peak mechanical power is near-identical (2.31 x 123 ~= 284 W against
+  3.80 x 79 ~= 300 W), which is why to expect this. **When a motor swap looks like it broke a
+  manoeuvre, check that the controller was given the new motor's limits before believing it.**
+  Still true and still a hole: `WHEEL_W_MAX` 120 rad/s against a ~79 rad/s motor means the runaway
+  guard can never fire on that build.
 - **The plant model lived in two files that each held their own copy of the motor.**
   `sim/build_model.py` (masses, `armature`, stator geometry, `ctrlrange`) and `sim/botsim.py`
   (`KT, KE, R_LINE, I_MAX`) both carried MF6015 literals, so the simulated motor could disagree with
