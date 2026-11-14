@@ -44,7 +44,9 @@ MOTORS = {
         step_back_face=29.0,    # x of the rear face in the STEP (assemble.py translates by this)
         step_axis=+1,           # +x runs from output face towards the rear face
         # ---- mass and electricals ----
-        mass=0.251, stator_frac=0.60, rotor_j=515e-7,
+        # stator_kg/rotor_kg: what stays in the body vs what turns with the wheel. 60/40, rounded to
+        # the gram as sim/build_model.py's committed literals have it (0.150 + 0.101 = 0.251).
+        mass=0.251, stator_frac=0.60, stator_kg=0.150, rotor_kg=0.101, rotor_j=515e-7,
         kt=0.14, kv_rpm_v=53.0, r_line=0.89, i_max=16.5, tau_max=2.31,
         drive="LKMTECH, 7.4-32 V in, LK V2 protocol (0xA1 torque, 1 Mbps)",
         encoder_bits=18, reply_bits=16,   # 18-bit sensor, but the CAN reply field is 16-bit
@@ -74,7 +76,7 @@ MOTORS = {
         step_back_face=-33.9,
         step_axis=-1,           # -x runs from output face (x=0) towards the rear face (x=-33.9)
         # ---- mass and electricals (MyActuator L-7015 parameter sheet, 23T) ----
-        mass=0.360, stator_frac=0.60, rotor_j=933e-7,
+        mass=0.360, stator_frac=0.60, stator_kg=0.216, rotor_kg=0.144, rotor_j=933e-7,
         kt=0.28, kv_rpm_v=34.0, r_line=1.14, i_max=15.0, tau_max=3.80,
         drive="LKMTECH DF70V2, 7.4-32 V in, LK V2 protocol. NOT the MyActuator MC200 build: "
               "that is 12-24 V and V3, and a 6S pack at 25.2 V would over-volt it",
@@ -92,9 +94,22 @@ def get(profile):
 
 
 def stator_rotor(profile):
-    """(stator kg, rotor kg): what stays in the body, and what turns with the wheel."""
+    """(stator kg, rotor kg): what stays in the body, and what turns with the wheel.
+
+    The stored pair, not mass * frac: the MF6015's committed sim model carries 0.150 / 0.101 and the
+    product of the fraction is 0.1506 / 0.1004, which would rewrite robot_c.xml (and so every
+    committed simulation result) for no physical reason. The pair must still sum to `mass`.
+    """
     m = get(profile)
-    return m["mass"] * m["stator_frac"], m["mass"] * (1.0 - m["stator_frac"])
+    st, ro = m["stator_kg"], m["rotor_kg"]
+    assert abs(st + ro - m["mass"]) < 5e-4, (
+        "%s: stator %.3f + rotor %.3f != mass %.3f" % (profile, st, ro, m["mass"]))
+    return st, ro
+
+
+def stator_geom_r(profile):
+    """Radius of the cylinder the sim uses for the stator: 3 mm inside the can (mf6015 0.026 m)."""
+    return (get(profile)["od"] / 2.0 - 3.0) / 1000.0
 
 
 if __name__ == "__main__":

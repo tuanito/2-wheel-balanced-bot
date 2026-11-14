@@ -634,9 +634,10 @@ can radius, z 29. The MF7015's connector is a socket in the side rim whose mated
 *above* the can, so `MOTOR_R + 18` left the leads **8 mm** — precisely the 90° kink that constant
 exists to prevent, and which this build already rejected once. It now reads
 `plug_pin_z(MOTOR) + SHELF_CLEAR`: 47.0 on the MF6015 exactly as before, 62.5 on the MF7015, `Z_TOP`
-167.5 against 152.0. **The CoM rises with it**, against a build whose CoM is already the weak point —
-which eats into the one thing the swap was measured to buy. The motor's own 109 g per side sits on the
-axle and pulls the other way; which wins is a question for the plant model, not for the CAD.
+167.5 against 152.0. Whether that height costs anything was a question for the plant model, and it has
+now been measured: **it does not.** The CoM goes 40.6 → 41.0 mm above the axle — 0.4 mm. The 218 g of
+extra motor sits *on* the axle and pulls down almost exactly as hard as the taller upper body pulls up.
+What does move is pitch inertia (see below).
 
 **Five numbers had to stop being literals, and every one of them was a trap.** The motor's OD had *no
 symbol at all* — it existed only as a hand-set clearance box whose comments said "r 29", which is why
@@ -674,3 +675,42 @@ the firmware and both learned policies are all still the MF6015's. And buy the L
 with the DF70V2 drive (7.4–32 V, LK V2 protocol): the MyActuator RMD-L-7015-**200** is an MC200,
 12–24 V and V3, which a 6S pack at 25.2 V over-volts. The drive is inside the motor, so that choice is
 made at the order, not afterwards.
+
+#### The plant model, measured (`sim/build_model.py`, `design_lqr.py`, `run_tests.py`)
+
+The motor's mass split, rotor inertia, Kt, Kv, line resistance, current limit and the MuJoCo actuator's
+`ctrlrange` all came from literals in `sim/build_model.py` and `sim/botsim.py` — two files each holding
+their own copy of the motor, which is how the plant and the CAD come apart with nothing failing.
+`sim/motor_profile.py` now reads the same record the CAD does, selected by `ROBOT_MOTOR`. Unset is
+mf6015 and reproduces `robot_c.xml`, `robot_c_arena.xml` and `gains.hpp` byte for byte.
+
+| | MF6015 15T | MF7015 23T |
+|---|---|---|
+| total mass | 1692 g | 1982 g |
+| robot CoM above the axle | +40.6 mm | **+41.0 mm** |
+| chassis Iyy about its CoM | 4125 kg·mm² | **5949 (+44 %)** |
+| `WN2` | 122.34 (rad/s)² | **104.08 (−15 %)** |
+| `K[0]` pitch gain | −11.644 | −12.777 |
+| balance: median drift / pitch std | 1.4 mm / 0.010° | **1.1 mm / 0.011°** |
+| pushes recovered | **20/20**, max pitch 34.6° | 18/20, max pitch 97.1° |
+| stand-up face-down / back-down | **25/30 / 23/30** | **0/30 / 1/30** |
+
+**Balance is fine — slightly better.** The LQR re-synthesises cleanly against the heavier, slower body
+and holds station to 1.1 mm. The swap does not hurt the thing the robot does all day.
+
+**The stand-up is not a tuning problem, it is a ceiling.** The hand-tuned kick reaches 5.02 and
+5.11 m/s on the MF6015, whose no-load ceiling at 53 rpm/V on a nominal 6S pack is 6.69 m/s — 25 %
+headroom. The 23T's ceiling is **4.29 m/s** (34 rpm/V × 22.2 V), or 4.87 m/s on a *fully charged*
+25.2 V pack. The MF7015 run peaked at 4.69 m/s and scored 0/30: the recipe asks for a wheel speed the
+motor cannot reach at any state of charge below full, so the body never gets the energy to come up, and
+median travel goes 0.91 → 1.56 m (max 10.21) as it scrabbles along the floor retrying. Pushes fall to
+18/20 for the same reason — a push that tips it past 90° can no longer be recovered from.
+
+So the 23T trades speed for torque, and the stand-up as written spends its margin on *speed*. The next
+step is not re-tuning the same recipe: it is re-deriving the kick for a motor with 65 % more torque and
+35 % less speed — more torque at a lower peak wheel speed — and that is what `ml/train.py` searches over
+anyway, so the learned stand-up (which already beats the hand-tuned one on the MF6015) is the more
+likely route. Carried forward honestly: **the motor comparison that justified the swap did not include
+this.** `motor_compare.py` and `wobble_compare.py` swap mass and electricals into the MF6015 body at the
+MF6015's gains and torque limit, so their 40/40 stand-up is a number for a robot with the 23T's mass and
+the 15T's speed ceiling. The push advantage they measured stands; the stand-up advantage does not.

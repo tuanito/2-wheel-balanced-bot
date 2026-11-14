@@ -199,6 +199,10 @@ for k, v in printed.items():
 cj = {}
 for name, (g, shp) in comps.items():
     bb = shp.BoundingBox(); cj[name] = {"mass": g, "lo": [bb.xmin, bb.ymin, bb.zmin], "hi": [bb.xmax, bb.ymax, bb.zmax]}
+# z_top / x_in_f / motor_len: build_model.py had these as literals (lid_z 0.152, the sonar site at
+# x 0.032), which are MF6015 panel numbers - on a deeper, taller body the lidar scan plane and the
+# front sensor would have sat in the wrong place with nothing to say so.
 json.dump({"version": "V1.1", "printed": pm, "comps": cj, "R": bc.WHEEL_R, "wheel_y": [bc.WHEEL_IN_Y, bc.WHEEL_OUT_Y],
-           "motor_back_y": bc.MOTOR_BACK_Y}, open(SIM / "cad_mass.json", "w"), indent=1)
+           "motor_back_y": bc.MOTOR_BACK_Y, "motor": bc.MOTOR, "z_top": bc.Z_TOP, "x_in_f": bc.X_IN_F,
+           "motor_len": bc.MOTOR_LEN, "sonar_z": bc.SONAR_Z}, open(SIM / "cad_mass.json", "w"), indent=1)
 print("sim data written")

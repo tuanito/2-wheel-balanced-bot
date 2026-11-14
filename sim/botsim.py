@@ -5,6 +5,7 @@ speeds (relative to the body), sonar, battery voltage. Motors are modelled as th
 -> current limited to 16.5 A, back-EMF limited by the battery voltage, one control period of CAN latency.
 """
 import ctypes as C, pathlib, math, os, numpy as np, mujoco
+import motor_profile as _motors
 
 HERE = pathlib.Path(__file__).parent
 LIB = C.CDLL(str(HERE / ("libbot.dylib" if (HERE / "libbot.dylib").exists() and os.uname().sysname == "Darwin" else "libbot.so")))   # macOS: built by ml/setup_mac.sh
@@ -43,7 +44,10 @@ LIB.bot_step.argtypes = [C.c_void_p, C.POINTER(Inputs), C.POINTER(Outputs)]
 
 STATES = ["DISARMED", "LYING", "LIFT", "COAST", "BALANCE", "FALLEN", "CHARGING", "FAULT", "FLIP_RUN", "FLIP_BRAKE", "FLIP_AIR", "DOCK_LAND", "UNDOCK"]
 CTRL_DT = 0.002
-KT, KE, R_LINE, I_MAX = 0.14, 1 / (53 * 2 * math.pi / 60), 0.89 + 0.10, 16.5
+# The drive model's constants come from the motor profile (sim/motors.py -> cad_src/case/motors.py),
+# not from literals here: this file and build_model.py each used to hold their own copy, so the
+# plant and the CAD could come apart with nothing failing. ROBOT_MOTOR selects it; unset = mf6015.
+KT, KE, R_LINE, I_MAX = _motors.KT, _motors.KE, _motors.R_LINE, _motors.I_MAX
 
 
 def quat_pitch(q):

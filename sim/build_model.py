@@ -14,18 +14,26 @@ Robot frame: X forward, Y left, Z up, origin on the wheel axle. The floor is at 
 import json, sys, pathlib, math
 
 HERE = pathlib.Path(__file__).parent
+import motor_profile as MOT
 CAD = json.load(open(HERE / "cad_mass.json"))
 R = CAD["R"] / 1000.0
 WY0, WY1 = (y / 1000.0 for y in CAD["wheel_y"])
 WHEEL_W = WY1 - WY0
 WHEEL_Y = (WY0 + WY1) / 2
-MOTOR_STATOR = 0.150     # kg each, stays with the body (stator + driver board)
-MOTOR_ROTOR = 0.101      # kg each, turns with the wheel (MF6015 251 g total)
-WHEEL_M = 0.110 + 0.0225 + MOTOR_ROTOR   # tyre/rim + printed adapter & screws + rotor
+# Motor mass, inertia and torque range come from the profile, not from literals: ROBOT_MOTOR
+# selects it and unset = mf6015, which reproduces the committed model exactly. See sim/motors.py.
+MOTOR_STATOR = MOT.STATOR_KG   # kg each, stays with the body (stator + driver board)
+MOTOR_ROTOR = MOT.ROTOR_KG     # kg each, turns with the wheel (mf6015 251 g total, mf7015 360 g)
+ADAPTER_M = 0.0225       # printed hex adapter + screws. MF7015's is a little heavier (M4, bigger
+                         # flange); not remodelled, so it is ~2 g optimistic on that build.
+WHEEL_M = 0.110 + ADAPTER_M + MOTOR_ROTOR   # tyre/rim + printed adapter & screws + rotor
 WIRES = 0.040
 LIDAR_RAYS = 120         # simulated LD19: one ray every 3 deg (the real one gives ~450 points/rev)
 
 COLLIDE = {"body", "front", "cover", "cap"}
+# stator centre: the motor runs from its back face inboard by its own length, so the middle of
+# the can is motor_back_y + length/2 (mf6015 22 + 17 = 39 mm, which was the literal 0.039).
+STATOR_Y = (CAD["motor_back_y"] + CAD.get("motor_len", 34.0) / 2) / 1000.0
 
 
 def comp_geoms():
@@ -50,7 +58,8 @@ def xml(arena=False, stairs=None):
         rgba = "0.70 0.86 0.78 1" if k in ("body", "cover") else ("0.98 0.97 0.94 1" if k in ("front", "cap") else "0.9 0.6 0.2 1")
         printed.append(f'<geom name="{k}" type="mesh" mesh="m_{k}" mass="{g/1000:.4f}" contype="{c}" conaffinity="{c}" rgba="{rgba}"/>')
     stators = "".join(
-        f'<geom name="stator{s}" type="cylinder" size="0.026 0.017" pos="0 {s*0.039:.3f} 0" zaxis="0 1 0" mass="{MOTOR_STATOR}" '
+        f'<geom name="stator{s}" type="cylinder" size="{MOT.STATOR_R:.4g} {MOT.LENGTH/2:.4g}" '
+        f'pos="0 {s*STATOR_Y:.3f} 0" zaxis="0 1 0" mass="{MOTOR_STATOR}" '
         f'contype="0" conaffinity="0" rgba="0.6 0.6 0.65 1"/>' for s in ("+1", "-1") for s in [int(s)])
     wires = f'<geom name="wires" type="box" size="0.02 0.03 0.01" pos="0 0 0.03" mass="{WIRES}" contype="0" conaffinity="0" group="1"/>'
     wheels = ""
@@ -58,7 +67,7 @@ def xml(arena=False, stairs=None):
         wheels += f'''
       <body name="wheel_{side}" pos="0 {s*WHEEL_Y:.4f} 0">
         <!-- contact: ellipsoid = rounded foam tyre touching at one point (a flat MuJoCo cylinder scrubs at both rim edges) -->
-        <joint name="{side}_hinge" type="hinge" axis="0 1 0" damping="0.0005" armature="0.0000515"/>
+        <joint name="{side}_hinge" type="hinge" axis="0 1 0" damping="0.0005" armature="{MOT.ROTOR_J:.7f}"/>
         <geom name="tyre_{side}" type="ellipsoid" size="{R:.4f} {WHEEL_W/2:.4f} {R:.4f}" mass="{WHEEL_M:.4f}" rgba="0.12 0.12 0.13 1"
               friction="1.0 0.01 0.0001" condim="4"/>
         <geom type="cylinder" size="{R:.4f} {WHEEL_W/2:.4f}" zaxis="0 1 0" mass="0" contype="0" conaffinity="0" rgba="0.12 0.12 0.13 1"/>
@@ -68,13 +77,14 @@ def xml(arena=False, stairs=None):
     sensors_extra = ""
     sense = arena or stairs is not None       # the ray fan and sonar: needed by both
     if sense:
-        lid_z = 0.152 + 0.025          # body top (Z_TOP 152 mm above the axle) + LD19 scan plane 25 mm above its base
+        lid_z = CAD.get("z_top", 152.0) / 1000.0 + 0.025   # body top (Z_TOP above the axle) + LD19 scan plane 25 mm above its base
         for i in range(LIDAR_RAYS):
             a = 2 * math.pi * i / LIDAR_RAYS
             # rangefinder looks along the site's +z: point z along (cos a, sin a, 0)
             rays += f'<site name="ray{i}" pos="0 0 {lid_z}" zaxis="{math.cos(a):.5f} {math.sin(a):.5f} 0" size="0.002"/>'
             sensors_extra += f'<rangefinder name="lidar{i}" site="ray{i}" cutoff="12"/>'
-        rays += '<site name="sonar" pos="0.032 0 0.080" zaxis="1 0 0" size="0.003"/>'
+        # x = the front panel's inner face, z = SONAR_Z: both were MF6015 literals (0.032, 0.080).
+        rays += f'<site name="sonar" pos="{CAD.get("x_in_f", 32.0) / 1000.0:.4g} 0 {CAD.get("sonar_z", 80.0) / 1000.0:.3f}" zaxis="1 0 0" size="0.003"/>'
         sensors_extra += '<rangefinder name="sonar" site="sonar" cutoff="4"/>'
     world = ""
     if arena:
@@ -143,8 +153,8 @@ def xml(arena=False, stairs=None):
     </body>
   </worldbody>
   <actuator>
-    <motor name="m_left" joint="left_hinge" ctrlrange="-3 3"/>
-    <motor name="m_right" joint="right_hinge" ctrlrange="-3 3"/>
+    <motor name="m_left" joint="left_hinge" ctrlrange="-{MOT.CTRL} {MOT.CTRL}"/>
+    <motor name="m_right" joint="right_hinge" ctrlrange="-{MOT.CTRL} {MOT.CTRL}"/>
   </actuator>
   <sensor>
     <gyro name="gyro" site="imu" noise="0.005"/>
