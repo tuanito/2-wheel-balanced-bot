@@ -237,7 +237,15 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   kick** - at `W_MAX` 78 it scored 11/30, and with the state restriction 30/30. Any future speed
   guard has to be measured against what the manoeuvres legitimately demand, not just against the
   motor's rating. Note the nod (`look_mode`) runs inside BALANCE, so the guard still applies there
-  and `look_gain`'s history is unaffected on the MF6015.
+  and `look_gain`'s history is unaffected on the MF6015. `sim/look_gain_sweep.py` is the
+  measurement, and it pins `delay = 2` rather than sampling it: `BotSim.randomize` draws one or two
+  control periods with equal probability, so a sweep over random seeds dilutes the very robots that
+  decide the answer. It reproduces the documented history (MF6015: 0/10 upright at gain 1.0, wheels
+  pumped to 118 rad/s past the 114 guard; 10/10 at 0.5 using 30% of it) and settles the MF7015
+  question: **`look_gain = 0.5` carries over** - 10/10 at 46% of its much lower 75 rad/s guard, and
+  safe to 0.8 there where the MF6015 already fails at 0.8. More torque and 44% more pitch inertia
+  make that loop LESS latency-sensitive, not more. Keep 0.5 anyway: the lower gain nods 1 deg deeper
+  (36.5 against 35.4) and depth is the point of the nod.
 - **A learned-vs-hand-tuned comparison is only as good as the baseline's bugs.** `CLAUDE.md` recorded
   the learned stand-up beating the hand-tuned one 60/60 against 155/180. The hand-tuned baseline was
   handicapped by the guard above; with it fixed the scripted recipe is 30/30 and 30/30 too. The
