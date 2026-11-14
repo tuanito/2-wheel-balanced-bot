@@ -18,7 +18,8 @@ unless the robot is on them (sense divider, short = latch off). Full list: `bom/
 | `core/` | The controller (`controller.cpp/.hpp`), LQR gains (`gains.hpp`, from `sim/design_lqr.py`), learned stand-up policy (`standup_policy.hpp`, generated), C API for the sim (`sim_api.cpp`). The **same C++** runs in the sim and on the ESP32. |
 | `firmware/esp32/` | PlatformIO (`pio run -e esp32s3`), host tests `test_host/run_tests.sh`. `lib/botcore/` is a COPY of `core/` — keep them in sync after editing `core/`. |
 | `firmware/dock_beacon/` | ATtiny85 dock controller + `test_dock_logic.cpp`. |
-| `hil/` | Hardware-in-the-loop: the **real firmware image** (env `esp32s3_sim`) in Espressif QEMU, driven in lock-step against the MuJoCo plant, with virtual LK motors (`lkbus.py`) on a virtual CAN bus and the real `pi/robot/link.py` on the other UART. `setup_toolchain.sh` installs PlatformIO + QEMU, `build_flash.sh` builds the image, `run_hil.py` runs the scenarios. Evidence: `results.json` (6 scenarios x 3 seeds) and `results_enc{14,15,16,18}.json` (encoder widths). |
+| `hil/` | Hardware-in-the-loop: the **real firmware image** (env `esp32s3_sim`) in Espressif QEMU, driven in lock-step against the MuJoCo plant, with virtual LK motors (`lkbus.py`) on a virtual CAN bus and the real `pi/robot/link.py` on the other UART. `setup_toolchain.sh` installs PlatformIO + QEMU, `build_flash.sh` builds the image, `run_hil.py` runs the scenarios. Evidence: `results.json` (6 scenarios x 3 seeds) and `results_enc{14,15,16,18}.json` (encoder widths), `results_enc18_conflated.json` (what the
+  pre-split encoder code costs), `results_mf7015.json` (the big motor's image). |
 | `pi/` | Python on the Pi: `robot/brain.py`, `dock.py` (DockPilot), `ld19.py`, `link.py`; tests `python -m pytest -q` in `pi/` (48). |
 | `sim/` | MuJoCo + `botsim.py` (loads `libbot.so`/`.dylib`). `run_tests.py` (stand-up, balance, pushes, missions), `dock_sim.py` (40-start docking sweep), `nav_sim.py`, `build_model.py` (regenerates the XML from the CAD), `design_lqr.py 0.06 0.6 10` (the weights we use), `rebuild.sh` (all of that in order). |
 | `ml/` | RL: the stand-up and the stair-measuring nod, see `ml/README.md`. `setup_mac.sh` (venv, `--cad` also installs CadQuery), `run_training.sh` (the stand-up loop). Stairs: `stairs_env.py` (when to nod), `stairs_baseline.py` (the hand-scripted recipe it has to beat), `train_stairs.py`, `evaluate_stairs.py`. |
@@ -47,6 +48,13 @@ cd sim && python dock_sim.py           # 40 starts (slow)
 cd firmware/esp32 && pio run -e esp32s3 && test_host/run_tests.sh
 hil/setup_toolchain.sh                 # PlatformIO + Espressif QEMU, both outside the repo and the venv
 hil/build_flash.sh && .venv/bin/python hil/run_hil.py     # the firmware image in QEMU on the MuJoCo plant
+# the same against the big motor - all four identities have to be rebuilt, and run_hil.py refuses if
+# one of them is left behind. It leaves the mf7015 plant in the tree: git checkout sim core when done.
+export ROBOT_MOTOR=mf7015
+(cd cad_src/case && python assemble.py)        # the BODY (needs CadQuery + models/bought/mf7015.step)
+(cd sim && python build_model.py && python build_model.py --arena && python design_lqr.py 0.06 0.6 10)
+core/build_lib.sh && firmware/esp32/sync_core.sh && hil/build_flash.sh
+.venv/bin/python hil/run_hil.py
 cd pi && python -m pytest -q
 cd elec && python erc.py && python test_erc.py && python erc.py   # see the trap below
 ```
@@ -298,10 +306,34 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   `run_hil.py` writes the build into every result now (`qemu` field). Compare dt within a file, never
   across files. The behavioural numbers moved only in the last digit or two (6/6 stand-ups, CAN-loss
   reaction 22-25 ms, drive within 7% of command), which is what the file is for.
-- **The HIL's virtual motors are an MF6015, in a third copy of the drive constants.** `hil/lkbus.py`
-  hard-codes `IQ_FULL, IQ_MAX = 16.5, 2048` and loads the committed `robot_c.xml` plant, so an
-  MF7015 HIL run needs `sim/motor_profile.py` wired in there too and the firmware built from
-  `env:esp32s3_mf7015`. Until that is done, a HIL result is evidence about the mf6015 build only.
+- **A motor identity now lives in FOUR places, and only one pair can be checked by the compiler.**
+  `config.h`'s `FITTED_MOTOR` is the drive's half (`KT`, what an iq command of 2048 means in amps);
+  `core/motor.hpp`'s `BOT_MOTOR_*` is the controller's half (torque limit, speed ceiling, rotor
+  inertia) - those two static_assert against each other. `core/gains.hpp` is the PLANT's half: every
+  LQR term and `WN2` are derived from one motor's mass and inertia, and it cannot be asserted,
+  because both motors must stay buildable from one checkout and only one `gains.hpp` is committed.
+  And `sim/cad_mass.json` is the BODY: `z_top`, `x_in_f`, `motor_len`, `sonar_z` and every printed
+  part's mass. So the guards are run-time and build-time instead: `design_lqr.py` stamps
+  `Params::MOTOR` into the gains, the firmware prints the lot at boot (`build: motor mf6015,
+  Kt 0.14 N.m/A, iq full scale 16.5 A, peak 2.30 N.m, w_max 120 rad/s, gains mf6015`),
+  `hil/run_hil.py` reads that line back and refuses an image that disagrees with `ROBOT_MOTOR`,
+  `hil/build_flash.sh` refuses to build against the other plant's gains, `sim/botsim.py` refuses a
+  libbot whose gains were designed elsewhere, and `sim/build_model.py` refuses a `cad_mass.json`
+  that describes the other body. **Why that last one matters:** the mf6015 body with mf7015 motors
+  reads a CoM of **36.0 mm** where the real mf7015 build measures **41.0** - `build_model.py` was
+  silently producing that hybrid, because the motor masses came from the profile while the body came
+  from whatever `cad_mass.json` happened to hold, and its `.get()` fallbacks are the mf6015 numbers.
+  `hil/lkbus.py` was the same bug in the drive: it hard-coded `IQ_FULL = 16.5`, a third copy after
+  `botsim.py` and `build_model.py`. It reads `sim/motor_profile.py` now. `IQ_MAX = 2048` stays
+  hard-coded on purpose: that is the LK V2 protocol's full-scale command, not a property of a motor.
+- **`sim/cad_mass.json` is stale with respect to the CAD, and nothing in `check.sh` can tell.** It is
+  the CAD chain's output and regenerating it needs CadQuery *and* `models/bought/<motor>.step`, which
+  is not redistributable, so `check.sh` cannot regenerate-and-compare it the way it does the MuJoCo
+  XMLs. Re-running `cad_src/case/assemble.py` today moves the front panel from **70.404 g to
+  70.053 g** (the VL53L5CX/sonar work) and adds the motor stamp; the committed file predates both.
+  The 0.35 g is small but the plant, the gains and `sim/results/report.json` all derive from it, so a
+  full `cad_src/rebuild.sh` + site rebuild is owed and has not been done. Everything about the
+  mf6015 build in the repo today is consistent with the committed `cad_mass.json`, not with the CAD.
 - **The motor is chosen in two files, and they must not be able to disagree.**
   `firmware/esp32/include/config.h`'s `FITTED_MOTOR` carries the DRIVE's half (`KT`, what an iq
   command of 2048 means in amps); `core/motor.hpp`'s `BOT_MOTOR_*` carries the CONTROLLER's half
@@ -323,14 +355,34 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   (34 rpm/V x 22.2 V), so the "the recipe asks for a speed the motor cannot reach" story fitted the
   numbers perfectly. It was wrong. That run gave the robot the new motor's mass penalty (+290 g,
   +44% pitch inertia) and lower ceiling with **none of its torque** - the worst of both motors.
-  With `torque_limit = 3.8f`, its real peak, the same recipe and the same freshly synthesised gains
-  score **30/30 and 30/30, first attempt on every robot**, at a peak of only 3.70 m/s - inside the
-  23T's ceiling with room to spare. More torque buys the same potential energy with a shorter,
-  slower kick; peak mechanical power is near-identical (2.31 x 123 ~= 284 W against
-  3.80 x 79 ~= 300 W), which is why to expect this. **When a motor swap looks like it broke a
-  manoeuvre, check that the controller was given the new motor's limits before believing it.**
+  With `torque_limit = 3.8f`, its real peak, the same recipe scored **30/30 and 30/30, first attempt
+  on every robot**, at a peak of only 3.70 m/s and a median 0.21 s. The fix was real - 2.3 N.m on
+  that plant is a robot nobody would build - but **the 30/30 was measured on the wrong plant and
+  does not reproduce.** See the entry below: that run had the MF6015 BODY with MF7015 motors.
+  **When a motor swap looks like it broke a manoeuvre, check that the controller was given the new
+  motor's limits before believing it** - and then check that the plant is the whole new robot.
   Still true and still a hole: `WHEEL_W_MAX` 120 rad/s against a ~79 rad/s motor means the runaway
   guard can never fire on that build.
+- **The MF7015 stand-up does NOT work, and the 30/30 above was the mf6015 body with mf7015 motors.**
+  `sim/cad_mass.json` is the CAD's output for ONE body and `ROBOT_MOTOR` only switched the motor's
+  own masses, so until `cad_src/case/assemble.py` had been re-run for the big motor the plant was a
+  hybrid: **1910 g, CoM 36.0 mm, Iyy 4614 kg.mm2, WN2 113.48**, against the real MF7015 build's
+  **1982 g, CoM 41.0 mm, Iyy 5949, WN2 104.08**. The hybrid is lighter with a LOWER centre of mass,
+  and it stands up: LIFT 0.600 s -> BALANCE 0.792 s, 0.19 s, peak 73-83 rad/s - which is exactly the
+  "median time 0.21 s" the commit recorded, and the fingerprint that identifies it. On the real
+  plant the same build scores **0/30 face-down and 2/30 back-down** (`run_tests.py`), and the real
+  firmware image in QEMU scores **0/6** (`hil/results_mf7015.json`) where the mf6015 image scores
+  6/6. Mechanism, measured: the kick ends with the wheels already AT the motor's 79 rad/s no-load
+  ceiling (COAST entry at 75.7 rad/s, peaks 85-92), so the COAST energy shaping has no voltage
+  headroom left to finish the swing and the body stalls at **57-63 deg**, short of the 20 deg catch
+  window, then falls back. **More kick torque makes it worse**, not better - swept `lift_torque`
+  1.6 -> 3.8 N.m, 10 robots each way: 0-2/10 at every value, peak wheel speed rising 88 -> 92 rad/s.
+  So the first analysis (a speed ceiling) was right about the mechanism and wrong about the cause,
+  and the correction was right about the cause and wrong about the verdict. **The MF7015 needs a new
+  stand-up recipe - one that does not spend its wheel speed** (a slower, longer kick, or pumping
+  over several swings), or the learned policy retrained on this plant. It is Phase 7 work and it is
+  an open problem, not a formality. Consequence: **the five stand-up clips published in the artifact
+  (version 61) are of the hybrid robot** and have to be re-rendered once this works.
 - **The plant model lived in two files that each held their own copy of the motor.**
   `sim/build_model.py` (masses, `armature`, stator geometry, `ctrlrange`) and `sim/botsim.py`
   (`KT, KE, R_LINE, I_MAX`) both carried MF6015 literals, so the simulated motor could disagree with
@@ -428,6 +480,13 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
 - After any site change: rebuild and commit `site/` (the owner wants the site kept in the repo).
 
 ## State (Nov 2026) and open points
+- **MF7015 swap: everything except the stand-up.** The firmware builds for it (`esp32s3_mf7015`),
+  the plant, gains and CAD are generated for it on demand, and the real image in QEMU drives at
+  0.497 m/s against a 0.5 m/s command, stops on command timeout and faults a lost CAN bus in 21-23 ms
+  (`hil/results_mf7015.json`). It balances in the pure sim (drift 1.1 mm, pitch std 0.011 deg,
+  pushes 18/20). The **stand-up fails** - see the trap - and the HIL's push recovery is 1/3 against
+  the mf6015 image's 3/3, which also needs a look. Nothing about the swap is committed as the default:
+  `ROBOT_MOTOR` is unset = mf6015 everywhere, including the committed STLs, XMLs and `report.json`.
 - Shelf raised 10 mm (SHELF_Z 47, Z_TOP 152) so the motor leads loop gently; back cover unplugs as a module.
 - Cost: CoM 40.6 mm above the axle; docking 34/40 (was 37/40). The stand-up's 25/30 and 23/30 was
   **blamed on the same CoM rise and was not that at all**: the runaway guard was aborting legitimate

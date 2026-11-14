@@ -16,6 +16,20 @@ import json, sys, pathlib, math
 HERE = pathlib.Path(__file__).parent
 import motor_profile as MOT
 CAD = json.load(open(HERE / "cad_mass.json"))
+# cad_mass.json is the CAD's output and describes ONE body. The motor profile only supplies the motor's
+# masses and inertia; the body around it - z_top, x_in_f, motor_len, sonar_z, every printed part's mass -
+# comes from this file. Mixing them builds a robot that does not exist: the mf6015 body with mf7015 motors
+# reads a CoM of 36.0 mm and WN2 113.5 where the real mf7015 build measures 41.0 and 104.1. The CAD stamps
+# which motor it ran for (cad_src/case/assemble.py). Files written before that stamp existed are the mf6015
+# build by provenance, which is why an absent stamp is accepted for mf6015 only.
+_cad_motor = CAD.get("motor", "mf6015")
+if _cad_motor != MOT.PROFILE:
+    raise SystemExit(
+        f"sim/cad_mass.json describes the {_cad_motor} body" + ("" if "motor" in CAD else
+        " (no stamp: it predates cad_src/case/assemble.py writing one, so it is the mf6015 build)") +
+        f", but ROBOT_MOTOR is {MOT.PROFILE}.\n"
+        f"  Regenerate it:  cd cad_src/case && ROBOT_MOTOR={MOT.PROFILE} python assemble.py\n"
+        f"  (needs CadQuery and models/bought/{MOT.PROFILE}.step)")
 R = CAD["R"] / 1000.0
 WY0, WY1 = (y / 1000.0 for y in CAD["wheel_y"])
 WHEEL_W = WY1 - WY0

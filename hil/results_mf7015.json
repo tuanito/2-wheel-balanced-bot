@@ -1,0 +1,1168 @@
+{
+ "standup_face_1": {
+  "cycles": 2266,
+  "sim_s": 4.53,
+  "dt_ms_median": 1.778,
+  "dt_ms_p99": 3.346,
+  "dt_ms_max": 3.67,
+  "host_ms_p99": 0.159,
+  "host_ms_max": 0.34,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.52,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.819,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    0.911,
+    "state COAST side 1 tries 1"
+   ],
+   [
+    0.991,
+    "state FALLEN side 1 tries 1"
+   ],
+   [
+    1.491,
+    "state LYING side 1 tries 1"
+   ],
+   [
+    1.796,
+    "state LIFT side 1 tries 2"
+   ],
+   [
+    2.995,
+    "state FALLEN side 1 tries 2"
+   ],
+   [
+    3.501,
+    "state LYING side 1 tries 2"
+   ],
+   [
+    4.123,
+    "state FAULT side 1 tries 2"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.833,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.851,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "FAULT",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 95.0,
+  "booted": true,
+  "stood_up": false,
+  "t_standup_s": null,
+  "upright_at_end": false,
+  "wall_s": 9.3
+ },
+ "standup_face_2": {
+  "cycles": 2252,
+  "sim_s": 4.5,
+  "dt_ms_median": 1.782,
+  "dt_ms_p99": 3.345,
+  "dt_ms_max": 3.44,
+  "host_ms_p99": 0.188,
+  "host_ms_max": 0.34,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.509,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.809,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    0.882,
+    "state COAST side 1 tries 1"
+   ],
+   [
+    0.983,
+    "state FALLEN side 1 tries 1"
+   ],
+   [
+    1.484,
+    "state LYING side 1 tries 1"
+   ],
+   [
+    1.785,
+    "state LIFT side 1 tries 2"
+   ],
+   [
+    2.985,
+    "state FALLEN side 1 tries 2"
+   ],
+   [
+    3.487,
+    "state LYING side 1 tries 2"
+   ],
+   [
+    3.788,
+    "state LIFT side 1 tries 3"
+   ],
+   [
+    3.841,
+    "state COAST side 1 tries 3"
+   ],
+   [
+    3.954,
+    "state FALLEN side 1 tries 3"
+   ],
+   [
+    4.473,
+    "state LYING side 1 tries 3"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.818,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.842,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "LYING",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 94.9,
+  "booted": true,
+  "stood_up": false,
+  "t_standup_s": null,
+  "upright_at_end": false,
+  "wall_s": 9.4
+ },
+ "standup_face_3": {
+  "cycles": 2285,
+  "sim_s": 4.57,
+  "dt_ms_median": 1.79,
+  "dt_ms_p99": 3.351,
+  "dt_ms_max": 3.86,
+  "host_ms_p99": 0.149,
+  "host_ms_max": 0.38,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.544,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.847,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    2.046,
+    "state FALLEN side 1 tries 1"
+   ],
+   [
+    2.628,
+    "state LYING side 1 tries 1"
+   ],
+   [
+    3.336,
+    "state LIFT side 1 tries 2"
+   ],
+   [
+    4.537,
+    "state FALLEN side 1 tries 2"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.859,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.879,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "FALLEN",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 90.0,
+  "booted": true,
+  "stood_up": false,
+  "t_standup_s": null,
+  "upright_at_end": false,
+  "wall_s": 9.3
+ },
+ "standup_back_1": {
+  "cycles": 2282,
+  "sim_s": 4.56,
+  "dt_ms_median": 1.796,
+  "dt_ms_p99": 3.354,
+  "dt_ms_max": 3.52,
+  "host_ms_p99": 0.204,
+  "host_ms_max": 1.13,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.54,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.841,
+    "state LIFT side -1 tries 1"
+   ],
+   [
+    0.919,
+    "state COAST side -1 tries 1"
+   ],
+   [
+    0.996,
+    "state FALLEN side -1 tries 1"
+   ],
+   [
+    1.496,
+    "state LYING side -1 tries 1"
+   ],
+   [
+    1.798,
+    "state LIFT side -1 tries 2"
+   ],
+   [
+    1.887,
+    "state COAST side -1 tries 2"
+   ],
+   [
+    1.953,
+    "state FALLEN side -1 tries 2"
+   ],
+   [
+    2.453,
+    "state LYING side -1 tries 2"
+   ],
+   [
+    2.755,
+    "state LIFT side -1 tries 3"
+   ],
+   [
+    2.83,
+    "state COAST side -1 tries 3"
+   ],
+   [
+    2.907,
+    "state FALLEN side -1 tries 3"
+   ],
+   [
+    3.407,
+    "state LYING side -1 tries 3"
+   ],
+   [
+    3.709,
+    "state LIFT side -1 tries 4"
+   ],
+   [
+    3.786,
+    "state COAST side -1 tries 4"
+   ],
+   [
+    3.861,
+    "state FALLEN side -1 tries 4"
+   ],
+   [
+    4.363,
+    "state LYING side -1 tries 4"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.857,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.873,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "LYING",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -91.7,
+  "booted": true,
+  "stood_up": false,
+  "t_standup_s": null,
+  "upright_at_end": false,
+  "wall_s": 9.6
+ },
+ "standup_back_2": {
+  "cycles": 2279,
+  "sim_s": 4.56,
+  "dt_ms_median": 1.812,
+  "dt_ms_p99": 3.367,
+  "dt_ms_max": 3.82,
+  "host_ms_p99": 0.224,
+  "host_ms_max": 0.4,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.544,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.844,
+    "state LIFT side -1 tries 1"
+   ],
+   [
+    2.045,
+    "state FALLEN side -1 tries 1"
+   ],
+   [
+    2.546,
+    "state LYING side -1 tries 1"
+   ],
+   [
+    2.85,
+    "state LIFT side -1 tries 2"
+   ],
+   [
+    4.051,
+    "state FALLEN side -1 tries 2"
+   ],
+   [
+    4.551,
+    "state LYING side -1 tries 2"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.855,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.88,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "FALLEN",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -91.7,
+  "booted": true,
+  "stood_up": false,
+  "t_standup_s": null,
+  "upright_at_end": false,
+  "wall_s": 9.5
+ },
+ "standup_back_3": {
+  "cycles": 2267,
+  "sim_s": 4.53,
+  "dt_ms_median": 1.789,
+  "dt_ms_p99": 3.361,
+  "dt_ms_max": 3.92,
+  "host_ms_p99": 0.187,
+  "host_ms_max": 0.42,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.505,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    0.805,
+    "state LIFT side -1 tries 1"
+   ],
+   [
+    2.005,
+    "state FALLEN side -1 tries 1"
+   ],
+   [
+    2.506,
+    "state LYING side -1 tries 1"
+   ],
+   [
+    2.597,
+    "state BALANCE side -1 tries 1"
+   ],
+   [
+    2.625,
+    "state FALLEN side 0 tries 1"
+   ],
+   [
+    3.126,
+    "state LYING side 0 tries 1"
+   ],
+   [
+    3.497,
+    "state LIFT side -1 tries 2"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.818,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.839,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "LIFT",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -85.9,
+  "booted": true,
+  "stood_up": true,
+  "t_standup_s": 2.09,
+  "upright_at_end": false,
+  "wall_s": 9.3
+ },
+ "balance_push_1": {
+  "cycles": 5811,
+  "sim_s": 11.62,
+  "dt_ms_median": 1.801,
+  "dt_ms_p99": 3.375,
+  "dt_ms_max": 3.84,
+  "host_ms_p99": 0.211,
+  "host_ms_max": 0.4,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.301,
+    "state BALANCE side 0 tries 0"
+   ],
+   [
+    2.763,
+    "state FALLEN side 0 tries 0"
+   ],
+   [
+    3.264,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    3.266,
+    "state BALANCE side -1 tries 0"
+   ],
+   [
+    3.307,
+    "state FALLEN side 0 tries 0"
+   ],
+   [
+    3.807,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    4.107,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    5.309,
+    "state FALLEN side 1 tries 1"
+   ],
+   [
+    5.825,
+    "state LYING side 1 tries 1"
+   ],
+   [
+    6.385,
+    "state LIFT side 1 tries 2"
+   ],
+   [
+    7.586,
+    "state FALLEN side 1 tries 2"
+   ],
+   [
+    8.086,
+    "state LYING side 1 tries 2"
+   ],
+   [
+    9.223,
+    "state FAULT side 1 tries 2"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.565,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    2.647,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "FAULT",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 95.1,
+  "pushes": [
+   {
+    "impulse_Ns": 1.0,
+    "upright": false,
+    "state": "FALLEN"
+   },
+   {
+    "impulse_Ns": -1.0,
+    "upright": false,
+    "state": "LYING"
+   },
+   {
+    "impulse_Ns": 1.5,
+    "upright": false,
+    "state": "FAULT"
+   }
+  ],
+  "still_pitch_std_deg": 0.51,
+  "still_drift_mm": 6,
+  "wall_s": 18.6
+ },
+ "balance_push_2": {
+  "cycles": 5813,
+  "sim_s": 11.62,
+  "dt_ms_median": 1.814,
+  "dt_ms_p99": 3.37,
+  "dt_ms_max": 3.88,
+  "host_ms_p99": 0.212,
+  "host_ms_max": 1.82,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ],
+   [
+    8.83,
+    "state FALLEN side 0 tries 0"
+   ],
+   [
+    9.331,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    10.009,
+    "state LIFT side -1 tries 1"
+   ],
+   [
+    10.095,
+    "state COAST side -1 tries 1"
+   ],
+   [
+    10.163,
+    "state FALLEN side -1 tries 1"
+   ],
+   [
+    10.663,
+    "state LYING side -1 tries 1"
+   ],
+   [
+    10.964,
+    "state LIFT side -1 tries 2"
+   ],
+   [
+    11.054,
+    "state COAST side -1 tries 2"
+   ],
+   [
+    11.135,
+    "state FALLEN side -1 tries 2"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.564,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    1.117,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "FALLEN",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -91.7,
+  "pushes": [
+   {
+    "impulse_Ns": 1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": -1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": 1.5,
+    "upright": false,
+    "state": "FALLEN"
+   }
+  ],
+  "still_pitch_std_deg": 3.078,
+  "still_drift_mm": 154,
+  "wall_s": 18.5
+ },
+ "balance_push_3": {
+  "cycles": 5804,
+  "sim_s": 11.61,
+  "dt_ms_median": 1.805,
+  "dt_ms_p99": 3.361,
+  "dt_ms_max": 3.71,
+  "host_ms_p99": 0.205,
+  "host_ms_max": 0.44,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.301,
+    "state BALANCE side 0 tries 0"
+   ],
+   [
+    5.915,
+    "state FALLEN side 0 tries 0"
+   ],
+   [
+    6.585,
+    "state LYING side 0 tries 0"
+   ],
+   [
+    6.889,
+    "state LIFT side 1 tries 1"
+   ],
+   [
+    8.088,
+    "state FALLEN side 1 tries 1"
+   ],
+   [
+    8.588,
+    "state LYING side 1 tries 1"
+   ],
+   [
+    9.037,
+    "state LIFT side 1 tries 2"
+   ],
+   [
+    10.239,
+    "state FALLEN side 1 tries 2"
+   ],
+   [
+    10.776,
+    "state LYING side 1 tries 2"
+   ],
+   [
+    11.105,
+    "state LIFT side 1 tries 3"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.561,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.931,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "LIFT",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 87.8,
+  "pushes": [
+   {
+    "impulse_Ns": 1.0,
+    "upright": true,
+    "state": "BALANCE"
+   },
+   {
+    "impulse_Ns": -1.0,
+    "upright": false,
+    "state": "FALLEN"
+   },
+   {
+    "impulse_Ns": 1.5,
+    "upright": false,
+    "state": "LIFT"
+   }
+  ],
+  "still_pitch_std_deg": 3.274,
+  "still_drift_mm": 169,
+  "wall_s": 18.4
+ },
+ "drive_1": {
+  "cycles": 5065,
+  "sim_s": 10.13,
+  "dt_ms_median": 1.828,
+  "dt_ms_p99": 3.383,
+  "dt_ms_max": 3.87,
+  "host_ms_p99": 0.235,
+  "host_ms_max": 0.4,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.563,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    2.153,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -0.3,
+  "speed_cmd": 0.5,
+  "speed_true": 0.497,
+  "dist_true_m": 1.343,
+  "odo_x_m": 1.341,
+  "turn_cmd_deg": 90,
+  "yaw_true_deg": 89.3,
+  "upright": true,
+  "wall_s": 16.5
+ },
+ "drive_2": {
+  "cycles": 5065,
+  "sim_s": 10.13,
+  "dt_ms_median": 1.816,
+  "dt_ms_p99": 3.38,
+  "dt_ms_max": 3.88,
+  "host_ms_p99": 0.209,
+  "host_ms_max": 0.5,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.301,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.636,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.977,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 4.5,
+  "speed_cmd": 0.5,
+  "speed_true": 0.46,
+  "dist_true_m": 1.552,
+  "odo_x_m": 1.583,
+  "turn_cmd_deg": 90,
+  "yaw_true_deg": 86.1,
+  "upright": true,
+  "wall_s": 16.5
+ },
+ "drive_3": {
+  "cycles": 5063,
+  "sim_s": 10.12,
+  "dt_ms_median": 1.821,
+  "dt_ms_p99": 3.38,
+  "dt_ms_max": 3.84,
+  "host_ms_p99": 0.223,
+  "host_ms_max": 0.53,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.301,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.604,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.927,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 5.0,
+  "speed_cmd": 0.5,
+  "speed_true": 0.468,
+  "dist_true_m": 1.547,
+  "odo_x_m": 1.584,
+  "turn_cmd_deg": 90,
+  "yaw_true_deg": 88.3,
+  "upright": true,
+  "wall_s": 16.5
+ },
+ "cmd_timeout_1": {
+  "cycles": 3812,
+  "sim_s": 7.63,
+  "dt_ms_median": 1.818,
+  "dt_ms_p99": 3.373,
+  "dt_ms_max": 3.89,
+  "host_ms_p99": 0.208,
+  "host_ms_max": 0.63,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.301,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.579,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    2.146,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -0.9,
+  "speed_after_silence": 0.033,
+  "upright": true,
+  "wall_s": 13.3
+ },
+ "cmd_timeout_2": {
+  "cycles": 3782,
+  "sim_s": 7.56,
+  "dt_ms_median": 1.804,
+  "dt_ms_p99": 3.353,
+  "dt_ms_max": 3.83,
+  "host_ms_p99": 0.179,
+  "host_ms_max": 0.44,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.559,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    1.094,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 4.1,
+  "speed_after_silence": 0.029,
+  "upright": true,
+  "wall_s": 13.0
+ },
+ "cmd_timeout_3": {
+  "cycles": 3815,
+  "sim_s": 7.63,
+  "dt_ms_median": 1.828,
+  "dt_ms_p99": 3.382,
+  "dt_ms_max": 3.86,
+  "host_ms_p99": 0.214,
+  "host_ms_max": 0.56,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.3,
+    "state BALANCE side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.628,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.937,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "BALANCE",
+  "motor_fault": false,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 4.6,
+  "speed_after_silence": 0.029,
+  "upright": true,
+  "wall_s": 13.3
+ },
+ "can_loss_1": {
+  "cycles": 1561,
+  "sim_s": 3.12,
+  "dt_ms_median": 1.843,
+  "dt_ms_p99": 3.399,
+  "dt_ms_max": 3.74,
+  "host_ms_p99": 0.255,
+  "host_ms_max": 0.42,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.302,
+    "state BALANCE side 0 tries 0"
+   ],
+   [
+    2.103,
+    "state DISARMED side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.587,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    2.669,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "DISARMED",
+  "motor_fault": true,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": 95.1,
+  "fault_flag": true,
+  "motors_on_at_end": false,
+  "reaction_s": 0.023,
+  "motors_off_after_bus_back_s": 0.025,
+  "wall_s": 7.7
+ },
+ "can_loss_2": {
+  "cycles": 1547,
+  "sim_s": 3.09,
+  "dt_ms_median": 1.797,
+  "dt_ms_p99": 3.354,
+  "dt_ms_max": 3.86,
+  "host_ms_p99": 0.234,
+  "host_ms_max": 0.38,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.301,
+    "state BALANCE side 0 tries 0"
+   ],
+   [
+    2.075,
+    "state DISARMED side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.587,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    1.109,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "DISARMED",
+  "motor_fault": true,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -91.7,
+  "fault_flag": true,
+  "motors_on_at_end": false,
+  "reaction_s": 0.023,
+  "motors_off_after_bus_back_s": 0.025,
+  "wall_s": 7.6
+ },
+ "can_loss_3": {
+  "cycles": 1535,
+  "sim_s": 3.07,
+  "dt_ms_median": 1.635,
+  "dt_ms_p99": 2.972,
+  "dt_ms_max": 3.19,
+  "host_ms_p99": 0.245,
+  "host_ms_max": 0.47,
+  "states": [
+   [
+    0.0,
+    "state DISARMED side 0 tries 0"
+   ],
+   [
+    0.301,
+    "state BALANCE side 0 tries 0"
+   ],
+   [
+    2.08,
+    "state DISARMED side 0 tries 0"
+   ]
+  ],
+  "enc_events": [
+   [
+    0.558,
+    "encoder range detected: 65536 counts/turn"
+   ],
+   [
+    0.934,
+    "encoder range detected: 262144 counts/turn"
+   ]
+  ],
+  "enc_bits": 18,
+  "motor": "mf7015",
+  "build": "build: motor mf7015, Kt 0.28 N.m/A, iq full scale 15.0 A, peak 3.80 N.m, w_max 79 rad/s, gains mf7015",
+  "qemu": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20261109)",
+  "final_state": "DISARMED",
+  "motor_fault": true,
+  "armed": true,
+  "batt_low": false,
+  "final_pitch_deg": -91.7,
+  "fault_flag": true,
+  "motors_on_at_end": false,
+  "reaction_s": 0.021,
+  "motors_off_after_bus_back_s": 0.023,
+  "wall_s": 7.7
+ }
+}
