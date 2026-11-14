@@ -19,7 +19,9 @@ import numpy as np, mujoco
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sim")); sys.path.insert(0, str(ROOT / "pi")); sys.path.insert(0, str(ROOT / "hil"))
-from lkbus import Plant, VirtualLK, crc, frame, quat_pitch, CTRL_DT, ID_L, ID_R, ENC_BITS  # noqa: E402  (plant + virtual motors)
+from lkbus import (Plant, VirtualLK, crc, frame, quat_pitch, CTRL_DT, ID_L, ID_R,   # noqa: E402
+                   ENC_BITS, IQ_FULL)                                            # (plant + virtual motors)
+import motor_profile as MP                                      # noqa: E402  (which motor all of this is)
 from robot.link import Link, MODE_VELOCITY, MODE_TURN_BY        # noqa: E402  (the Pi's own link code)
 
 QEMU = os.environ.get("QEMU", "/opt/dl/qemu/qemu/bin/qemu-system-xtensa")
@@ -153,9 +155,43 @@ class Host:
     def wait_boot(self, timeout=30):
         t0 = time.time()
         while time.time() - t0 < timeout:
-            if any("state" in e for _, e in self.events): return True
+            if any("state" in e for _, e in self.events):
+                self.check_build()
+                return True
             time.sleep(0.05)
         return False
+
+    def check_build(self):
+        """The image announces which motor it was built for; refuse a plant built for the other one.
+
+        The firmware's half of the motor choice is two #defines in two files (config.h's FITTED_MOTOR and
+        core/motor.hpp's BOT_MOTOR_*, which main.cpp static_asserts against each other); the host's half is
+        ROBOT_MOTOR, which picks the MuJoCo model, the virtual drive's current limit and Kt. Nothing connects
+        the two but this check, and a mismatch does not fail - it quietly measures a motor that does not
+        exist. That is exactly how the MF7015 scored 0/30 in the simulator once.
+        """
+        b = [e for _, e in self.events if e.startswith("build: motor ")]
+        if not b:
+            raise SystemExit("the firmware image did not announce its build. It is older than this script: "
+                             "rebuild it with hil/build_flash.sh")
+        line = b[0]
+        name = line.split("build: motor ", 1)[1].split(",")[0].strip()
+        if name != MP.PROFILE:
+            raise SystemExit(f"the firmware image is built for {name}, but the plant and the virtual motors are "
+                             f"{MP.PROFILE}.\n  ROBOT_MOTOR={MP.PROFILE} hil/build_flash.sh   (then re-run)")
+        gains = line.split("gains ", 1)[1].strip() if "gains " in line else "?"
+        if gains != MP.PROFILE:
+            raise SystemExit(f"the firmware image carries gains designed on the {gains} plant, but this plant is "
+                             f"{MP.PROFILE} - every LQR term and WN2 belong to the other robot.\n"
+                             f"  cd sim && ROBOT_MOTOR={MP.PROFILE} python design_lqr.py 0.06 0.6 10\n"
+                             f"  firmware/esp32/sync_core.sh && ROBOT_MOTOR={MP.PROFILE} hil/build_flash.sh")
+        kt = float(line.split("Kt ", 1)[1].split(" ", 1)[0])
+        iq = float(line.split("iq full scale ", 1)[1].split(" ", 1)[0])
+        if abs(kt - MP.KT) > 0.005 or abs(iq - IQ_FULL) > 0.05:
+            raise SystemExit(f"the firmware's drive constants and the profile's disagree: firmware Kt {kt} / "
+                             f"iq full scale {iq} A against {MP.PROFILE}'s {MP.KT} / {IQ_FULL} A. One of "
+                             f"config.h and cad_src/case/motors.py has moved without the other.")
+        self.build = line
 
 
 # ---------------------------------------------------------------- scenarios
@@ -171,7 +207,8 @@ def summary(h, extra=None):
              dt_ms_p99=round(1e3 * float(np.percentile(dts, 99)), 3), dt_ms_max=round(1e3 * float(dts.max()), 2),
              host_ms_p99=round(float(np.percentile(h.host_ms, 99)), 3) if h.host_ms else None,
              host_ms_max=round(float(max(h.host_ms)), 2) if h.host_ms else None,
-             states=st, enc_events=enc, enc_bits=ENC_BITS, qemu=QEMU_V, final_state=h.link.telem.state_name, motor_fault=h.link.telem.motor_fault, armed=h.link.telem.armed,
+             states=st, enc_events=enc, enc_bits=ENC_BITS, motor=MP.PROFILE, build=getattr(h, "build", None),
+             qemu=QEMU_V, final_state=h.link.telem.state_name, motor_fault=h.link.telem.motor_fault, armed=h.link.telem.armed,
              batt_low=h.link.telem.battery_low, final_pitch_deg=round(math.degrees(tr[-1, 1]), 1))
     if extra: r.update(extra)
     return r
@@ -270,7 +307,8 @@ SCEN = {"standup_face": lambda s: standup(s, +1), "standup_back": lambda s: stan
 
 if __name__ == "__main__":
     QEMU_V = qemu_version()
-    print(f"# {QEMU_V}   flash {FLASH}   encoder {ENC_BITS} bit through a 16-bit reply field", flush=True)
+    print(f"# {QEMU_V}   flash {FLASH}\n# plant {MP.PROFILE}: Kt {MP.KT} N.m/A, iq full scale {IQ_FULL} A, "
+          f"encoder {ENC_BITS} bit through a {MP.M['reply_bits']}-bit reply field", flush=True)
     names = sys.argv[1:] or list(SCEN)
     seeds = [int(x) for x in os.environ.get("SEEDS", "1").split(",")]
     allr = {}

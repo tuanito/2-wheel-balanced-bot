@@ -305,8 +305,17 @@ void setup() {
 #endif
   irb.begin();
 #endif
-  const ImuSample s = imu.read();
+  // Which motor this image was built for, in both halves: config.h's drive constants and
+  // core/motor.hpp's controller limits. main.cpp static_asserts that they agree, so one line is
+  // enough - and the host side (hil/run_hil.py) reads it back to refuse a plant built for the other
+  // motor, the same guard sim/botsim.py applies to libbot.
   char t[120];
+  snprintf(t, sizeof t, "build: motor %s, Kt %.2f N.m/A, iq full scale %.1f A, peak %.2f N.m, w_max %.0f rad/s, "
+                       "gains %s", bot::motor::NAME, (double)KT, (double)IQ_FULL_A, (double)bot::motor::TAU_MAX,
+           (double)bot::motor::W_MAX, bot::Params::MOTOR);
+  event(t);
+
+  const ImuSample s = imu.read();
   snprintf(t, sizeof t, "boot: acc %.2f %.2f %.2f m/s2 (upright & still should be ~0 0 +9.8)  gyro %.3f %.3f %.3f rad/s",
            s.ax, s.ay, s.az, s.gx, s.gy, s.gz);
   event(t);

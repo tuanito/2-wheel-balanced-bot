@@ -5,8 +5,11 @@ Planar wheeled inverted pendulum, generalized coords q = [phi (mean absolute whe
     [ M R l               M l^2 + Jp ] [theta''] = [ M g l theta - tau ]
 tau = sum of both motor torques. State x = [theta, theta', phi-phi_ref, phi'-phi'_ref, integral(phi-phi_ref)].
 """
-import pathlib, numpy as np, mujoco
+import pathlib, sys, numpy as np, mujoco
 from scipy.linalg import solve_discrete_are, expm
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import motor_profile as MP       # noqa: E402  (which motor's plant this designed against)
 
 HERE = pathlib.Path(__file__).parent
 DT = 0.002          # 500 Hz control loop (CAN round trip to both motors ≈ 0.3 ms at 1 Mbps)
@@ -81,6 +84,13 @@ struct Params {{
   static constexpr float KP_YAW    = {kp_yaw:.5f}f;   // N·m per rad of heading error (differential torque)
   static constexpr float KD_YAW    = {kd_yaw:.5f}f;   // N·m per rad/s of yaw-rate error
   static constexpr float WN2       = {wn2:.4f}f;     // body pendulum about the axle, wheels free (tau = 0), (rad/s)^2
+  // The motor whose plant these gains were designed against. Every term above depends on it (the mass
+  // split, the pitch inertia, WN2 - which is the stand-up kick's whole stopping criterion), so a build
+  // that pairs these gains with the other motor's limits is a robot nobody has simulated. Nothing can
+  // static_assert it, because both motors must stay buildable from one checkout and only one gains.hpp
+  // is committed; so the firmware prints it at boot, hil/run_hil.py refuses a mismatch, and
+  // sim/botsim.py refuses one against ROBOT_MOTOR.
+  static constexpr const char* MOTOR = "{MP.PROFILE}";
 }};
 }}  // namespace bot
 """

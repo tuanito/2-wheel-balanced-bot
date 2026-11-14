@@ -57,6 +57,18 @@ if LIB_MOTOR != _motors.PROFILE:
         f"- the other motor's.\n"
         f"  Rebuild it:  ROBOT_MOTOR={_motors.PROFILE} core/build_lib.sh")
 
+# Same again for the GAINS, which are a third place the motor lives: core/gains.hpp is generated from one
+# plant by sim/design_lqr.py and every term in it depends on which motor that was. The library can be built
+# for the right motor and still carry the other one's gains - that is the state the tree is in the moment
+# build_model.py has been re-run for a different ROBOT_MOTOR and design_lqr.py has not.
+LIB.bot_gains_motor.restype = C.c_char_p
+GAINS_MOTOR = LIB.bot_gains_motor().decode()
+if GAINS_MOTOR != _motors.PROFILE:
+    raise SystemExit(
+        f"core/gains.hpp was designed on the {GAINS_MOTOR} plant, but this plant is {_motors.PROFILE}.\n"
+        f"  Regenerate them:  cd sim && ROBOT_MOTOR={_motors.PROFILE} python design_lqr.py 0.06 0.6 10\n"
+        f"                    then ROBOT_MOTOR={_motors.PROFILE} core/build_lib.sh")
+
 STATES = ["DISARMED", "LYING", "LIFT", "COAST", "BALANCE", "FALLEN", "CHARGING", "FAULT", "FLIP_RUN", "FLIP_BRAKE", "FLIP_AIR", "DOCK_LAND", "UNDOCK"]
 CTRL_DT = 0.002
 # The drive model's constants come from the motor profile (sim/motors.py -> cad_src/case/motors.py),

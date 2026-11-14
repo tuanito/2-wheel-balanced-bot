@@ -10,5 +10,12 @@ struct Params {
   static constexpr float KP_YAW    = 0.19872f;   // N·m per rad of heading error (differential torque)
   static constexpr float KD_YAW    = 0.03577f;   // N·m per rad/s of yaw-rate error
   static constexpr float WN2       = 122.3382f;     // body pendulum about the axle, wheels free (tau = 0), (rad/s)^2
+  // The motor whose plant these gains were designed against. Every term above depends on it (the mass
+  // split, the pitch inertia, WN2 - which is the stand-up kick's whole stopping criterion), so a build
+  // that pairs these gains with the other motor's limits is a robot nobody has simulated. Nothing can
+  // static_assert it, because both motors must stay buildable from one checkout and only one gains.hpp
+  // is committed; so the firmware prints it at boot, hil/run_hil.py refuses a mismatch, and
+  // sim/botsim.py refuses one against ROBOT_MOTOR.
+  static constexpr const char* MOTOR = "mf6015";
 };
 }  // namespace bot

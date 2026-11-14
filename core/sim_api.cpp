@@ -1,5 +1,6 @@
 // C API so the simulation (Python ctypes) runs exactly this controller code.
 #include "controller.hpp"
+#include "gains.hpp"      // for Params::MOTOR, which gains these are
 extern "C" {
 void* bot_new() { return new bot::Controller(); }
 void bot_free(void* p) { delete static_cast<bot::Controller*>(p); }
@@ -18,6 +19,7 @@ extern "C" void bot_torque_limit(void* p, float lim) { static_cast<bot::Controll
 // to run on a mismatch: a stale libbot built for the other motor is otherwise undetectable, and
 // it would silently drive the new plant with the old torque limit and speed ceiling.
 extern "C" const char* bot_motor() { return bot::motor::NAME; }
+extern "C" const char* bot_gains_motor() { return bot::Params::MOTOR; }   // which plant gains.hpp was designed on
 extern "C" float bot_motor_tau_max() { return bot::motor::TAU_MAX; }
 extern "C" float bot_motor_w_max() { return bot::motor::W_MAX; }
 extern "C" void bot_flip(void* p, float lie_tq, float kick_t, float air_tq, float catch_p) {

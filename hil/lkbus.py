@@ -1,19 +1,36 @@
-"""Virtual LK MF6015 motors on the MuJoCo robot, shared by the QEMU test (hil/run_hil.py) and the real-CAN bench
+"""Virtual LK motors on the MuJoCo robot, shared by the QEMU test (hil/run_hil.py) and the real-CAN bench
 (bench/bench_hil.py). LK CAN protocol V2: 0x88 on / 0x80 off (reply = echo of the command), 0x9C read state 2 and
-0x280 multi-motor torque (replies [cmd, temp, iq, speed dps, encoder] from 0x141/0x142)."""
+0x280 multi-motor torque (replies [cmd, temp, iq, speed dps, encoder] from 0x141/0x142).
+
+WHICH motor it plays comes from `sim/motor_profile.py`, i.e. from `cad_src/case/motors.py`, selected by
+`ROBOT_MOTOR` exactly as the CAD and the plant are. It used to hard-code the MF6015's drive constants, which
+made this a THIRD copy of Kt and the current limit, and a HIL run against the mf7015 firmware would have been
+measured on a drive that answers like the small motor.
+
+    ROBOT_MOTOR=mf7015 ENC_BITS=16 python3 run_hil.py drive      # the big motor, 16-bit encoder reply
+"""
 import math, os, struct, sys, pathlib
 import numpy as np, mujoco
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sim"))
 from botsim import BotSim, CTRL_DT, KT, I_MAX, quat_pitch      # noqa: E402,F401  (plant, motor model, IMU model)
+import motor_profile as MP                                     # noqa: E402  (the same record the CAD holds)
 
-ENC_BITS = int(os.environ.get("ENC_BITS", "16"))
+# The sensor's resolution and the width of the field it is reported through are two different numbers, and
+# the profile carries both: both LK motors here are 18-bit sensors whose CAN reply field is 16 bits, so the
+# field wraps four times per turn. That is the default BECAUSE it is what the datasheets say the motors do;
+# ENC_BITS=16 asks for a drive that pre-scales its reply to the field instead, which is what the bench has to
+# settle. See lk_motor.cpp's enc_mod_ vs enc_per_turn_.
+ENC_BITS = int(os.environ.get("ENC_BITS", MP.M["encoder_bits"]))
 ENC_RANGE = 1 << ENC_BITS                                       # counts per TURN of the sensor
-ENC_FIELD = 1 << 16                                             # the CAN reply's encoder field is 16 bits, always
+ENC_FIELD = 1 << MP.M["reply_bits"]                             # how wide the reply's encoder field is
 ID_L, ID_R, ID_MULTI = 0x141, 0x142, 0x280
 DIR = {ID_L: +1, ID_R: -1}                                      # must match config.h DIR_LEFT/DIR_RIGHT
-IQ_FULL, IQ_MAX = 16.5, 2048
+# IQ_MAX is the PROTOCOL's full-scale torque command (LK V2: +-2048), the same on every LK drive. IQ_FULL is
+# the current that full scale means, a property of the DRIVE - config.h's IQ_FULL_A, which the firmware
+# announces at boot and run_hil.py checks against this.
+IQ_FULL, IQ_MAX = MP.I_MAX, 2048
 
 
 def crc(p):
