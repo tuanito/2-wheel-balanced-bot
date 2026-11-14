@@ -106,6 +106,7 @@ static void encoder_test() {
   Serial.printf("\nmotor %u encoder: turn the wheel slowly by hand, about one full turn, within 10 s...\n", sel);
   const uint8_t d[8] = {0x9C, 0, 0, 0, 0, 0, 0, 0};
   uint16_t lo = 65535, hi = 0; int32_t biggest = 0; uint16_t prev = 0; bool first = true;
+  int wraps = 0;                       // how many times the reply FIELD wrapped during the turn
   for (uint32_t t0 = millis(); millis() - t0 < 10000;) {
     send(0x140 + sel, d);
     twai_message_t m;
@@ -113,15 +114,35 @@ static void encoder_test() {
       if (m.identifier == 0x140u + sel && m.data[0] == 0x9C) {
         const uint16_t e = (uint16_t)(m.data[6] | (m.data[7] << 8));
         lo = std::min(lo, e); hi = std::max(hi, e);
-        if (!first) { const int32_t j = abs((int32_t)e - prev); biggest = std::max(biggest, j); }
+        if (!first) {
+          const int32_t j = abs((int32_t)e - prev);
+          biggest = std::max(biggest, j);
+          if (j > 8192) ++wraps;       // a jump that big in a hand turn is the field rolling over
+        }
         prev = e; first = false;
       }
     delay(5);
   }
-  const uint32_t range = hi > 32767 ? 65536 : hi > 16383 ? 32768 : 16384;
-  Serial.printf("  encoder min %u max %u, largest jump %ld -> %u counts per turn (%s)\n", lo, hi, (long)biggest, (unsigned)range,
-                biggest > 8192 ? "wrap seen: sure" : "no wrap seen: turn further to be sure");
-  Serial.println("  (the robot firmware detects this by itself; this is a cross-check)");
+  // The field's modulus and the counts per MECHANICAL TURN are not the same number. They match for
+  // a 14/15/16-bit encoder, whose whole turn fits in the reply field and so wraps it once. A finer
+  // sensor reporting its low 16 bits wraps the field several times a turn - 4x for 18 bits - and
+  // reading the modulus as the counts per turn makes every angle, speed and odometry figure come
+  // out by that factor, with nothing faulted. So count the wraps, do not assume one.
+  const uint32_t field = hi > 32767 ? 65536 : hi > 16383 ? 32768 : 16384;
+  Serial.printf("  encoder min %u max %u, largest jump %ld, %d field wrap(s) in that turn\n",
+                lo, hi, (long)biggest, wraps);
+  Serial.printf("  -> reply field modulus %u\n", (unsigned)field);
+  if (wraps <= 1) {
+    Serial.printf("  -> %u counts per turn (the turn fits in the field: an ordinary %d-bit encoder)\n",
+                  (unsigned)field, field == 65536 ? 16 : field == 32768 ? 15 : 14);
+    if (biggest <= 8192) Serial.println("     no wrap seen: turn a full revolution to be sure");
+  } else {
+    Serial.printf("  -> about %u counts per turn: the sensor is FINER than the 16-bit field and wraps\n"
+                  "     it %d times a turn. 4 wraps of 65536 = 262144 = an 18-bit sensor. The firmware\n"
+                  "     must use this, not the modulus, or every reading is %dx too small.\n",
+                  (unsigned)field * (unsigned)wraps, wraps, wraps);
+  }
+  Serial.println("  (the robot firmware detects this by itself from its own speed reports; this is a cross-check)");
 }
 
 static void help() {

@@ -37,12 +37,25 @@ class LkMotors {
   uint32_t can_event = 0;            // 1 = bus-off, recovery started; 2 = recovered and restarted (main reports, then clears)
   uint32_t recovered_after_ms = 0;   // duration of the last bus-off
   MotorState left, right;
-  uint32_t enc_range() const { return enc_range_; }   // counts per turn: 16384 / 32768 / 65536, detected at run time
+  // Counts per MECHANICAL TURN: what converts counts to radians. 16384 / 32768 / 65536 / 262144,
+  // detected at run time. NOT the same thing as the reply field's wrap modulus below - they differ
+  // when a higher-resolution sensor reports its low 16 bits, which is the case this split exists for.
+  uint32_t enc_range() const { return enc_per_turn_; }
+  // The modulus the 16-bit reply field wraps at: what the unwrap arithmetic needs.
+  uint32_t enc_mod() const { return enc_mod_; }
   bool enc_range_known() const { return enc_locked_; }
-  int enc_event = 0;                                  // set when the range gets locked (main reports it once)
+  // True once the counts-per-turn has been CONFIRMED against the drive's own reported speed, rather
+  // than merely assumed equal to the wrap modulus. An 18-bit sensor truncated to the 16-bit reply
+  // field wraps 4x per turn, so the wrap alone would say 65536 and every angle, speed and odometry
+  // reading would come out 4x too small with nothing faulted.
+  bool enc_turn_confirmed() const { return turn_confirmed_; }
+  int enc_event = 0;                                  // set when the range gets locked or corrected (main reports it)
  private:
-  uint32_t enc_range_ = (uint32_t)ENC_COUNTS;
-  bool enc_locked_ = false;
+  uint32_t enc_mod_ = (uint32_t)ENC_COUNTS;        // reply field wrap modulus
+  uint32_t enc_per_turn_ = (uint32_t)ENC_COUNTS;   // counts per mechanical turn
+  bool mod_locked_ = false;                        // a wrap has measured the modulus directly
+  bool enc_locked_ = false;                        // counts per turn is known (wrap-implied or confirmed)
+  bool turn_confirmed_ = false;                    // ... and confirmed against the reported speed
   float sum_counts_ = 0, sum_deg_ = 0;                // for the speed-ratio detection
   void learn_range(int32_t d, float dps, float dt);
   void send(uint32_t id, const uint8_t d[8]);

@@ -18,6 +18,16 @@
 
 static_assert(CONTROL_PERIOD_US == (uint32_t)(bot::Params::DT * 1e6f + 0.5f), "control period must match the LQR design");
 
+// One robot, one motor, and the choice is made in two files: config.h's FITTED_MOTOR carries the
+// DRIVE's side (Kt, what an iq command means), core/motor.hpp's BOT_MOTOR_* carries the
+// CONTROLLER's (torque limit, speed ceiling, rotor inertia). Setting one without the other builds a
+// robot that commands torques its controller does not believe in. Measured cost of exactly that
+// mismatch in the simulator: the stand-up scored 0/30 instead of 30/30, and it looked for all the
+// world like a physical motor speed ceiling. Make it a compile error instead.
+static_assert(KT == bot::motor::KT,
+              "config.h's FITTED_MOTOR and core/motor.hpp's BOT_MOTOR_* disagree about which motor "
+              "is fitted. Set both: -D FITTED_MOTOR=MOTOR_MF7015 -D BOT_MOTOR_MF7015");
+
 static LkMotors motors;
 static Imu imu;
 #if FRONT_SENSOR == FRONT_TOF

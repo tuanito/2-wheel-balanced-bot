@@ -92,6 +92,44 @@ static void test_ignored_frames() {
         "0x88/0x80 echoes, foreign IDs and short frames ignored");
 }
 
+// Spin with an 18-bit sensor whose count is reported through the 16-bit field: counts per turn is
+// 262144, the field still wraps at 65536, so it wraps four times a turn. The wrap detector alone
+// reads that as a 16-bit encoder and every angle comes out 4x too small, silently.
+static void spin18(LkMotors& mm, uint32_t id, float dps, int n, double& enc_f) {
+  const double per_turn = 262144.0;
+  for (int i = 0; i < n; ++i) {
+    enc_f += dps * 0.002 / 360.0 * per_turn;
+    double w = std::fmod(enc_f, per_turn); if (w < 0) w += per_turn;
+    const uint16_t e = (uint16_t)((uint32_t)std::lround(w) & 0xFFFFu);   // the low 16 bits only
+    reply(id, 0xA1, 30, 0, (int16_t)std::lround(dps), e);
+    fake::us += 2000; mm.poll();
+  }
+}
+
+static void test_18bit(float dps, const char* what) {
+  reset(); LkMotors m; m.begin();
+  double enc = 1000.0;
+  reply(CAN_ID_LEFT, 0xA1, 30, 0, 0, 1000); m.poll();
+  for (int i = 0; i < 3000; ++i) spin18(m, CAN_ID_LEFT, dps, 1, enc);   // 6 s
+  CHECK(m.enc_range() == 262144u, "%s: counts per turn %u (expected 262144)", what, m.enc_range());
+  CHECK(m.enc_mod() == 65536u, "%s: field modulus %u (expected 65536)", what, m.enc_mod());
+  CHECK(m.enc_turn_confirmed(), "%s: counts per turn confirmed against the reported speed", what);
+  // The angle must track the truth, not a quarter of it. There is a one-off offset, as in the
+  // 14/15/16-bit cases: motion before the lock is counted at the starting guess. Here the guess
+  // (65536) UNDER-states counts per turn by 4x, so that motion is over-credited 4x and the offset is
+  // bounded by 3 x the 90 deg learning window - not under it, as when the guess is too large.
+  const float total = DIR_LEFT * dps * 0.002f * 3000 * PI / 180.f;
+  CHECK(std::fabs(m.left.angle - total) < 3.f * PI / 2 + 0.05f,
+        "%s: angle %.2f rad, true %.2f, offset %.2f (a 4x error would read %.2f)",
+        what, m.left.angle, total, m.left.angle - total, total / 4);
+  // and after the lock it must be exact: no drift, no scale error
+  const float a0 = m.left.angle;
+  for (int i = 0; i < 500; ++i) spin18(m, CAN_ID_LEFT, dps, 1, enc);
+  const float after = DIR_LEFT * dps * 0.002f * 500 * PI / 180.f;
+  CHECK(NEAR(m.left.angle - a0, after, 0.01), "%s: exact after detection: %.3f rad, expected %.3f",
+        what, m.left.angle - a0, after);
+}
+
 static void test_unwrap(int bits, float dps, const char* what) {
   reset(); LkMotors m; m.begin();
   double enc = 1000.0;
@@ -115,6 +153,11 @@ static void test_ranges() {
     std::snprintf(w, sizeof w, "%d-bit forward", bits); test_unwrap(bits, 720.f, w);
     std::snprintf(w, sizeof w, "%d-bit reverse", bits); test_unwrap(bits, -900.f, w);
   }
+  // An 18-bit sensor through the 16-bit reply field. This is the MF7015 question: if its drive
+  // reports this way, the wrap detector alone would lock 65536 and the robot would run on angles,
+  // speeds and odometry that are all 4x too small, with nothing faulted.
+  test_18bit(720.f, "18-bit through a 16-bit field, forward");
+  test_18bit(-900.f, "18-bit through a 16-bit field, reverse");
 }
 
 static void test_ratio_before_wrap() {

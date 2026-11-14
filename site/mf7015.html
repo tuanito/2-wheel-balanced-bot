@@ -74,7 +74,22 @@ still the MF6015's, and the motor has not been bought or bench-tested: the encod
 drive's current limit and the wheel directions all need a bench. Pick the LKMTECH
 <b>MF7015-V2</b> with the DF70V2 drive (7.4&ndash;32&nbsp;V, LK V2 protocol), not the MyActuator
 RMD-L-7015-200 (MC200: 12&ndash;24&nbsp;V and V3 &mdash; a 6S pack at 25.2&nbsp;V over-volts it).</p>
-<p style="margin:0;font-size:13px"><a href="index.html">&larr; back to the V1.1 build (MF6015)</a></p>
+<h3>Standing up, five times</h3>
+<p style="margin:0 0 8px;font-size:13px">The same scripted stand-up the MF6015 uses, with nothing
+re-tuned but the LQR gains and the torque limit: <b>30/30 face-down and 30/30 back-down, first attempt
+on every robot</b>, against 25/30 and 23/30 before. The bar bottom right is the wheel speed
+<i>relative to the body</i>, which is what the motor's back-EMF and the runaway guard both see, and the
+red line is that guard. Four of these five clips cross it &mdash; the kick saturates the motor on
+purpose, which is exactly why the guard had to be restricted to the balancing state. Before that fix
+these were aborted mid-kick.</p>
+<div style="display:grid;gap:12px">
+<figure style="margin:0"><video controls playsinline preload="none" poster="files/v11/standup_mf7015_1-facedown.jpg" src="files/v11/standup_mf7015_1-facedown.mp4" style="width:100%;border-radius:10px;background:#000"></video><figcaption style="font-size:12.5px;color:var(--mut);margin-top:4px">1 &middot; Face-down, nominal robot. Caught 0.91 s in, peak 75.5 rad/s (101% of the guard).</figcaption></figure>
+<figure style="margin:0"><video controls playsinline preload="none" poster="files/v11/standup_mf7015_2-backdown.jpg" src="files/v11/standup_mf7015_2-backdown.mp4" style="width:100%;border-radius:10px;background:#000"></video><figcaption style="font-size:12.5px;color:var(--mut);margin-top:4px">2 &middot; Back-down, nominal robot. Peak 72.5 rad/s (97%).</figcaption></figure>
+<figure style="margin:0"><video controls playsinline preload="none" poster="files/v11/standup_mf7015_3-facedown-delay2.jpg" src="files/v11/standup_mf7015_3-facedown-delay2.mp4" style="width:100%;border-radius:10px;background:#000"></video><figcaption style="font-size:12.5px;color:var(--mut);margin-top:4px">3 &middot; Face-down on a randomised robot drawing <b>two control periods of CAN latency</b> &mdash; the draw that breaks high-gain loops. Peak 81.7 rad/s (109%).</figcaption></figure>
+<figure style="margin:0"><video controls playsinline preload="none" poster="files/v11/standup_mf7015_4-backdown-random.jpg" src="files/v11/standup_mf7015_4-backdown-random.mp4" style="width:100%;border-radius:10px;background:#000"></video><figcaption style="font-size:12.5px;color:var(--mut);margin-top:4px">4 &middot; Back-down, randomised mass, IMU bias and torque gain. Peak 77.7 rad/s (104%).</figcaption></figure>
+<figure style="margin:0"><video controls playsinline preload="none" poster="files/v11/standup_mf7015_5-knocked-over.jpg" src="files/v11/standup_mf7015_5-knocked-over.mp4" style="width:100%;border-radius:10px;background:#000"></video><figcaption style="font-size:12.5px;color:var(--mut);margin-top:4px">5 &middot; Balancing, shoved over at 2 N&middot;s, and up again unaided. Peak 33.3 rad/s (44%).</figcaption></figure>
+</div>
+<p style="margin:12px 0 0;font-size:13px"><a href="index.html">&larr; back to the V1.1 build (MF6015)</a></p>
 </section>
 </div>
 <script type="module">

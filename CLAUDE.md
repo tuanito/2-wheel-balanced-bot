@@ -251,6 +251,35 @@ known Pi OTG/Dupont contacts) → `export_print_data.py` → the viewer exports 
   handicapped by the guard above; with it fixed the scripted recipe is 30/30 and 30/30 too. The
   learned policy may still win on handover quality (1.77 rad/s against 3.66) and repeatability - that
   part was measured separately - but the headline margin needs re-measuring before it is quoted.
+- **The encoder's reply FIELD and its counts per TURN are two different numbers, and conflating
+  them is a silent 4x error in everything.** `lk_motor.cpp` reads a 16-bit field out of the CAN
+  reply and used one variable, `enc_range_`, as both the modulus that field wraps at AND the counts
+  per mechanical turn. Those are equal for a 14/15/16-bit encoder, whose whole turn fits in the
+  field. They are NOT equal for a finer sensor reporting its low 16 bits: an 18-bit count wraps the
+  field four times a turn, the wrap detector reads that as "65536 counts per turn", and every angle,
+  speed and odometry reading comes out **4x too small with nothing faulted**. Now split:
+  `enc_mod_` (set by the wrap, used for unwrapping) and `enc_per_turn_` (set by the ratio of counts
+  to the drive's own reported speed, used for radians), with 262144 added to the candidates. The
+  ratio outranks the wrap and keeps running after the lock, so a wrong guess self-corrects inside a
+  quarter turn and raises `enc_event`; overriding a value already in use needs a full turn and a
+  tighter tolerance so wheelspin cannot move it. Two gotchas found while doing it: the wrap detector
+  and the ratio need SEPARATE lock flags or each blocks the other (`mod_locked_` vs `enc_locked_`),
+  and the one-off offset before the lock is bounded by 3x the learning window here, not under it,
+  because the starting guess under-states counts per turn instead of over-stating it.
+  `test_host/test_lk_motor.cpp` has the 18-bit-through-a-16-bit-field case both directions, and
+  `src/bench/can_probe.cpp` counts field wraps per hand turn instead of assuming one.
+- **The motor is chosen in two files, and they must not be able to disagree.**
+  `firmware/esp32/include/config.h`'s `FITTED_MOTOR` carries the DRIVE's half (`KT`, what an iq
+  command of 2048 means in amps); `core/motor.hpp`'s `BOT_MOTOR_*` carries the CONTROLLER's half
+  (torque limit, speed ceiling, rotor inertia). Setting one without the other builds a robot that
+  commands torques its own controller does not believe in - the firmware version of the mistake that
+  scored the MF7015 0/30 in the sim. `main.cpp` static_asserts `KT == bot::motor::KT`, and
+  `test_host/run_tests.sh` compiles that assert FOUR ways: both matched pairs must build, both
+  crossed pairs must not. Build the big motor with
+  `-D FITTED_MOTOR=MOTOR_MF7015 -D BOT_MOTOR_MF7015`.
+  **`IQ_FULL_A` is a property of the DRIVE, not the motor**, and the MF7015's 15 A is its published
+  instantaneous rating, not a measurement: the whole 3.8 N·m rests on it. Bench-check it against the
+  reported iq before trusting any torque figure on that build.
 - **`sim/run_tests.py` does NOT set the torque limit, so changing the plant without changing
   `controller.hpp` measures a motor that does not exist.** `motor_compare.py`, `wobble_compare.py`
   and `motor_margin.py` all call `LIB.bot_torque_limit(...)`; `run_tests.py` never does, and uses

@@ -56,18 +56,44 @@ constexpr float VBAT_OVER     = 26.8f;   // braking energy with nowhere to go (B
 constexpr float VBAT_LOW      = 20.4f;   // 3.4 V/cell under load: disarm after 5 s below this
 constexpr float CHARGE_DETECT = 15.f;    // V at the pad / USB VBUS that means "charger connected"
 
-// ---------------- motors (LK MF6015-V2, CAN 1 Mbps) ----------------
+// ---------------- motors (LK hub motors, CAN 1 Mbps) ----------------
+// Which motor is fitted, in the FRONT_SENSOR style. It also has to reach core/motor.hpp, which holds
+// the CONTROLLER's side of the same choice (torque limit, speed ceiling, rotor inertia), so building
+// for the big motor means BOTH defines:
+//     build_flags = -D FITTED_MOTOR=MOTOR_MF7015 -D BOT_MOTOR_MF7015
+// main.cpp static_asserts that the two agree, so setting only one does not build.
+#define MOTOR_MF6015 0
+#define MOTOR_MF7015 1
+#ifndef FITTED_MOTOR
+#define FITTED_MOTOR MOTOR_MF6015
+#endif
+
 constexpr uint32_t CAN_ID_LEFT  = 0x141;   // motor ID 1 (set with LK's PC tool or the ID switch)
 constexpr uint32_t CAN_ID_RIGHT = 0x142;   // motor ID 2
 constexpr uint32_t CAN_ID_MULTI = 0x280;   // multi-motor torque command (motors 1-4 in one frame)
 // The motors face opposite ways. +1/-1 so that "positive torque" drives the robot forward on both sides. VERIFY on the
 // bench: wheels off the ground, send +0.2 N·m to each, both must turn so the robot would roll forward.
+// This is a MOUNTING fact, not a motor fact: re-verify it after any swap, both signs.
 constexpr int DIR_LEFT  = +1;
 constexpr int DIR_RIGHT = -1;
+
+#if FITTED_MOTOR == MOTOR_MF7015
+constexpr float KT          = 0.28f;      // N·m/A (23T winding, L-7015 parameter sheet)
+// BENCH-VERIFY. IQ_FULL_A is what the iq command 2048 means to THE DRIVE, not a property of the
+// motor, and nothing in the 23T's published data fixes it. 15 A is its instantaneous rating, used
+// here so KT * IQ_FULL_A lands on the 3.8 N·m the controller is tuned for. If the DF70V2 scales iq
+// differently, every torque the robot commands is wrong by that ratio and nothing will say so:
+// check it against the reported iq on the bench before trusting any of this.
+constexpr float IQ_FULL_A   = 15.0f;
+#else
 constexpr float KT          = 0.14f;      // N·m/A (15T winding)
 constexpr float IQ_FULL_A   = 16.5f;      // iq command 2048 = 16.5 A
+#endif
 constexpr int   IQ_MAX_CMD  = 2048;
-constexpr float ENC_COUNTS  = 65536.f;    // starting guess only: the firmware detects 14/15/16-bit at run time (boot log says which)
+// Starting guess only: the firmware detects the counts per turn at run time and the boot log says
+// which. It separates the reply field's 16-bit wrap modulus from the counts per turn, because an
+// 18-bit sensor reporting its low 16 bits wraps four times a turn - see src/lk_motor.cpp.
+constexpr float ENC_COUNTS  = 65536.f;
 constexpr uint32_t CAN_TIMEOUT_MS = 20;   // no reply for this long -> motors off, FAULT
 
 // ---------------- IMU (MPU6050 / GY-521) ----------------
